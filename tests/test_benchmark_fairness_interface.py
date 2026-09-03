@@ -1,7 +1,7 @@
 import numpy as np
 
 import iscai.simulation.pc_fmcw_benchmark as benchmark
-from iscai.planning.planners import PlannerResult
+from iscai.planning.planners import PlanningResult
 from iscai.simulation.scenario import Scenario
 
 
@@ -18,7 +18,7 @@ class _RecordingPlanner:
                 "safety_target_prediction": kwargs.get("safety_target_prediction"),
             }
         )
-        return PlannerResult(None, np.inf, None)
+        return PlanningResult(None, np.inf, None)
 
 
 class _DummyLink:
