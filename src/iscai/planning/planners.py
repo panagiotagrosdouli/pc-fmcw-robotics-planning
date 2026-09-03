@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from .costs import mobility_cost, connectivity_cost
-from .feasibility import filter_feasible
+from .feasibility import filter_feasible, filter_dynamic_target
 from .trajectory import generate_candidates
 
 
@@ -15,22 +15,38 @@ class PlanningResult:
     forecast: object | None
 
 
+def _target_xy(target_prediction):
+    if target_prediction is None:
+        return None
+    if isinstance(target_prediction, dict):
+        if "mean_xy" not in target_prediction:
+            raise ValueError("target prediction dict must contain mean_xy")
+        target = np.asarray(target_prediction["mean_xy"], dtype=float)
+    else:
+        target = np.asarray(target_prediction, dtype=float)
+    if target.ndim != 2 or target.shape[1] < 2:
+        raise ValueError("target prediction must have shape (H, >=2)")
+    return target[:, :2]
+
+
 class _BasePlanner:
-    def __init__(self, link_predictor=None, connectivity_weight=1.0, vehicle_params=None):
+    def __init__(self, link_predictor=None, connectivity_weight=1.0, vehicle_params=None,
+                 target_clearance=2.0):
         self.link_predictor = link_predictor
         self.connectivity_weight = connectivity_weight
         self.vehicle_params = vehicle_params
+        self.target_clearance = float(target_clearance)
 
-    def _candidates(self, ego_state, obstacles=None):
+    def _candidates(self, ego_state, obstacles=None, target_prediction=None):
         candidates = generate_candidates(ego_state, params=self.vehicle_params)
-        return filter_feasible(candidates, obstacles=obstacles)
+        candidates = filter_feasible(candidates, obstacles=obstacles)
+        return filter_dynamic_target(candidates, _target_xy(target_prediction), self.target_clearance)
 
 
 class MobilityOnlyPlanner(_BasePlanner):
-    """P0: ignores communication when selecting motion."""
-
+    """P0: ignores communication in the objective but retains common safety filters."""
     def plan(self, ego_state, target_prediction=None, obstacles=None, reference_speed=None):
-        candidates = self._candidates(ego_state, obstacles)
+        candidates = self._candidates(ego_state, obstacles, target_prediction)
         if not candidates:
             return PlanningResult(None, float("inf"), None)
         best = min(candidates, key=lambda c: mobility_cost(c, reference_speed))
@@ -38,10 +54,9 @@ class MobilityOnlyPlanner(_BasePlanner):
 
 
 class ReactiveConnectivityPlanner(_BasePlanner):
-    """P1: uses current/myopic target geometry rather than future target motion."""
-
+    """P1: current/myopic connectivity scoring with common predicted safety."""
     def plan(self, ego_state, target_prediction, obstacles=None, reference_speed=None):
-        candidates = self._candidates(ego_state, obstacles)
+        candidates = self._candidates(ego_state, obstacles, target_prediction)
         if not candidates:
             return PlanningResult(None, float("inf"), None)
         target = np.asarray(target_prediction, dtype=float)
@@ -57,12 +72,10 @@ class ReactiveConnectivityPlanner(_BasePlanner):
 
 class PredictiveConnectivityPlanner(_BasePlanner):
     """P2: trajectory-conditioned prediction of future link quality."""
-
     def plan(self, ego_state, target_prediction, obstacles=None, reference_speed=None):
-        candidates = self._candidates(ego_state, obstacles)
+        candidates = self._candidates(ego_state, obstacles, target_prediction)
         if not candidates:
             return PlanningResult(None, float("inf"), None)
-
         best = None
         target = np.asarray(target_prediction, dtype=float)
         for candidate in candidates:
@@ -76,5 +89,4 @@ class PredictiveConnectivityPlanner(_BasePlanner):
 
 class OracleConnectivityPlanner(PredictiveConnectivityPlanner):
     """P4: upper-bound planner using simulator ground-truth future target motion."""
-
     pass
