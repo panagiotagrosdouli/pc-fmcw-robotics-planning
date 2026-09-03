@@ -1,100 +1,62 @@
 # PC-FMCW Robotics Planning
 
-Predictive connectivity-aware autonomous motion planning for vehicles using PC-FMCW/DPSK optical-link forecasts.
+Predictive connectivity-aware autonomous motion planning built as a robotics extension of the upstream PC-FMCW/DPSK ISCAI study.
 
-## Research objective
+## End-to-end research story
 
-This repository implements the robotics extension of the PC-FMCW predictive-communications pipeline. The core idea is a closed-loop planner that evaluates candidate ego trajectories using predicted future communication quality and selects motion under hard vehicle, road, collision, and safety constraints.
+`PC-FMCW sensing/communication → target tracking → target prediction → trajectory-conditioned connectivity forecast → P0–P4 ego-motion planning → receding-horizon closed-loop evaluation`
 
-The upstream PC-FMCW/communications model is treated as frozen as far as possible. The new contribution is the **ego motion decision layer**, not scheduling or a redesign of the PHY.
+The upstream reference is `PanagiotaGr/ISCAI_pc_fmcw`. Its Module 0 parameters are explicitly bridged into this repository: 193.4 THz carrier, 10 GHz chirp bandwidth, 10 µs chirp duration and 1 Gbit/s data rate. The robotics contribution is the ego-motion decision layer, not a redesign of the PHY.
 
-## Planning pipeline
+## Dataset-free core study
 
-1. PC-FMCW sensing and tracking
-2. Target-motion prediction
-3. Candidate ego-trajectory generation
-4. Trajectory-conditioned future link prediction
-5. Safety / mobility / connectivity evaluation
-6. Receding-horizon motion selection
-7. Execute the first control and replan
+The primary paper experiment no longer requires CMHT, Rad-R, or another external driving dataset. Target motion and ego motion are generated in controlled parameterized simulation. This makes the benchmark reproducible and keeps the scientific question focused on predictive connectivity-aware planning.
+
+The current geometry-to-SNR/outage model is a **PC-FMCW-informed simulation model**, not measured optical-link data. Waveform constants are traced to the upstream notebook; propagation/pointing assumptions are declared separately in `src/iscai/connectivity/pc_fmcw_bridge.py`. The benchmark must not be described as a real-world or real-vehicle validation.
 
 ## Planners
 
-- **P0 — Mobility-only:** no connectivity objective
-- **P1 — Reactive connectivity-aware:** current/myopic link information
-- **P2 — Predictive connectivity-aware:** predicted target motion + predicted future link state
-- **P3 — Predictive risk-aware:** uncertainty-aware extension point
-- **P4 — Oracle:** simulator ground-truth upper bound
+- **P0 — Mobility-only:** ignores connectivity.
+- **P1 — Reactive:** uses current/myopic target geometry.
+- **P2 — Predictive:** uses a future target-trajectory estimate.
+- **P3 — Risk-aware predictive:** uses the same mean predictor as P2 plus explicit uncertainty propagated through the same link model.
+- **P4 — Oracle:** simulation-only upper bound with access to future target truth.
 
-All planners use the same candidate generator and hard safety filters.
+P0–P3 do not receive future simulator truth. P2 and P3 share the same constant-velocity mean prediction so their comparison isolates risk treatment.
 
-## Primary research questions
+## Simulation benchmark
 
-- Can predicted future PC-FMCW/DPSK link quality proactively improve autonomous motion decisions?
-- How much mobility cost is required for a given connectivity gain?
-- At what prediction horizon and prediction-error regime does proactive planning cease to be beneficial?
+The repository contains five primary scenario families: following/lateral-offset, lane choice, overtake, intersection turn and occluding cut-in. Evaluation records modeled outage probability, SNR, DPSK BER/goodput model outputs, path length, progress, minimum target distance, static-obstacle clearance, collision indicator and planner feasibility failures.
 
-## Current implementation
-
-The Stage 9 core is now executable as a deterministic simulation prototype:
-
-- kinematic bicycle dynamics
-- Frenet-inspired candidate trajectory library
-- hard road/speed/obstacle filtering with obstacle radii
-- trajectory-conditioned geometry-based link forecast
-- P0/P1/P2/P4 planner baselines
-- receding-horizon closed-loop episode runner
-- five primary synthetic scenario families: following/lateral-offset, lane choice, overtake, intersection turn, and occluding cut-in
-- CSV experiment output and an initial outage-vs-travel-time figure under `results/`
-
-The geometry predictor is intentionally a configurable surrogate. It must be replaced or calibrated against the frozen PC-FMCW predictor/PHY model before making final scientific claims.
-
-## Run the primary experiment
-
-From the repository root:
+Run the lightweight benchmark:
 
 ```bash
 pip install -r requirements.txt
-python scripts/run_stage9.py
+python scripts/run_pc_fmcw_robotics_benchmark.py --seeds 10
 ```
 
-The script compares P0/P1/P2/P4 on the five deterministic scenarios and writes:
+Run the frozen paper manifest:
 
-```text
-results/stage9_primary.csv
-results/stage9_summary.csv
-results/stage9_outage_vs_travel_time.png
+```bash
+python scripts/run_paper_experiments.py
 ```
 
-## Repository structure
+The default paper configuration is `configs/experiments/paper.yaml` and uses 30 simulation seeds. Outputs are written under `results/pc_fmcw_sim/` with a machine-readable provenance manifest.
 
-```text
-pc-fmcw-robotics-planning/
-├── notebooks/
-├── src/iscai/
-│   ├── phy/
-│   ├── tracking/
-│   ├── prediction/
-│   ├── planning/
-│   ├── simulation/
-│   └── evaluation/
-├── configs/stage9/
-├── scripts/
-├── tests/
-├── results/
-└── requirements.txt
-```
+## Legacy / optional data integrations
+
+CMHT and Rad-R integration code remains in the repository as optional/legacy validation infrastructure. It is not required by the dataset-free core experiment and must not be mixed into claims about measured optical PC-FMCW communication.
 
 ## Scientific scope
 
-The first paper target is simulation-first and CPU-friendly. The planned experimental story is predictive versus reactive connectivity-aware motion planning, with hard safety constraints, mobility-connectivity Pareto analysis, and robustness to prediction horizon and prediction error.
+The core claim tested by this repository is whether **trajectory-conditioned future connectivity prediction can improve autonomous motion decisions relative to mobility-only and reactive baselines, and at what mobility/safety cost**. Synthetic observation/prediction perturbations are simulation errors, not physical sensor measurements.
 
-Higher-fidelity CommonRoad/CARLA integration, probabilistic uncertainty, and HIL/real-world validation are later stages rather than prerequisites for the core contribution.
+See `docs/PC_FMCW_ROBOTICS_BRIDGE.md` for the complete claim boundary and integration protocol.
 
 ## Reproducibility
 
-Experiment configurations, fixed scenarios, machine-readable results, unit tests, and figure-generation scripts are kept in the repository so that experiments can be regenerated from controlled inputs.
+The repository keeps deterministic scenario generation, fixed experiment configuration, seeded uncertainty, P0–P4 baselines, unit/integration tests, CI smoke experiments, CSV outputs and provenance manifests under version control.
 
 ## Status
 
-🚧 **Research prototype — Stage 9 closed-loop core + primary benchmark implemented; next: prediction-error/horizon sweeps and frozen PC-FMCW model integration.**
+🚧 **Dataset-free PC-FMCW-informed P0–P4 closed-loop benchmark implemented. Numerical paper claims are only made after the configured experiment suite has actually executed successfully.**
