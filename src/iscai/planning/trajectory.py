@@ -30,9 +30,18 @@ def generate_candidates(
     speed_offsets=(-2.0, 0.0, 2.0),
     params: VehicleParams | None = None,
 ) -> list[CandidateTrajectory]:
-    """Generate a compact Frenet-inspired candidate library on a straight reference lane."""
+    """Generate candidates in the ego-heading frame.
+
+    Longitudinal motion follows the bicycle rollout. The quintic lateral
+    displacement is applied along the unit normal to the *initial ego
+    heading*, rather than the global y axis. Consequently, rotating and
+    translating a scene does not redefine what the planner means by a
+    left/right candidate on the local straight reference lane.
+    """
     params = params or VehicleParams()
     state = np.asarray(state, dtype=float)
+    heading = float(state[2])
+    normal = np.array([-np.sin(heading), np.cos(heading)])
     candidates = []
     for lateral_offset in lateral_offsets:
         for horizon in horizons:
@@ -49,6 +58,6 @@ def generate_candidates(
                 controls[:, 1] = np.arctan2(lateral_acc[:-1] * params.wheelbase, max(state[3], 0.1) ** 2)
                 controls[:, 1] = np.clip(controls[:, 1], -params.max_steering, params.max_steering)
                 states = rollout(state, controls, params)
-                states[:, 1] += lateral
+                states[:, :2] += lateral[:, None] * normal[None, :]
                 candidates.append(CandidateTrajectory(states, controls, horizon, lateral_offset, target_speed))
     return candidates
