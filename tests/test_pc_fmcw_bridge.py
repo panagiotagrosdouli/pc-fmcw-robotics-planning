@@ -10,7 +10,7 @@ def _ego(x=0.0, y=0.0, yaw=0.0):
     return np.array([[x, y, yaw, 10.0]], dtype=float)
 
 
-def test_reference_parameters_match_upstream_module_zero():
+def test_reference_parameters_are_explicit_and_self_consistent():
     p = PCFMCWReferenceParameters()
     assert np.isclose(p.carrier_frequency_hz, 193.4e12)
     assert np.isclose(p.chirp_bandwidth_hz, 10e9)
@@ -32,8 +32,10 @@ def test_range_and_pointing_geometry_change_forecast():
     assert near.outage_probability[0] < far.outage_probability[0]
 
 
-def test_provenance_does_not_claim_measurements():
+def test_provenance_does_not_claim_unverified_traceability_or_measurements():
     provenance = PCFMCWPlanningLinkPredictor().provenance()
-    assert provenance["waveform_parameters_traced"] is True
+    assert provenance["reference_parameters_explicit"] is True
+    assert provenance["upstream_parameter_provenance_verified"] is False
+    assert provenance["optical_geometry_model"] == "simulation_assumption"
     assert provenance["measured_optical_link"] is False
     assert provenance["real_world_validation"] is False
