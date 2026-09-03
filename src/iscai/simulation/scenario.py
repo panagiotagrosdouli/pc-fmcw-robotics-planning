@@ -31,7 +31,7 @@ def following_lateral_offset(steps=41, dt=0.1):
 def lane_choice(steps=41, dt=0.1):
     t = np.arange(steps) * dt
     target = _target(t, x0=18.0, speed=7.0, y=1.0)
-    obstacles = [(15.0, 0.0), (22.0, 0.0)]
+    obstacles = [(15.0, 0.0, 1.0), (22.0, 0.0, 1.0)]
     return Scenario("lane_choice", np.array([0., 0., 0., 10.]), target, obstacles, 10.0)
 
 
@@ -56,16 +56,10 @@ def occluding_cut_in(steps=51, dt=0.1):
     target = _target(t, x0=20.0, speed=8.0, y=1.1)
     cut = np.clip((t - 1.2) / 1.2, 0.0, 1.0)
     target[:, 1] = 1.1 - 1.6 * cut
-    obstacles = [(20.0, 0.0), (26.0, -0.8)]
+    obstacles = [(20.0, 0.0, 1.0), (26.0, -0.8, 1.0)]
     return Scenario("occluding_cut_in", np.array([0., 0., 0., 10.]), target, obstacles, 10.0)
 
 
 def make_primary_scenarios():
     """Return the five scenario families used for the first experimental matrix."""
-    return [
-        following_lateral_offset(),
-        lane_choice(),
-        overtake(),
-        intersection_turn(),
-        occluding_cut_in(),
-    ]
+    return [following_lateral_offset(), lane_choice(), overtake(), intersection_turn(), occluding_cut_in()]
