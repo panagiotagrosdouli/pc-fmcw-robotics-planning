@@ -24,13 +24,20 @@ jobs:
           python -m pip install numpy scipy matplotlib pandas pyyaml pytest scikit-learn h5py huggingface_hub
       - name: Unit and integration smoke tests
         run: python -m pytest
-      - name: Stage-9 synthetic smoke run
+      - name: Stage-9 legacy synthetic smoke run
         run: python scripts/run_stage9.py
+      - name: Dataset-free PC-FMCW robotics smoke run
+        run: python scripts/run_pc_fmcw_robotics_benchmark.py --seeds 1 --mc-samples 2 --output-dir results/pc_fmcw_ci
+      - name: Paper manifest dry run
+        run: python scripts/run_paper_experiments.py --dry-run
       - name: Verify expected synthetic outputs
         run: |
           test -s results/stage9_primary.csv
           test -s results/stage9_summary.csv
           test -s results/stage9_outage_vs_travel_time.png
+          test -s results/pc_fmcw_ci/episodes.csv
+          test -s results/pc_fmcw_ci/summary.csv
+          test -s results/pc_fmcw_ci/manifest.json
 
   transformer-import:
     runs-on: ubuntu-latest
