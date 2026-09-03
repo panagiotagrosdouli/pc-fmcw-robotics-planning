@@ -53,8 +53,8 @@ def test_analysis_rejects_nonfinite_non_ttc_metric():
 
 def test_analysis_caps_positive_infinite_ttc_at_its_paired_episode_duration():
     df = _frame()
-    pair_mask = (df.scenario == "a") & (df.seed == 0) & df.planner.isin(["P1", "P2"])
-    df.loc[pair_mask, "duration_s"] = 3.0
+    episode_mask = (df.scenario == "a") & (df.seed == 0)
+    df.loc[episode_mask, "duration_s"] = 3.0
     mask = (df.planner == "P2") & (df.scenario == "a") & (df.seed == 0)
     df.loc[mask, "min_realized_ttc_s"] = np.inf
     va, vb, n = analysis.paired_ttc_vectors(df, "P1", "P2")
