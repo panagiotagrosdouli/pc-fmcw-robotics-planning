@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 
 spec=importlib.util.spec_from_file_location('closed_loop',Path(__file__).parents[1]/'scripts'/'run_cmht_closed_loop.py')
-mod=importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
+mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod)
 
 def test_initial_ego_is_behind_motion_direction():
     h=np.array([[0.,0.],[1.,0.],[2.,0.]])
@@ -17,8 +17,10 @@ def test_states_from_xy_has_speed_and_heading():
     assert np.allclose(s[:,2],0.)
     assert np.allclose(s[:,3],2.)
 
-def test_tracks_split_annotation_gaps():
+def test_tracks_split_annotation_gaps_and_assign_unique_segment_ids():
     rows=[[0,0,0,0,'a','Car'],[1,1,0,0,'a','Car'],[2,2,0,0,'a','Car'],[7,7,0,0,'a','Car'],[8,8,0,0,'a','Car'],[9,9,0,0,'a','Car']]
     out=list(mod.tracks(rows))
     assert len(out)==2
-    assert all(len(xy)==3 for _,_,xy in out)
+    assert all(len(xy)==3 for _,_,_,xy in out)
+    assert [track_id for track_id,_,_,_ in out]==['a:0','a:1']
+    assert all(oid=='a' for _,oid,_,_ in out)
