@@ -1,9 +1,10 @@
 """Dataset-free closed-loop benchmark for the PC-FMCW robotics extension.
 
 Target motion is simulated. P0-P3 never receive future target truth; P2 and P3
-share the same constant-velocity mean prediction. P4 alone receives future
-simulator truth. Realized connectivity is evaluated after each executed action
-with the same PC-FMCW-informed link model for every planner.
+share the same constant-velocity mean prediction. P4 receives future simulator
+truth only for connectivity forecasting, while all planners use the same mean
+target prediction for dynamic safety filtering. Realized connectivity is then
+evaluated with the same PC-FMCW-informed link model for every planner.
 """
 from __future__ import annotations
 from dataclasses import dataclass
@@ -71,12 +72,16 @@ def run_simulated_episode(planner_name,scenario,*,seed=0,settings=None,link=None
         else: mean=_prediction(hist,settings.horizon_steps,settings.dt)[:,:2]
         pred=np.zeros((settings.horizon_steps,4),float); pred[:,:2]=mean
         truth=_truth_horizon(target,k,settings.horizon_steps)
-        if planner_name=="P0": planner_target=pred
-        elif planner_name=="P1": planner_target=pred
-        elif planner_name=="P2": planner_target=pred
-        elif planner_name=="P3": planner_target={"mean_xy":mean,"sigma_xy":np.full_like(mean,settings.prediction_sigma_m)}
-        else: planner_target=truth
-        result=planners[planner_name].plan(ego,planner_target,obstacles=scenario.obstacles,reference_speed=scenario.reference_speed)
+        if planner_name=="P3":
+            planner_target={"mean_xy":mean,"sigma_xy":np.full_like(mean,settings.prediction_sigma_m)}
+        elif planner_name=="P4":
+            planner_target=truth
+        else:
+            planner_target=pred
+        plan_kwargs=dict(obstacles=scenario.obstacles,reference_speed=scenario.reference_speed)
+        if planner_name=="P4":
+            plan_kwargs["safety_target_prediction"]=pred
+        result=planners[planner_name].plan(ego,planner_target,**plan_kwargs)
         if result.candidate is None:no_candidate+=1
         ego=step(ego,_first_control(result),params); positions.append(ego[:2].copy())
         realized=link.predict(ego[None,:],target[k+1:k+2])
