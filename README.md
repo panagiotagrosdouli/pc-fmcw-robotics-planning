@@ -8,6 +8,8 @@ This repository implements the robotics extension of the PC-FMCW predictive-comm
 
 The upstream PC-FMCW/communications model is treated as frozen as far as possible. The new contribution is the **ego motion decision layer**, not scheduling or a redesign of the PHY.
 
+For the paper-level experimental protocol and claim boundaries, see [`docs/PAPER_METHODS.md`](docs/PAPER_METHODS.md). For the explicit interface between the upstream PC-FMCW system and the robotics planner, see [`docs/PC_FMCW_ROBOTICS_BRIDGE.md`](docs/PC_FMCW_ROBOTICS_BRIDGE.md).
+
 ## Planning pipeline
 
 1. PC-FMCW sensing and tracking model
