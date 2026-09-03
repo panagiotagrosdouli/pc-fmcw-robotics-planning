@@ -44,10 +44,12 @@ jobs:
             --seeds "${{ inputs.seeds }}" \
             --mc-samples "${{ inputs.mc_samples }}" \
             --output-dir results/paper/robustness
-      - name: Generate robustness figures
+      - name: Generate robustness figures with uncertainty
         run: |
           python scripts/plot_pc_fmcw_robustness.py \
-            --input results/paper/robustness/summary.csv \
+            --episodes results/paper/robustness/episodes.csv \
+            --bootstrap-samples 10000 \
+            --bootstrap-seed 2026 \
             --output-dir results/paper/robustness/figures
       - name: Record reproducibility metadata
         run: |
@@ -62,6 +64,8 @@ jobs:
               'platform': platform.platform(),
               'seeds': int('${{ inputs.seeds }}'),
               'p3_mc_samples': int('${{ inputs.mc_samples }}'),
+              'robustness_bootstrap_samples': 10000,
+              'robustness_bootstrap_seed': 2026,
               'claim_boundary': 'PC-FMCW-informed controlled simulation; not measured optical or real-vehicle validation.',
           }
           out.write_text(json.dumps(metadata, indent=2) + '\n')
