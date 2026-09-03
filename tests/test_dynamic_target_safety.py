@@ -26,8 +26,12 @@ def test_dynamic_filter_removes_collision_candidate():
     unsafe = _candidate([[0, 1], [1, 1], [2, 1]])
     target = np.array([[10, 1], [1, 1], [10, 1]], dtype=float)
     kept = filter_dynamic_target([safe, unsafe], target, min_clearance=0.4)
-    assert safe in kept
-    assert unsafe not in kept
+    # CandidateTrajectory contains NumPy arrays, so dataclass equality is not a
+    # valid membership test. Identity is the intended contract of this filter.
+    assert any(candidate is safe for candidate in kept)
+    assert all(candidate is not unsafe for candidate in kept)
+    assert safe.feasible is True
+    assert unsafe.feasible is False
 
 
 def test_p0_uses_target_prediction_for_safety_not_connectivity_objective():
