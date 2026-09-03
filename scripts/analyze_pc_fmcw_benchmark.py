@@ -25,19 +25,43 @@ METRICS = (
 )
 
 
-def paired_vectors(df, a, b, metric):
+def _paired_rows(df, a, b, columns):
     keys = ["scenario", "seed"]
-    left = df[df.planner == a][keys + [metric]].rename(columns={metric: "a"})
-    right = df[df.planner == b][keys + [metric]].rename(columns={metric: "b"})
+    left = df[df.planner == a][keys + columns].rename(columns={c: f"{c}_a" for c in columns})
+    right = df[df.planner == b][keys + columns].rename(columns={c: f"{c}_b" for c in columns})
     merged = left.merge(right, on=keys, how="inner", validate="one_to_one")
     expected = df[df.planner == a][keys].drop_duplicates().merge(
         df[df.planner == b][keys].drop_duplicates(), on=keys, how="inner"
     )
     if len(merged) != len(expected):
-        raise ValueError(f"incomplete pairing for {a} vs {b}, metric={metric}")
+        raise ValueError(f"incomplete pairing for {a} vs {b}")
     if len(merged) == 0:
-        raise ValueError(f"no paired episodes for {a} vs {b}, metric={metric}")
-    return merged["a"].to_numpy(float), merged["b"].to_numpy(float), len(merged)
+        raise ValueError(f"no paired episodes for {a} vs {b}")
+    return merged
+
+
+def paired_vectors(df, a, b, metric):
+    merged = _paired_rows(df, a, b, [metric])
+    return merged[f"{metric}_a"].to_numpy(float), merged[f"{metric}_b"].to_numpy(float), len(merged)
+
+
+def paired_ttc_vectors(df, a, b):
+    if "duration_s" not in df.columns:
+        raise ValueError("duration_s is required for TTC censoring")
+    merged = _paired_rows(df, a, b, ["min_realized_ttc_s", "duration_s"])
+    va = merged["min_realized_ttc_s_a"].to_numpy(float)
+    vb = merged["min_realized_ttc_s_b"].to_numpy(float)
+    da = merged["duration_s_a"].to_numpy(float)
+    db = merged["duration_s_b"].to_numpy(float)
+    if (np.isnan(va) | np.isneginf(va)).any() or (np.isnan(vb) | np.isneginf(vb)).any():
+        raise ValueError(f"invalid TTC values for {a} vs {b}: only finite values or +inf are allowed")
+    if not (np.all(np.isfinite(da)) and np.all(np.isfinite(db))) or np.any(da <= 0.0) or np.any(db <= 0.0):
+        raise ValueError("paired duration_s values must be positive and finite")
+    if not np.allclose(da, db, rtol=0.0, atol=1e-12):
+        raise ValueError(f"paired duration_s mismatch for {a} vs {b}")
+    va = np.where(np.isposinf(va), da, va)
+    vb = np.where(np.isposinf(vb), db, vb)
+    return va, vb, len(merged)
 
 
 def analyze(df, bootstrap_samples=5000):
@@ -57,20 +81,10 @@ def analyze(df, bootstrap_samples=5000):
     rows = []
     for a, b in PAIRINGS:
         for metric in METRICS:
-            va, vb, n = paired_vectors(df, a, b, metric)
-            # +inf TTC is physically meaningful for trajectories that never
-            # reach the collision-clearance boundary. NaN and -inf are invalid
-            # data and must never be silently converted into censored values.
             if metric == "min_realized_ttc_s":
-                invalid_a = np.isnan(va) | np.isneginf(va)
-                invalid_b = np.isnan(vb) | np.isneginf(vb)
-                if invalid_a.any() or invalid_b.any():
-                    raise ValueError(f"invalid TTC values for {a} vs {b}: only finite values or +inf are allowed")
-                cap = float(df["duration_s"].max()) if "duration_s" in df else 1e6
-                if not np.isfinite(cap) or cap <= 0.0:
-                    raise ValueError("duration_s must provide a positive finite TTC cap")
-                va = np.where(np.isposinf(va), cap, va)
-                vb = np.where(np.isposinf(vb), cap, vb)
+                va, vb, n = paired_ttc_vectors(df, a, b)
+            else:
+                va, vb, n = paired_vectors(df, a, b, metric)
             if not (np.all(np.isfinite(va)) and np.all(np.isfinite(vb))):
                 raise ValueError(f"non-finite values for {a} vs {b}, metric={metric}")
             boot = paired_bootstrap_delta(va, vb, samples=bootstrap_samples, rng=7)
