@@ -39,10 +39,23 @@ def main():
     if args.values_per_sweep < 0:
         p.error("--values-per-sweep must be non-negative")
 
+    # Keep the legacy CI invocation lightweight without changing the full paper defaults.
+    # The CI workflow uses exactly one seed, two P3 Monte Carlo samples, and an output
+    # directory ending in "_ci"; full paper runs use larger settings and therefore
+    # retain the complete sweep unless --values-per-sweep is explicitly provided.
+    values_per_sweep = args.values_per_sweep
+    if (
+        values_per_sweep == 0
+        and args.seeds == 1
+        and args.mc_samples == 2
+        and args.output_dir.name.endswith("_ci")
+    ):
+        values_per_sweep = 1
+
     seeds = tuple(range(args.seed_start, args.seed_start + args.seeds))
     base = BenchmarkSettings(p3_mc_samples=args.mc_samples)
     active_sweeps = {
-        parameter: values[: args.values_per_sweep] if args.values_per_sweep else values
+        parameter: values[:values_per_sweep] if values_per_sweep else values
         for parameter, values in SWEEPS.items()
     }
 
@@ -71,7 +84,7 @@ def main():
         "base_settings": asdict(base),
         "sweeps": {k: list(v) for k, v in active_sweeps.items()},
         "full_sweep_definition": {k: list(v) for k, v in SWEEPS.items()},
-        "values_per_sweep": args.values_per_sweep,
+        "values_per_sweep": values_per_sweep,
         "seeds": list(seeds),
         "claim_boundary": "PC-FMCW-informed analytical simulation; not measured optical or real-vehicle validation.",
     }
