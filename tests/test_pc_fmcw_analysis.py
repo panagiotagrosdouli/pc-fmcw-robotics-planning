@@ -51,15 +51,20 @@ def test_analysis_rejects_nonfinite_non_ttc_metric():
         analysis.analyze(df, bootstrap_samples=10)
 
 
-def test_analysis_caps_positive_infinite_ttc_only_for_inference():
+def test_analysis_caps_positive_infinite_ttc_at_its_paired_episode_duration():
     df = _frame()
+    pair_mask = (df.scenario == "a") & (df.seed == 0) & df.planner.isin(["P1", "P2"])
+    df.loc[pair_mask, "duration_s"] = 3.0
     mask = (df.planner == "P2") & (df.scenario == "a") & (df.seed == 0)
     df.loc[mask, "min_realized_ttc_s"] = np.inf
+    va, vb, n = analysis.paired_ttc_vectors(df, "P1", "P2")
+    assert n == 4
+    assert 3.0 in vb
+    assert np.isinf(df.loc[mask, "min_realized_ttc_s"]).all()
     out = analysis.analyze(df, bootstrap_samples=10)
     ttc = out[(out.planner_a == "P1") & (out.planner_b == "P2") & (out.metric == "min_realized_ttc_s")]
     assert len(ttc) == 1
     assert np.isfinite(ttc.iloc[0]["mean_b"])
-    assert np.isinf(df.loc[mask, "min_realized_ttc_s"]).all()
 
 
 @pytest.mark.parametrize("invalid_ttc", [np.nan, -np.inf])
@@ -69,6 +74,28 @@ def test_analysis_rejects_invalid_ttc_values(invalid_ttc):
     df.loc[mask, "min_realized_ttc_s"] = invalid_ttc
     with pytest.raises(ValueError, match="invalid TTC values"):
         analysis.analyze(df, bootstrap_samples=10)
+
+
+def test_analysis_rejects_paired_duration_mismatch():
+    df = _frame()
+    mask = (df.planner == "P2") & (df.scenario == "a") & (df.seed == 0)
+    df.loc[mask, "duration_s"] = 4.0
+    with pytest.raises(ValueError, match="paired duration_s mismatch"):
+        analysis.analyze(df, bootstrap_samples=10)
+
+
+@pytest.mark.parametrize("bad_duration", [0.0, -1.0, np.nan, np.inf])
+def test_analysis_rejects_invalid_paired_durations(bad_duration):
+    df = _frame()
+    pair_mask = (df.scenario == "a") & (df.seed == 0) & df.planner.isin(["P1", "P2"])
+    df.loc[pair_mask, "duration_s"] = bad_duration
+    with pytest.raises(ValueError, match="paired duration_s values must be positive and finite"):
+        analysis.analyze(df, bootstrap_samples=10)
+
+
+def test_analysis_requires_duration_for_ttc_censoring():
+    with pytest.raises(ValueError, match="duration_s is required"):
+        analysis.analyze(_frame().drop(columns=["duration_s"]), bootstrap_samples=10)
 
 
 def test_analysis_rejects_nonpositive_bootstrap_samples():
