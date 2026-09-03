@@ -25,15 +25,34 @@ def main():
     p.add_argument("--seed-start", type=int, default=0)
     p.add_argument("--output-dir", type=Path, default=Path("results/pc_fmcw_robustness"))
     p.add_argument("--mc-samples", type=int, default=32)
+    p.add_argument(
+        "--values-per-sweep",
+        type=int,
+        default=0,
+        help="Limit each sweep to its first N values for smoke tests; 0 keeps the full paper sweep.",
+    )
     args = p.parse_args()
+    if args.seeds <= 0:
+        p.error("--seeds must be positive")
+    if args.mc_samples <= 0:
+        p.error("--mc-samples must be positive")
+    if args.values_per_sweep < 0:
+        p.error("--values-per-sweep must be non-negative")
+
     seeds = tuple(range(args.seed_start, args.seed_start + args.seeds))
     base = BenchmarkSettings(p3_mc_samples=args.mc_samples)
+    active_sweeps = {
+        parameter: values[: args.values_per_sweep] if args.values_per_sweep else values
+        for parameter, values in SWEEPS.items()
+    }
+
     rows = []
-    for parameter, values in SWEEPS.items():
+    for parameter, values in active_sweeps.items():
         for value in values:
             settings = replace(base, **{parameter: value})
             for row in run_benchmark(seeds=seeds, settings=settings):
                 rows.append({"sweep_parameter": parameter, "sweep_value": value, **row})
+
     out = ROOT / args.output_dir
     out.mkdir(parents=True, exist_ok=True)
     df = pd.DataFrame(rows)
@@ -50,7 +69,9 @@ def main():
     manifest = {
         "study_type": "controlled_model_based_robustness_sweep",
         "base_settings": asdict(base),
-        "sweeps": {k: list(v) for k, v in SWEEPS.items()},
+        "sweeps": {k: list(v) for k, v in active_sweeps.items()},
+        "full_sweep_definition": {k: list(v) for k, v in SWEEPS.items()},
+        "values_per_sweep": args.values_per_sweep,
         "seeds": list(seeds),
         "claim_boundary": "PC-FMCW-informed analytical simulation; not measured optical or real-vehicle validation.",
     }
