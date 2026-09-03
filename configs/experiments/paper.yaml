@@ -1,34 +1,32 @@
-name: paper_stage9
-seed: 7
+name: pc_fmcw_robotics_simulation
+seed_start: 0
+seeds: 30
 
-cmht:
-  labels: data/raw/cmht/labels
-  timestamps: null
-  frame_start: 0
-  history: 10
-  dt: 0.1
-  max_windows: 500
-  max_tracks: 100
-  horizons_s: [0.5, 1.0, 2.0, 3.0, 5.0]
-
-planner_replay:
+simulation:
+  dt_s: 0.1
+  history_steps: 8
   horizon_steps: 20
-  sigma_m: 0.75
-  link_calibration: null
+  observation_sigma_m: 0.20
+  prediction_sigma_m: 0.75
+  connectivity_weight: 1.0
+  p3_mc_samples: 32
+  collision_distance_m: 2.0
 
-closed_loop:
-  enabled: true
-  horizon_steps: 20
-  sigma_m: 0.75
-  transformer_checkpoint: null
-  link_calibration: null
+link:
+  waveform_source: "PanagiotaGr/ISCAI_pc_fmcw Module 0"
+  carrier_frequency_hz: 193.4e12
+  chirp_bandwidth_hz: 10.0e9
+  chirp_duration_s: 10.0e-6
+  data_rate_bps: 1.0e9
+  geometry_model: "declared simulation assumption; not measured optical link"
 
 outputs:
-  root: results/paper_stage9
+  root: results/pc_fmcw_sim
 
 notes:
-  trajectory_source: "CMHT real annotation tracklets"
-  ego_motion: "simulated planner replay; closed_loop is hybrid data-driven simulation, not a real vehicle trial"
-  connectivity: "geometry surrogate unless a frozen calibrated predictor is supplied"
-  optical_claim_rule: "Do not call modeled connectivity PC-FMCW optical measurements unless calibration provenance establishes actual PC-FMCW optical measurements."
-  transformer_timing_rule: "Frame-step Transformer checkpoints must not be mixed with measured-timestamp replay."
+  target_motion: "parameterized synthetic scenario families"
+  ego_motion: "simulated receding-horizon bicycle-model control"
+  predictor_fairness: "P2 and P3 share the same constant-velocity mean prediction"
+  oracle_rule: "P4 alone may access future simulated target truth"
+  optical_claim_rule: "Waveform parameters are traced to the upstream notebook; geometry-to-SNR and outage are simulation models, not measurements."
+  validation_rule: "Do not describe this benchmark as real-world or real-vehicle validation."
