@@ -41,7 +41,13 @@ class BenchmarkSettings:
 
 
 def _prediction(history,horizon,dt):
-    mean=constant_velocity(np.asarray(history,float),horizon,dt)
+    history=np.asarray(history,float)
+    if history.ndim != 2 or history.shape[1] != 2 or len(history) < 1:
+        raise ValueError("history must have shape (N, 2) with N >= 1")
+    if len(history) == 1:
+        mean=np.repeat(history[-1:, :], horizon, axis=0)
+    else:
+        mean=constant_velocity(history,horizon,dt)
     target=np.zeros((horizon,4),float);target[:,:2]=mean
     if horizon>1:
         velocity=np.gradient(mean,dt,axis=0);target[:,3]=np.linalg.norm(velocity,axis=1)
