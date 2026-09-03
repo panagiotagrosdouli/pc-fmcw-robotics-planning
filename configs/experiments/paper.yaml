@@ -1,0 +1,22 @@
+name: paper_stage9
+seed: 7
+
+cmht:
+  labels: data/raw/cmht/labels
+  history: 10
+  dt: 0.1
+  max_windows: 500
+  horizons_s: [0.5, 1.0, 2.0, 3.0, 5.0]
+
+planner_replay:
+  horizon_steps: 20
+  sigma_m: 0.75
+  link_calibration: null
+
+outputs:
+  root: results/paper_stage9
+
+notes:
+  trajectory_source: "CMHT real annotation tracklets"
+  ego_motion: "simulated planner replay"
+  connectivity: "geometry surrogate unless link_calibration is supplied"
