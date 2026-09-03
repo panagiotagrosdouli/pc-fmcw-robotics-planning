@@ -3,9 +3,12 @@ seed: 7
 
 cmht:
   labels: data/raw/cmht/labels
+  timestamps: null
+  frame_start: 0
   history: 10
   dt: 0.1
   max_windows: 500
+  max_tracks: 100
   horizons_s: [0.5, 1.0, 2.0, 3.0, 5.0]
 
 planner_replay:
@@ -13,10 +16,19 @@ planner_replay:
   sigma_m: 0.75
   link_calibration: null
 
+closed_loop:
+  enabled: true
+  horizon_steps: 20
+  sigma_m: 0.75
+  transformer_checkpoint: null
+  link_calibration: null
+
 outputs:
   root: results/paper_stage9
 
 notes:
   trajectory_source: "CMHT real annotation tracklets"
-  ego_motion: "simulated planner replay"
-  connectivity: "geometry surrogate unless link_calibration is supplied"
+  ego_motion: "simulated planner replay; closed_loop is hybrid data-driven simulation, not a real vehicle trial"
+  connectivity: "geometry surrogate unless a frozen calibrated predictor is supplied"
+  optical_claim_rule: "Do not call modeled connectivity PC-FMCW optical measurements unless calibration provenance establishes actual PC-FMCW optical measurements."
+  transformer_timing_rule: "Frame-step Transformer checkpoints must not be mixed with measured-timestamp replay."
