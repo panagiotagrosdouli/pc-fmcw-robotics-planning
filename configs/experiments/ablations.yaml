@@ -1,0 +1,11 @@
+# Predeclared robustness/ablation grid for the Stage-9 paper.
+# Values are fixed here before inspecting final benchmark outcomes.
+horizons_s: [0.5, 1.0, 2.0, 3.0, 5.0]
+prediction_noise_m: [0.0, 0.25, 0.5, 1.0, 2.0, 4.0]
+uncertainty_sigma_m: [0.25, 0.5, 0.75, 1.0, 2.0]
+connectivity_weights: [0.0, 0.25, 0.5, 1.0, 2.0, 4.0]
+random_seeds: [11, 23, 37, 53, 71]
+max_windows: 500
+history_steps: 10
+dt_s: 0.1
+mc_samples: 128
