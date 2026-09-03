@@ -23,6 +23,12 @@ def quintic_coefficients(d0, d1, T):
     return np.array([d0, 0.0, 0.0, *np.linalg.solve(A, b)])
 
 
+def _quintic_second_derivative(coeff, t):
+    """Evaluate the analytic second derivative of a quintic polynomial."""
+    t = np.asarray(t, dtype=float)
+    return 2.0 * coeff[2] + 6.0 * coeff[3] * t + 12.0 * coeff[4] * t**2 + 20.0 * coeff[5] * t**3
+
+
 def generate_candidates(
     state: np.ndarray,
     lateral_offsets=(-1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5),
@@ -32,12 +38,11 @@ def generate_candidates(
 ) -> list[CandidateTrajectory]:
     """Generate dynamically consistent candidates in the ego-heading frame.
 
-    A quintic lateral profile supplies the desired lateral acceleration. That
-    acceleration is converted to steering and propagated once through the
-    kinematic bicycle model. We deliberately do not add the quintic lateral
-    displacement to the rolled-out positions afterwards: doing both would
-    count the same lateral maneuver twice and make candidate geometry
-    inconsistent with the controls that are actually executed.
+    A quintic lateral profile supplies an analytic desired lateral acceleration.
+    At each control instant that acceleration is converted to steering using the
+    contemporaneous longitudinal speed, then propagated once through the
+    kinematic bicycle model. Candidate geometry therefore remains consistent
+    with the controls that are actually executed.
     """
     params = params or VehicleParams()
     state = np.asarray(state, dtype=float)
@@ -45,19 +50,19 @@ def generate_candidates(
     for lateral_offset in lateral_offsets:
         for horizon in horizons:
             steps = max(2, int(round(horizon / params.dt)))
-            t = np.linspace(0.0, horizon, steps + 1)
+            control_t = np.arange(steps, dtype=float) * params.dt
             coeff = quintic_coefficients(0.0, lateral_offset, horizon)
-            lateral = sum(coeff[i] * t**i for i in range(6))
-            lateral_rate = np.gradient(lateral, t)
-            lateral_acc = np.gradient(lateral_rate, t)
+            lateral_acc = _quintic_second_derivative(coeff, control_t)
             for speed_offset in speed_offsets:
                 target_speed = max(0.0, state[3] + speed_offset)
                 controls = np.zeros((steps, 2))
-                controls[:, 0] = (target_speed - state[3]) / horizon
-                speed_for_steering = max(float(state[3]), 0.1)
+                requested_accel = (target_speed - state[3]) / horizon
+                acceleration = float(np.clip(requested_accel, params.min_accel, params.max_accel))
+                controls[:, 0] = acceleration
+                speed_profile = np.maximum(0.1, state[3] + acceleration * control_t)
                 controls[:, 1] = np.arctan2(
-                    lateral_acc[:-1] * params.wheelbase,
-                    speed_for_steering**2,
+                    lateral_acc * params.wheelbase,
+                    speed_profile**2,
                 )
                 controls[:, 1] = np.clip(
                     controls[:, 1], -params.max_steering, params.max_steering
