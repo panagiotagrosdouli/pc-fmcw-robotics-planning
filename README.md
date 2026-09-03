@@ -23,13 +23,13 @@ The upstream PC-FMCW/communications model is treated as frozen as far as possibl
 
 ## Planners
 
-- **P0 — Mobility-only:** no connectivity objective, but uses the same predicted target mean for safety filtering as P1–P3
-- **P1 — Reactive connectivity-aware:** current/myopic link scoring with the same predicted target safety trajectory
-- **P2 — Predictive connectivity-aware:** predicted target motion + predicted future link state
-- **P3 — Predictive risk-aware:** same mean target prediction as P2 plus Monte-Carlo uncertainty propagation
-- **P4 — Oracle:** simulator ground-truth future target motion; non-deployable reference
+- **P0 — Mobility-only:** no connectivity objective, but uses the common predicted target mean for safety filtering
+- **P1 — Reactive connectivity-aware:** current/myopic link scoring with the common predicted target safety trajectory
+- **P2 — Predictive connectivity-aware:** common predicted target motion + predicted future link state
+- **P3 — Predictive risk-aware:** same mean target prediction and link model as P2 plus Monte-Carlo uncertainty propagation
+- **P4 — Oracle connectivity reference:** simulator ground-truth future target motion is used only for connectivity forecasting; dynamic safety still uses the same predicted target mean as the deployable planners
 
-All planners use the same candidate generator, vehicle limits, road/static-obstacle filters, and time-aligned dynamic-target safety layer. P4 alone receives future simulator truth.
+All planners use the same candidate generator, vehicle limits, road/static-obstacle filters, and time-aligned dynamic-target safety layer. Future simulator truth is never used to give P4 an oracle collision-avoidance advantage.
 
 ## Dataset-free benchmark
 
@@ -42,11 +42,13 @@ python scripts/run_pc_fmcw_robotics_benchmark.py --seeds 10
 
 Outputs are written under `results/pc_fmcw_sim/` and include per-episode CSV rows, planner summaries, and a provenance manifest.
 
-The PC-FMCW bridge traces the upstream waveform constants (`fc`, `B`, chirp duration, and 1-Gbit/s data rate) to the Part-A notebook. The range/pointing-to-SNR relation remains an explicit optical-geometry simulation assumption; therefore results must be reported as **PC-FMCW-informed simulation**, not measured optical-link data or real-world autonomous-driving validation.
+The robotics study uses a **PC-FMCW-informed analytical connectivity model** coupled to future relative ego/target geometry. Parameters intended to represent the upstream Part-A PC-FMCW system are kept explicit in the bridge, while the range/pointing-to-SNR mapping is a declared simulation assumption rather than a measured optical-channel calibration. Consequently, results must be reported as **controlled model-based / PC-FMCW-informed simulation**, not measured optical-link performance or real-world autonomous-driving validation.
 
 ## Scientific comparison
 
-The experimental story is P0/P1/P2/P3/P4 under identical scenario realizations and seeds. Primary outcomes are modeled outage/SNR/BER/goodput, path length/progress, target/static-obstacle clearance, collision rate, and no-candidate rate. Statistical analysis should use independent simulation episode/seed units and paired comparisons, especially P2 vs P1 and P3 vs P2.
+The experimental story is P0/P1/P2/P3/P4 under identical scenario realizations and seeds. Primary outcomes are modeled outage/SNR/BER/goodput, path length/progress, target/static-obstacle clearance, collision rate, collision-boundary realized TTC, and no-candidate rate. Statistical analysis uses independent simulation episode/seed units and paired comparisons, especially P2 vs P1 and P3 vs P2, with bootstrap effect intervals, paired Wilcoxon tests, and Holm multiplicity correction.
+
+Robustness figures can be generated from episode-level outputs with deterministic 95% bootstrap confidence intervals. These intervals quantify variability across simulated episodes; they are not measurement-error bars from a physical optical experiment.
 
 ## Repository structure
 
@@ -73,4 +75,4 @@ Fixed configurations, seeded scenarios, machine-readable provenance, P0–P4 fai
 
 ## Status
 
-🚧 **Dataset-free PC-FMCW-informed closed-loop P0–P4 benchmark implemented, dynamic target safety enforced, and reproducibility/CI integration active. Next research work: large-seed sweeps, uncertainty/horizon sensitivity, statistical tables, and final paper figures.**
+🚧 **Dataset-free PC-FMCW-informed closed-loop P0–P4 benchmark implemented with common dynamic-target safety, connectivity-only oracle fairness, collision-boundary TTC diagnostics, paired statistical analysis, robustness sweeps with bootstrap uncertainty, and reproducibility/CI integration. Remaining paper work is large-seed execution and reporting of the resulting tables/figures without extrapolating beyond the controlled simulation study.**
