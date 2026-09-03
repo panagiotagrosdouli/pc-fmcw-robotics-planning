@@ -59,3 +59,35 @@ def test_zero_offset_remains_finite_and_starts_at_initial_pose():
     candidate = _single([2.0, -3.0, 0.7, 4.0], lateral=0.0)
     assert np.all(np.isfinite(candidate.states))
     assert np.allclose(candidate.states[0, :2], [2.0, -3.0])
+
+
+def test_candidate_controls_respect_vehicle_limits():
+    """Aggressive speed/lateral requests must remain executable by the model."""
+    params = VehicleParams(dt=0.1)
+    candidates = generate_candidates(
+        np.array([0.0, 0.0, 0.0, 1.0]),
+        lateral_offsets=(-3.0, 3.0),
+        horizons=(1.0,),
+        speed_offsets=(-20.0, 20.0),
+        params=params,
+    )
+    for candidate in candidates:
+        assert np.all(candidate.controls[:, 0] <= params.max_accel + 1e-12)
+        assert np.all(candidate.controls[:, 0] >= params.min_accel - 1e-12)
+        assert np.all(np.abs(candidate.controls[:, 1]) <= params.max_steering + 1e-12)
+        assert np.all(np.isfinite(candidate.states))
+
+
+def test_speed_change_modulates_steering_profile():
+    """Steering must reflect changing speed rather than a frozen initial speed."""
+    params = VehicleParams(dt=0.1)
+    initial = np.array([0.0, 0.0, 0.0, 5.0])
+    slower = generate_candidates(
+        initial, lateral_offsets=(1.0,), horizons=(3.0,), speed_offsets=(-2.0,), params=params
+    )[0]
+    faster = generate_candidates(
+        initial, lateral_offsets=(1.0,), horizons=(3.0,), speed_offsets=(2.0,), params=params
+    )[0]
+    # Both begin at the same speed; subsequent steering diverges as speed profiles diverge.
+    assert np.isclose(slower.controls[0, 1], faster.controls[0, 1])
+    assert not np.allclose(slower.controls[1:, 1], faster.controls[1:, 1])
