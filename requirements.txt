@@ -5,6 +5,8 @@ pandas
 pyyaml
 pytest
 scikit-learn
+h5py
+huggingface_hub
 # Optional extensions:
 # torch
 # casadi
