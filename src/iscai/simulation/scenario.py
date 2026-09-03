@@ -13,15 +13,15 @@ class Scenario:
     reference_speed: float
 
 
-def straight_lane_with_offset_event(steps=31, dt=0.1):
-    """Two-vehicle scenario where lateral repositioning changes link geometry."""
+def straight_lane_with_offset_event(steps=41, dt=0.1):
+    """Target changes lateral position; prediction creates a proactive geometry choice."""
     t = np.arange(steps) * dt
     ego = np.array([0.0, 0.0, 0.0, 10.0], dtype=float)
     target = np.zeros((steps, 4), dtype=float)
-    target[:, 0] = 18.0 + 8.0 * t
-    target[:, 1] = 0.9 * np.sin(0.7 * t)
+    target[:, 0] = 16.0 + 6.0 * t
+    target[:, 1] = 1.4 * np.clip((t - 0.8) / 1.8, 0.0, 1.0)
     target[:, 2] = 0.0
-    target[:, 3] = 8.0
+    target[:, 3] = 6.0
     return Scenario(
         name="following_lateral_offset",
         ego_state=ego,
@@ -31,15 +31,16 @@ def straight_lane_with_offset_event(steps=31, dt=0.1):
     )
 
 
-def lane_choice_event(steps=31, dt=0.1):
-    """Scenario with an obstacle in the center and two lateral alternatives."""
-    t = np.arange(steps) * dt
+def lane_choice_event(steps=41, dt=0.1):
+    """Obstacle forces a lateral choice while the target occupies the preferred link geometry."""
     ego = np.array([0.0, 0.0, 0.0, 10.0], dtype=float)
+    t = np.arange(steps) * dt
     target = np.zeros((steps, 4), dtype=float)
-    target[:, 0] = 20.0 + 8.0 * t
-    target[:, 1] = 1.2
-    target[:, 3] = 8.0
-    obstacles = [(18.0, 0.0, 1.0), (24.0, 0.0, 1.0)]
+    target[:, 0] = 18.0 + 7.0 * t
+    target[:, 1] = 1.0
+    target[:, 2] = 0.0
+    target[:, 3] = 7.0
+    obstacles = [(15.0, 0.0), (22.0, 0.0)]
     return Scenario("lane_choice", ego, target, obstacles, 10.0)
 
 
