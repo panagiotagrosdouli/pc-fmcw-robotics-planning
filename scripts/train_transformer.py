@@ -1,4 +1,9 @@
-"""Train, validation-calibrate, and test a probabilistic CMHT Transformer."""
+"""Train, validation-calibrate, and test a probabilistic CMHT Transformer.
+
+The current Transformer is frame-step based: training windows are contiguous
+annotation frames and do not consume physical timestamps. The checkpoint stores
+this timing contract so replay code can refuse scientifically ambiguous use.
+"""
 import argparse,sys,json,random
 from pathlib import Path
 import numpy as np
@@ -36,5 +41,5 @@ def main():
   else:
    stale+=1
    if stale>=a.patience:break
- model.load_state_dict(state);vm,vs,vy=predictions(model,val,a.batch_size);scale=optimal_sigma_scale(vm,vs,vy);val_raw=metrics(model,val,a.batch_size);val_cal=metrics(model,val,a.batch_size,scale);test_raw=metrics(model,test,a.batch_size);test_cal=metrics(model,test,a.batch_size,scale);a.output.parent.mkdir(parents=True,exist_ok=True);split={'seed':a.seed,'train_ids':list(map(str,sorted(ti,key=str))),'validation_ids':list(map(str,sorted(vi,key=str))),'test_ids':list(map(str,sorted(qi,key=str)))};payload={'state_dict':model.state_dict(),'history':a.history,'horizon':a.horizon,'translation_normalized':True,'sigma_calibration':{'method':'global_validation_nll_mle','scale':scale,'fit_split':'validation'},'split':split,'validation_raw':val_raw,'validation_calibrated':val_cal,'test_raw':test_raw,'test_calibrated':test_cal};torch.save(payload,a.output);report={k:v for k,v in payload.items() if k!='state_dict'};report['checkpoint']=str(a.output);report['train_windows']=len(train);a.output.with_suffix('.json').write_text(json.dumps(report,indent=2));print(json.dumps(report,indent=2))
+ model.load_state_dict(state);vm,vs,vy=predictions(model,val,a.batch_size);scale=optimal_sigma_scale(vm,vs,vy);val_raw=metrics(model,val,a.batch_size);val_cal=metrics(model,val,a.batch_size,scale);test_raw=metrics(model,test,a.batch_size);test_cal=metrics(model,test,a.batch_size,scale);a.output.parent.mkdir(parents=True,exist_ok=True);split={'seed':a.seed,'train_ids':list(map(str,sorted(ti,key=str))),'validation_ids':list(map(str,sorted(vi,key=str))),'test_ids':list(map(str,sorted(qi,key=str)))};payload={'state_dict':model.state_dict(),'history':a.history,'horizon':a.horizon,'translation_normalized':True,'timing':{'mode':'contiguous_frame_steps','uses_physical_timestamps':False},'sigma_calibration':{'method':'global_validation_nll_mle','scale':scale,'fit_split':'validation'},'split':split,'validation_raw':val_raw,'validation_calibrated':val_cal,'test_raw':test_raw,'test_calibrated':test_cal};torch.save(payload,a.output);report={k:v for k,v in payload.items() if k!='state_dict'};report['checkpoint']=str(a.output);report['train_windows']=len(train);a.output.with_suffix('.json').write_text(json.dumps(report,indent=2));print(json.dumps(report,indent=2))
 if __name__=='__main__':main()
