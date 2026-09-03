@@ -19,6 +19,7 @@ METRICS = (
     "path_length_m",
     "progress_m",
     "min_target_distance_m",
+    "min_realized_ttc_s",
     "collision_indicator",
     "no_candidate_steps",
 )
@@ -46,6 +47,14 @@ def analyze(df, bootstrap_samples=5000):
     for a, b in PAIRINGS:
         for metric in METRICS:
             va, vb, n = paired_vectors(df, a, b, metric)
+            # Infinite TTC is the physically meaningful value for non-closing
+            # trajectories, but finite statistical tests cannot operate on it.
+            # Cap only for the inferential calculation at the episode duration;
+            # the raw benchmark CSV retains +inf and therefore remains auditable.
+            if metric == "min_realized_ttc_s":
+                cap = float(df["duration_s"].max()) if "duration_s" in df else 1e6
+                va = np.where(np.isfinite(va), va, cap)
+                vb = np.where(np.isfinite(vb), vb, cap)
             boot = paired_bootstrap_delta(va, vb, samples=bootstrap_samples, rng=7)
             wil = paired_wilcoxon(va, vb)
             rows.append({
@@ -85,6 +94,7 @@ def main():
         snr_db=("mean_snr_db", "mean"),
         path_length_m=("path_length_m", "mean"),
         progress_m=("progress_m", "mean"),
+        min_realized_ttc_s=("min_realized_ttc_s", "mean"),
         collision_rate=("collision_indicator", "mean"),
         no_candidate_steps=("no_candidate_steps", "mean"),
     )
