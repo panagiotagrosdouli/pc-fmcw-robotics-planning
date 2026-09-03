@@ -1,14 +1,15 @@
 """PC-FMCW-to-robotics connectivity bridge.
 
-The reference constants in :class:`PCFMCWReferenceParameters` are traced to
-Module 0 of ``PanagiotaGr/ISCAI_pc_fmcw/notebooks/ISCAI_PC_FMCW.ipynb``.
+This module keeps the PC-FMCW waveform/reference constants used by the robotics
+simulation separate from the optical geometry/link-budget assumptions. The
+constants are intended to represent the upstream ``PanagiotaGr/ISCAI_pc_fmcw``
+study, but this repository does not treat that provenance as independently
+verified unless an exact upstream source location is recorded and checked.
 
-This module deliberately separates *traced PC-FMCW waveform parameters* from
-the *robotics link-budget assumptions*. The upstream notebook specifies the
-carrier, chirp bandwidth/duration and 1-Gbit/s DPSK data rate, but it does not
-provide a complete vehicle-to-vehicle optical link budget as a function of
-range and pointing angle. Therefore the geometry-to-SNR law below remains a
-simulation model and must not be reported as measured optical data.
+The upstream work motivates the PC-FMCW/DPSK system context; it does not by
+itself establish the vehicle-to-vehicle range/pointing-to-SNR law below. That
+law remains an explicit simulation assumption and must not be reported as
+measured optical data.
 """
 
 from __future__ import annotations
@@ -22,7 +23,12 @@ from iscai.prediction.link_predictor import LinkForecast
 
 @dataclass(frozen=True)
 class PCFMCWReferenceParameters:
-    """Waveform parameters traced to the upstream PC-FMCW notebook."""
+    """Reference waveform constants used by the PC-FMCW-informed simulation.
+
+    These values are kept explicit for reproducibility. They must not be called
+    independently verified upstream constants until exact Part-A provenance is
+    recorded and checked.
+    """
 
     carrier_frequency_hz: float = 193.4e12
     chirp_bandwidth_hz: float = 10e9
@@ -63,7 +69,7 @@ class OpticalGeometryAssumptions:
 class PCFMCWPlanningLinkPredictor:
     """Planner-compatible PC-FMCW-informed simulation link predictor.
 
-    PC-FMCW provenance is limited to the waveform/data-rate constants. The
+    The reference constants provide a reproducible PC-FMCW system context. The
     range/angle link-budget terms are declared simulation assumptions until a
     validated optical propagation model or measurement calibration is supplied.
     """
@@ -127,8 +133,9 @@ class PCFMCWPlanningLinkPredictor:
     def provenance(self) -> dict:
         """Machine-readable claim boundary for experiment manifests."""
         return {
-            "waveform_source": "PanagiotaGr/ISCAI_pc_fmcw Module 0",
-            "waveform_parameters_traced": True,
+            "system_context": "PanagiotaGr/ISCAI_pc_fmcw",
+            "reference_parameters_explicit": True,
+            "upstream_parameter_provenance_verified": False,
             "optical_geometry_model": "simulation_assumption",
             "measured_optical_link": False,
             "real_world_validation": False,
