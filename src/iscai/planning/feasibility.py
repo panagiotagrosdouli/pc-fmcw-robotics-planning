@@ -11,16 +11,19 @@ def check_speed(states: np.ndarray, min_speed: float = 0.0, max_speed: float = 3
     return bool(np.all((states[:, 3] >= min_speed) & (states[:, 3] <= max_speed)))
 
 
-def check_obstacles(states: np.ndarray, obstacles: np.ndarray, min_clearance: float = 2.0) -> bool:
-    """Check Euclidean clearance from point obstacles [x, y]."""
+def check_obstacles(states: np.ndarray, obstacles: np.ndarray, min_clearance: float = 1.5) -> bool:
+    """Check clearance from obstacles represented as [x, y] or [x, y, radius]."""
     if len(obstacles) == 0:
         return True
-    distances = np.linalg.norm(states[:, None, :2] - obstacles[None, :, :2], axis=-1)
-    return bool(np.all(distances >= min_clearance))
+    obs = np.asarray(obstacles, dtype=float)
+    distances = np.linalg.norm(states[:, None, :2] - obs[None, :, :2], axis=-1)
+    radii = obs[:, 2] if obs.shape[1] >= 3 else np.zeros(len(obs))
+    clearance = distances - radii[None, :]
+    return bool(np.all(clearance >= min_clearance))
 
 
-def filter_feasible(candidates, obstacles=None, lane_half_width=1.75, min_clearance=2.0):
-    obstacles = np.empty((0, 2)) if obstacles is None else np.asarray(obstacles, dtype=float)
+def filter_feasible(candidates, obstacles=None, lane_half_width=1.75, min_clearance=1.5):
+    obstacles = np.empty((0, 3)) if obstacles is None else np.asarray(obstacles, dtype=float)
     feasible = []
     for candidate in candidates:
         ok = (
