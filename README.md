@@ -23,8 +23,8 @@ The upstream PC-FMCW/communications model is treated as frozen as far as possibl
 - **P0 — Mobility-only:** no connectivity objective
 - **P1 — Reactive connectivity-aware:** current/myopic link information
 - **P2 — Predictive connectivity-aware:** predicted target motion + predicted future link state
-- **P3 — Predictive risk-aware:** uncertainty-aware extension
-- **P4 — Oracle:** simulator ground truth upper bound
+- **P3 — Predictive risk-aware:** uncertainty-aware extension point
+- **P4 — Oracle:** simulator ground-truth upper bound
 
 All planners use the same candidate generator and hard safety filters.
 
@@ -40,12 +40,12 @@ The Stage 9 core is now executable as a deterministic simulation prototype:
 
 - kinematic bicycle dynamics
 - Frenet-inspired candidate trajectory library
-- hard road/speed/obstacle filtering
+- hard road/speed/obstacle filtering with obstacle radii
 - trajectory-conditioned geometry-based link forecast
 - P0/P1/P2/P4 planner baselines
 - receding-horizon closed-loop episode runner
-- primary synthetic following/lateral-offset and lane-choice scenarios
-- CSV experiment output under `results/`
+- five primary synthetic scenario families: following/lateral-offset, lane choice, overtake, intersection turn, and occluding cut-in
+- CSV experiment output and an initial outage-vs-travel-time figure under `results/`
 
 The geometry predictor is intentionally a configurable surrogate. It must be replaced or calibrated against the frozen PC-FMCW predictor/PHY model before making final scientific claims.
 
@@ -58,10 +58,12 @@ pip install -r requirements.txt
 python scripts/run_stage9.py
 ```
 
-The script compares the planners on the deterministic primary scenarios and writes:
+The script compares P0/P1/P2/P4 on the five deterministic scenarios and writes:
 
 ```text
 results/stage9_primary.csv
+results/stage9_summary.csv
+results/stage9_outage_vs_travel_time.png
 ```
 
 ## Repository structure
@@ -95,4 +97,4 @@ Experiment configurations, fixed scenarios, machine-readable results, unit tests
 
 ## Status
 
-🚧 Research prototype — Stage 9 core closed loop implemented; experimental evaluation and PC-FMCW model integration next.
+🚧 **Research prototype — Stage 9 closed-loop core + primary benchmark implemented; next: prediction-error/horizon sweeps and frozen PC-FMCW model integration.**
