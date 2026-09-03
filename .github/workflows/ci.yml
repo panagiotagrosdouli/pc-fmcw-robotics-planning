@@ -32,6 +32,8 @@ jobs:
         run: python scripts/analyze_pc_fmcw_benchmark.py --input results/pc_fmcw_ci/episodes.csv --output-dir results/pc_fmcw_ci --bootstrap-samples 100
       - name: Robustness sweep smoke run
         run: python scripts/run_pc_fmcw_robustness_sweep.py --seeds 1 --mc-samples 2 --output-dir results/pc_fmcw_robustness_ci
+      - name: Paper robustness figure smoke run
+        run: python scripts/plot_pc_fmcw_robustness.py --input results/pc_fmcw_robustness_ci/summary.csv --output-dir results/pc_fmcw_robustness_ci/figures
       - name: Paper manifest dry run
         run: python scripts/run_paper_experiments.py --dry-run
       - name: Verify expected synthetic outputs
@@ -47,6 +49,12 @@ jobs:
           test -s results/pc_fmcw_robustness_ci/episodes.csv
           test -s results/pc_fmcw_robustness_ci/summary.csv
           test -s results/pc_fmcw_robustness_ci/manifest.json
+          test -s results/pc_fmcw_robustness_ci/figures/outage_vs_observation_noise.png
+          test -s results/pc_fmcw_robustness_ci/figures/outage_vs_prediction_uncertainty.png
+          test -s results/pc_fmcw_robustness_ci/figures/outage_vs_horizon.png
+          test -s results/pc_fmcw_robustness_ci/figures/outage_vs_connectivity_weight.png
+          test -s results/pc_fmcw_robustness_ci/figures/progress_vs_connectivity_weight.png
+          test -s results/pc_fmcw_robustness_ci/figures/collision_vs_observation_noise.png
 
   transformer-import:
     runs-on: ubuntu-latest
