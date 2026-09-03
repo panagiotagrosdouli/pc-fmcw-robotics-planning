@@ -35,14 +35,25 @@ def paired_vectors(df, a, b, metric):
     )
     if len(merged) != len(expected):
         raise ValueError(f"incomplete pairing for {a} vs {b}, metric={metric}")
+    if len(merged) == 0:
+        raise ValueError(f"no paired episodes for {a} vs {b}, metric={metric}")
     return merged["a"].to_numpy(float), merged["b"].to_numpy(float), len(merged)
 
 
 def analyze(df, bootstrap_samples=5000):
+    if bootstrap_samples < 1:
+        raise ValueError("bootstrap_samples must be >= 1")
     required = {"planner", "scenario", "seed", *METRICS}
     missing = required - set(df.columns)
     if missing:
         raise ValueError(f"missing columns: {sorted(missing)}")
+    duplicate_keys = df.duplicated(["planner", "scenario", "seed"], keep=False)
+    if duplicate_keys.any():
+        raise ValueError("duplicate planner/scenario/seed episode rows are not allowed")
+    expected_planners = {planner for pair in PAIRINGS for planner in pair}
+    missing_planners = expected_planners - set(df["planner"].astype(str))
+    if missing_planners:
+        raise ValueError(f"missing planners required for paired analysis: {sorted(missing_planners)}")
     rows = []
     for a, b in PAIRINGS:
         for metric in METRICS:
@@ -53,8 +64,12 @@ def analyze(df, bootstrap_samples=5000):
             # the raw benchmark CSV retains +inf and therefore remains auditable.
             if metric == "min_realized_ttc_s":
                 cap = float(df["duration_s"].max()) if "duration_s" in df else 1e6
+                if not np.isfinite(cap) or cap <= 0.0:
+                    raise ValueError("duration_s must provide a positive finite TTC cap")
                 va = np.where(np.isfinite(va), va, cap)
                 vb = np.where(np.isfinite(vb), vb, cap)
+            if not (np.all(np.isfinite(va)) and np.all(np.isfinite(vb))):
+                raise ValueError(f"non-finite values for {a} vs {b}, metric={metric}")
             boot = paired_bootstrap_delta(va, vb, samples=bootstrap_samples, rng=7)
             wil = paired_wilcoxon(va, vb)
             rows.append({
@@ -80,6 +95,8 @@ def main():
     p.add_argument("--output-dir", type=Path, default=Path("results/pc_fmcw_sim"))
     p.add_argument("--bootstrap-samples", type=int, default=5000)
     args = p.parse_args()
+    if args.bootstrap_samples < 1:
+        raise SystemExit("--bootstrap-samples must be >= 1")
     inp = ROOT / args.input
     outdir = ROOT / args.output_dir
     if not inp.exists():
