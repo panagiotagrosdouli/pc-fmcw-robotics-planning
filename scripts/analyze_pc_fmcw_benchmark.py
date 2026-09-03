@@ -58,16 +58,19 @@ def analyze(df, bootstrap_samples=5000):
     for a, b in PAIRINGS:
         for metric in METRICS:
             va, vb, n = paired_vectors(df, a, b, metric)
-            # Infinite TTC is the physically meaningful value for non-closing
-            # trajectories, but finite statistical tests cannot operate on it.
-            # Cap only for the inferential calculation at the episode duration;
-            # the raw benchmark CSV retains +inf and therefore remains auditable.
+            # +inf TTC is physically meaningful for trajectories that never
+            # reach the collision-clearance boundary. NaN and -inf are invalid
+            # data and must never be silently converted into censored values.
             if metric == "min_realized_ttc_s":
+                invalid_a = np.isnan(va) | np.isneginf(va)
+                invalid_b = np.isnan(vb) | np.isneginf(vb)
+                if invalid_a.any() or invalid_b.any():
+                    raise ValueError(f"invalid TTC values for {a} vs {b}: only finite values or +inf are allowed")
                 cap = float(df["duration_s"].max()) if "duration_s" in df else 1e6
                 if not np.isfinite(cap) or cap <= 0.0:
                     raise ValueError("duration_s must provide a positive finite TTC cap")
-                va = np.where(np.isfinite(va), va, cap)
-                vb = np.where(np.isfinite(vb), vb, cap)
+                va = np.where(np.isposinf(va), cap, va)
+                vb = np.where(np.isposinf(vb), cap, vb)
             if not (np.all(np.isfinite(va)) and np.all(np.isfinite(vb))):
                 raise ValueError(f"non-finite values for {a} vs {b}, metric={metric}")
             boot = paired_bootstrap_delta(va, vb, samples=bootstrap_samples, rng=7)
