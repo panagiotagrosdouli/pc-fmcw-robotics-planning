@@ -29,6 +29,24 @@ class BenchmarkSettings:
     p3_mc_samples: int=32
     collision_distance_m: float=2.0
 
+    def __post_init__(self):
+        if not np.isfinite(self.dt) or self.dt <= 0.0:
+            raise ValueError("dt must be positive and finite")
+        if self.history_steps < 2:
+            raise ValueError("history_steps must be >= 2")
+        if self.horizon_steps < 1:
+            raise ValueError("horizon_steps must be >= 1")
+        if not np.isfinite(self.observation_sigma_m) or self.observation_sigma_m < 0.0:
+            raise ValueError("observation_sigma_m must be non-negative and finite")
+        if not np.isfinite(self.prediction_sigma_m) or self.prediction_sigma_m < 0.0:
+            raise ValueError("prediction_sigma_m must be non-negative and finite")
+        if not np.isfinite(self.connectivity_weight) or self.connectivity_weight < 0.0:
+            raise ValueError("connectivity_weight must be non-negative and finite")
+        if self.p3_mc_samples < 1:
+            raise ValueError("p3_mc_samples must be >= 1")
+        if not np.isfinite(self.collision_distance_m) or self.collision_distance_m < 0.0:
+            raise ValueError("collision_distance_m must be non-negative and finite")
+
 
 def _prediction(history,horizon,dt):
     mean=constant_velocity(np.asarray(history,float),horizon,dt)
@@ -88,40 +106,32 @@ def _realized_ttc(ego,target_state,collision_distance_m=2.0):
     return min(candidates) if candidates else np.inf
 
 
-def run_simulated_episode(planner_name,scenario,*,seed=0,settings=None,link=None):
-    """Run one seeded receding-horizon simulation episode."""
-    if planner_name not in PLANNERS: raise ValueError(f"unknown planner {planner_name}")
-    settings=settings or BenchmarkSettings(); link=link or PCFMCWPlanningLinkPredictor()
-    if settings.collision_distance_m < 0.0:
+def _simulate_episode(scenario,planner_name,seed,settings,link_predictor):
+    if settings.collision_distance_m<0.0:
         raise ValueError("collision_distance_m must be non-negative")
-    params=VehicleParams(dt=settings.dt); rng=np.random.default_rng(seed)
-    target=np.asarray(scenario.target_states,float); ego=np.asarray(scenario.ego_state,float).copy()
+    rng=np.random.default_rng(seed)
+    params=VehicleParams(dt=settings.dt)
+    ego=np.asarray(scenario.ego_initial,float).copy()
+    target=np.asarray(scenario.target_states,float)
     planner_common=dict(vehicle_params=params,target_clearance=settings.collision_distance_m)
     planners={
-      "P0":MobilityOnlyPlanner(link,**planner_common),
-      "P1":ReactiveConnectivityPlanner(link,settings.connectivity_weight,**planner_common),
-      "P2":PredictiveConnectivityPlanner(link,settings.connectivity_weight,**planner_common),
-      "P3":RiskAwarePredictivePlanner(link,settings.connectivity_weight,mc_samples=settings.p3_mc_samples,threshold_db=link.geometry.outage_threshold_db,random_seed=seed,**planner_common),
-      "P4":OracleConnectivityPlanner(link,settings.connectivity_weight,**planner_common),
+        "P0":MobilityOnlyPlanner(link_predictor,connectivity_weight=0.0,**planner_common),
+        "P1":ReactiveConnectivityPlanner(link_predictor,connectivity_weight=settings.connectivity_weight,**planner_common),
+        "P2":PredictiveConnectivityPlanner(link_predictor,connectivity_weight=settings.connectivity_weight,**planner_common),
+        "P3":RiskAwarePredictivePlanner(link_predictor,connectivity_weight=settings.connectivity_weight,mc_samples=settings.p3_mc_samples,**planner_common),
+        "P4":OracleConnectivityPlanner(link_predictor,connectivity_weight=settings.connectivity_weight,**planner_common),
     }
-    history=[]; positions=[ego[:2].copy()]; outages=[]; snrs=[]; bers=[]; goodputs=[]; target_dist=[]; realized_ttc=[]; obstacle_clear=[]; no_candidate=0
-    for k in range(len(target)-1):
-        observed=target[k,:2]+rng.normal(0.0,settings.observation_sigma_m,2); history.append(observed)
-        hist=history[-settings.history_steps:]
-        if len(hist)<2:
-            mean=np.repeat(observed[None,:],settings.horizon_steps,axis=0)
-        else: mean=_prediction(hist,settings.horizon_steps,settings.dt)[:,:2]
-        pred=np.zeros((settings.horizon_steps,4),float); pred[:,:2]=mean
-        truth=_truth_horizon(target,k,settings.horizon_steps)
-        if planner_name=="P3":
-            planner_target={"mean_xy":mean,"sigma_xy":np.full_like(mean,settings.prediction_sigma_m)}
-        elif planner_name=="P4":
-            planner_target=truth
-        else:
-            planner_target=pred
-        # Pass the common mean prediction explicitly to every planner's safety
-        # interface. This makes the P0-P4 fairness invariant visible at the
-        # benchmark call site instead of relying on planner-specific defaults.
+    observations=[]; snr=[]; outage=[]; ber=[]; goodput=[]; target_distance=[]; realized_ttc=[]; obstacle_clearance=[]
+    path_length=0.0; no_candidate=0; collision=False; previous=ego[:2].copy()
+    steps=min(len(target)-1,scenario.steps)
+    for k in range(steps):
+        observations.append(target[k,:2]+rng.normal(0.0,settings.observation_sigma_m,2))
+        hist=observations[-settings.history_steps:]
+        pred=_prediction(hist,settings.horizon_steps,settings.dt)
+        truth=_truth_horizon(target,k+1,settings.horizon_steps)
+        planner_target=pred
+        if planner_name=="P3": planner_target={"mean_xy":pred[:,:2],"sigma_m":settings.prediction_sigma_m}
+        elif planner_name=="P4": planner_target=truth
         plan_kwargs=dict(
             obstacles=scenario.obstacles,
             reference_speed=scenario.reference_speed,
@@ -129,22 +139,29 @@ def run_simulated_episode(planner_name,scenario,*,seed=0,settings=None,link=None
         )
         result=planners[planner_name].plan(ego,planner_target,**plan_kwargs)
         if result.candidate is None:no_candidate+=1
-        ego=step(ego,_first_control(result),params); positions.append(ego[:2].copy())
-        realized=link.predict(ego[None,:],target[k+1:k+2])
-        outages.append(float(realized.outage_probability[0])); snrs.append(float(realized.snr_db[0])); bers.append(float(realized.ber[0])); goodputs.append(float(realized.goodput[0]))
-        target_dist.append(float(np.linalg.norm(ego[:2]-target[k+1,:2])))
-        realized_ttc.append(float(_realized_ttc(ego,target[k+1],settings.collision_distance_m)))
-        for obs in scenario.obstacles:
-            ox,oy,*r=obs; obstacle_clear.append(float(np.hypot(ego[0]-ox,ego[1]-oy)-(r[0] if r else 0.0)))
-    pos=np.asarray(positions); min_target=min(target_dist) if target_dist else np.inf; min_obs=min(obstacle_clear) if obstacle_clear else np.inf
-    finite_ttc=[value for value in realized_ttc if np.isfinite(value)]
-    min_ttc=min(finite_ttc) if finite_ttc else np.inf
-    return {"planner":planner_name,"scenario":scenario.name,"seed":int(seed),"duration_s":float((len(target)-1)*settings.dt),"path_length_m":float(np.linalg.norm(np.diff(pos,axis=0),axis=1).sum()),"progress_m":float(pos[-1,0]-pos[0,0]),"mean_outage_probability":float(np.mean(outages)),"mean_snr_db":float(np.mean(snrs)),"mean_ber_model":float(np.mean(bers)),"mean_goodput_bps_model":float(np.mean(goodputs)),"min_target_distance_m":float(min_target),"min_realized_ttc_s":float(min_ttc),"min_static_obstacle_clearance_m":float(min_obs),"collision_indicator":int(min_target<settings.collision_distance_m or min_obs<0.0),"no_candidate_steps":int(no_candidate),"connectivity_model":"PC-FMCW-informed simulation model","measured_optical_link":False}
+        ego=step(ego,_first_control(result),params)
+        path_length+=float(np.linalg.norm(ego[:2]-previous)); previous=ego[:2].copy()
+        truth_now=target[min(k+1,len(target)-1)]
+        forecast=link_predictor.predict(np.repeat(ego[None,:],2,axis=0),np.repeat(truth_now[None,:],2,axis=0))
+        snr.append(float(forecast.snr_db[0])); outage.append(float(forecast.outage_probability[0])); ber.append(float(forecast.ber[0])); goodput.append(float(forecast.goodput_bps[0]))
+        d=float(np.linalg.norm(ego[:2]-truth_now[:2])); target_distance.append(d); collision=collision or d<settings.collision_distance_m
+        realized_ttc.append(_realized_ttc(ego,truth_now,settings.collision_distance_m))
+        if len(scenario.obstacles): obstacle_clearance.append(float(np.min(np.linalg.norm(np.asarray(scenario.obstacles)-ego[:2],axis=1))))
+    return {
+        "scenario":scenario.name,"planner":planner_name,"seed":seed,"steps":steps,"duration_s":steps*settings.dt,
+        "mean_snr_db":float(np.mean(snr)),"mean_outage_probability":float(np.mean(outage)),"mean_ber_model":float(np.mean(ber)),"mean_goodput_bps_model":float(np.mean(goodput)),
+        "path_length_m":path_length,"progress_m":float(ego[0]-scenario.ego_initial[0]),"min_target_distance_m":float(np.min(target_distance)),
+        "min_realized_ttc_s":float(np.min(realized_ttc)),
+        "min_static_obstacle_clearance_m":float(np.min(obstacle_clearance)) if obstacle_clearance else np.inf,
+        "collision_indicator":int(collision),"no_candidate_steps":no_candidate,
+    }
 
 
-def run_benchmark(*,seeds=(0,),settings=None):
+def run_benchmark(seeds=range(10),settings=BenchmarkSettings(),scenarios=None,link_predictor=None):
+    if scenarios is None:scenarios=make_primary_scenarios(dt=settings.dt)
+    if link_predictor is None:link_predictor=PCFMCWPlanningLinkPredictor()
     rows=[]
-    for seed in seeds:
-        for scenario in make_primary_scenarios():
-            for planner in PLANNERS: rows.append(run_simulated_episode(planner,scenario,seed=int(seed),settings=settings))
+    for scenario in scenarios:
+        for seed in seeds:
+            for planner in PLANNERS: rows.append(_simulate_episode(scenario,planner,int(seed),settings,link_predictor))
     return rows
