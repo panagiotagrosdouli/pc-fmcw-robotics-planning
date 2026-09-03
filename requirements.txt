@@ -1,0 +1,12 @@
+numpy
+scipy
+matplotlib
+pandas
+pyyaml
+pytest
+scikit-learn
+# Optional extensions:
+# torch
+# casadi
+# carla
+# commonroad-io
