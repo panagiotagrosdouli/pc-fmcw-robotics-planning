@@ -25,43 +25,36 @@ def _first_control(result):
 
 
 def run_episode(planner, scenario, planner_name="planner", params=None, dt=0.1):
-    """Run a short deterministic receding-horizon episode.
-
-    The target trajectory is simulator ground truth; a predictive planner may use it
-    as its forecast, while the reactive baseline intentionally collapses it to the
-    current state inside its planner implementation.
-    """
+    """Run a deterministic receding-horizon episode."""
     params = params or VehicleParams(dt=dt)
     ego = np.asarray(scenario.ego_state, dtype=float).copy()
     target = np.asarray(scenario.target_states, dtype=float)
     actions = []
     outage = []
     min_clearance = np.inf
+    positions = [ego[:2].copy()]
 
     for k in range(len(target) - 1):
-        target_future = target[k:]
         result = planner.plan(
             ego_state=ego,
-            target_prediction=target_future,
+            target_prediction=target[k:],
             obstacles=scenario.obstacles,
             reference_speed=scenario.reference_speed,
         )
         u = _first_control(result)
         actions.append(u)
-        if result.forecast is None:
-            outage.append(0.0)
-        else:
-            outage.append(float(np.mean(result.forecast.outage_probability)))
+        outage.append(0.0 if result.forecast is None else float(np.mean(result.forecast.outage_probability)))
         ego = step(ego, u, params)
+        positions.append(ego[:2].copy())
 
         for ox, oy, radius in scenario.obstacles:
-            d = np.hypot(ego[0] - ox, ego[1] - oy) - radius
-            min_clearance = min(min_clearance, d)
+            min_clearance = min(min_clearance, np.hypot(ego[0] - ox, ego[1] - oy) - radius)
 
+    positions = np.asarray(positions)
     actions = np.asarray(actions)
     outage_fraction = float(np.mean(outage)) if outage else 0.0
     link_lifetime = float((1.0 - outage_fraction) * max(0, len(outage) - 1) * dt)
-    path_length = float(np.sum(np.linalg.norm(np.diff(np.vstack(([scenario.ego_state[:2]], ego[:2]))), axis=1)))
+    path_length = float(np.sum(np.linalg.norm(np.diff(positions, axis=0), axis=1)))
     return EpisodeResult(
         planner=planner_name,
         scenario=scenario.name,
