@@ -11,6 +11,14 @@ on:
         description: "P3 Monte Carlo target samples"
         required: true
         default: "32"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/paper_experiments.yml"
+
+env:
+  PAPER_SEEDS: ${{ github.event.inputs.seeds || '20' }}
+  PAPER_MC_SAMPLES: ${{ github.event.inputs.mc_samples || '32' }}
 
 jobs:
   paper-experiments:
@@ -23,9 +31,6 @@ jobs:
           python-version: "3.11"
           cache: pip
       - name: Validate experiment inputs
-        env:
-          PAPER_SEEDS: ${{ inputs.seeds }}
-          PAPER_MC_SAMPLES: ${{ inputs.mc_samples }}
         run: |
           python - <<'PY'
           import os
@@ -45,8 +50,8 @@ jobs:
       - name: Run dataset-free PC-FMCW benchmark
         run: |
           python scripts/run_pc_fmcw_robotics_benchmark.py \
-            --seeds "${{ inputs.seeds }}" \
-            --mc-samples "${{ inputs.mc_samples }}" \
+            --seeds "$PAPER_SEEDS" \
+            --mc-samples "$PAPER_MC_SAMPLES" \
             --output-dir results/paper/benchmark
       - name: Run paired statistical analysis
         run: |
@@ -57,8 +62,8 @@ jobs:
       - name: Run robustness sweeps
         run: |
           python scripts/run_pc_fmcw_robustness_sweep.py \
-            --seeds "${{ inputs.seeds }}" \
-            --mc-samples "${{ inputs.mc_samples }}" \
+            --seeds "$PAPER_SEEDS" \
+            --mc-samples "$PAPER_MC_SAMPLES" \
             --output-dir results/paper/robustness
       - name: Generate robustness figures with uncertainty
         run: |
@@ -68,9 +73,6 @@ jobs:
             --bootstrap-seed 2026 \
             --output-dir results/paper/robustness/figures
       - name: Record reproducibility metadata
-        env:
-          PAPER_SEEDS: ${{ inputs.seeds }}
-          PAPER_MC_SAMPLES: ${{ inputs.mc_samples }}
         run: |
           python - <<'PY'
           import json, os, platform, subprocess, sys
