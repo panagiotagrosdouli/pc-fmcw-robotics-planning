@@ -1,6 +1,8 @@
 """Receding-horizon Stage-9 replay with measured CMHT target motion.
-Target motion is measured; ego is simulated; connectivity is modeled. P3 may
-consume a Transformer posterior whose sigma scale was frozen on validation.
+Target motion is measured; ego is simulated; connectivity is modeled. With a
+Transformer checkpoint, P2 and P3 share exactly the same predictive mean; P3
+alone uses the frozen validation-calibrated uncertainty. This isolates the
+risk-sensitive treatment from trajectory-predictor quality.
 """
 from __future__ import annotations
 import argparse,sys,time
@@ -36,6 +38,15 @@ def transformer_forecast(model,hist,steps,sigma_scale=1.):
  import torch
  with torch.no_grad():mean,logs=model(torch.tensor(hist[None],dtype=torch.float32))
  mean=mean[0].cpu().numpy();sigma=np.exp(logs[0].cpu().numpy())*sigma_scale;k=min(steps,len(mean));return hist[-1]+mean[:k],sigma[:k]
+def planner_targets(name,pred_xy,truth_xy,tf_mean,tf_sigma,dt,fixed_sigma):
+ """Construct targets while enforcing identical P2/P3 means in Transformer mode."""
+ if name=='P4':return states_from_xy(truth_xy,dt),'oracle','none'
+ if name=='P1':return states_from_xy(pred_xy,dt),'cv_reactive','none'
+ if name=='P2':
+  mean=tf_mean if tf_mean is not None else pred_xy;return states_from_xy(mean,dt),'transformer' if tf_mean is not None else 'cv','none'
+ if name=='P3':
+  mean=tf_mean if tf_mean is not None else pred_xy;sigma=tf_sigma if tf_sigma is not None else np.full_like(mean,fixed_sigma);return {'mean_xy':mean,'sigma_xy':sigma},'transformer' if tf_mean is not None else 'cv','validation_calibrated' if tf_sigma is not None else 'fixed_sigma'
+ return states_from_xy(pred_xy,dt),'none','none'
 def main():
  p=argparse.ArgumentParser();p.add_argument('--labels',type=Path,required=True);p.add_argument('--history',type=int,default=10);p.add_argument('--horizon',type=int,default=20);p.add_argument('--dt',type=float,default=.1);p.add_argument('--sigma-m',type=float,default=.75);p.add_argument('--transformer-checkpoint',type=Path);p.add_argument('--max-tracks',type=int,default=100);p.add_argument('--link-calibration',type=Path);p.add_argument('--output',type=Path,default=Path('results/cmht_closed_loop.csv'));a=p.parse_args();rows=extract_object_positions(a.labels);transformer=None;thist=thor=None;tscale=1.;tsource='none'
  if a.transformer_checkpoint:
@@ -50,15 +61,16 @@ def main():
   used+=1
   if used>a.max_tracks:break
   for name,build in builders.items():
-   planner=build();ego=initial_ego(xy[:required],a.dt);path=[ego.copy()];snrs=[];runtimes=[];distances=[];feasible=True;decisions=0;sigmas=[]
+   planner=build();ego=initial_ego(xy[:required],a.dt);path=[ego.copy()];snrs=[];runtimes=[];distances=[];feasible=True;decisions=0;sigmas=[];predictor='none';unc='none'
    for t in range(required,len(xy)-1):
-    available=min(a.horizon,len(xy)-t);hist=xy[max(0,t-a.history):t];pred_xy=constant_velocity(hist,available,a.dt);truth_xy=xy[t:t+available];pred=states_from_xy(pred_xy,a.dt);truth=states_from_xy(truth_xy,a.dt)
-    if name=='P3' and transformer is not None:mh=xy[t-thist:t];p3mean,p3sigma=transformer_forecast(transformer,mh,available,tscale);target={'mean_xy':p3mean,'sigma_xy':p3sigma};sigmas.extend(p3sigma.ravel())
-    elif name=='P3':target={'mean_xy':pred_xy,'sigma_xy':np.full_like(pred_xy,a.sigma_m)};sigmas.extend(np.full_like(pred_xy,a.sigma_m).ravel())
-    else:target=truth if name=='P4' else pred
+    available=min(a.horizon,len(xy)-t);hist=xy[max(0,t-a.history):t];pred_xy=constant_velocity(hist,available,a.dt);truth_xy=xy[t:t+available];tf_mean=tf_sigma=None
+    if transformer is not None and name in ('P2','P3'):
+     mh=xy[t-thist:t];tf_mean,tf_sigma=transformer_forecast(transformer,mh,available,tscale)
+    target,predictor,unc=planner_targets(name,pred_xy,truth_xy,tf_mean,tf_sigma,a.dt,a.sigma_m)
+    if name=='P3':sigmas.extend(np.asarray(target['sigma_xy']).ravel())
     tic=time.perf_counter();result=planner.plan(ego,target,obstacles=[],reference_speed=ego[3]);runtimes.append(1e3*(time.perf_counter()-tic));decisions+=1
     if result.candidate is None or len(result.candidate.states)<2:feasible=False;break
     nxt=np.asarray(result.candidate.states[1],float);realized=link.predict(_ExecutedStep(np.vstack([ego,nxt])),states_from_xy(xy[t:t+2],a.dt));snrs.append(float(np.asarray(realized.snr_db)[-1]));distances.append(float(np.linalg.norm(nxt[:2]-xy[t+1])));ego=nxt;path.append(ego.copy())
-   path=np.asarray(path);plen=float(np.linalg.norm(np.diff(path[:,:2],axis=0),axis=1).sum()) if len(path)>1 else 0.;unc=tsource if name=='P3' and transformer is not None else ('fixed_sigma' if name=='P3' else 'none');rec.append({'track_id':track_id,'object_id':oid,'planner':name,'link_model':link_name,'trajectory_uncertainty':unc,'sigma_scale':tscale if name=='P3' and transformer is not None else np.nan,'feasible':feasible,'decisions':decisions,'duration_s':decisions*a.dt,'path_length_m':plen,'mean_speed_mps':float(path[:,3].mean()),'min_target_distance_m':float(min(distances)) if distances else np.nan,'mean_predictive_sigma_m':float(np.mean(sigmas)) if sigmas else np.nan,'mean_snr_db':float(np.mean(snrs)) if snrs else np.nan,'p05_snr_db':float(np.percentile(snrs,5)) if snrs else np.nan,'outage_rate':float(np.mean(np.asarray(snrs)<threshold)) if snrs else np.nan,'mean_runtime_ms':float(np.mean(runtimes)) if runtimes else np.nan})
- df=pd.DataFrame(rec);a.output.parent.mkdir(parents=True,exist_ok=True);df.to_csv(a.output,index=False);summary=df.groupby(['planner','link_model','trajectory_uncertainty'],as_index=False,dropna=False).agg(tracks=('track_id','count'),feasible_rate=('feasible','mean'),outage_rate=('outage_rate','mean'),mean_snr_db=('mean_snr_db','mean'),path_length_m=('path_length_m','mean'),min_target_distance_m=('min_target_distance_m','mean'),mean_runtime_ms=('mean_runtime_ms','mean'));summary.to_csv(a.output.with_name(a.output.stem+'_summary.csv'),index=False);print(summary.to_string(index=False));print('Scientific status: measured CMHT target motion + simulated receding-horizon ego + modeled connectivity; P3 uncertainty provenance is explicit.')
+   path=np.asarray(path);plen=float(np.linalg.norm(np.diff(path[:,:2],axis=0),axis=1).sum()) if len(path)>1 else 0.;rec.append({'track_id':track_id,'object_id':oid,'planner':name,'trajectory_predictor':predictor,'link_model':link_name,'trajectory_uncertainty':tsource if name=='P3' and transformer is not None else unc,'sigma_scale':tscale if name=='P3' and transformer is not None else np.nan,'feasible':feasible,'decisions':decisions,'duration_s':decisions*a.dt,'path_length_m':plen,'mean_speed_mps':float(path[:,3].mean()),'min_target_distance_m':float(min(distances)) if distances else np.nan,'mean_predictive_sigma_m':float(np.mean(sigmas)) if sigmas else np.nan,'mean_snr_db':float(np.mean(snrs)) if snrs else np.nan,'p05_snr_db':float(np.percentile(snrs,5)) if snrs else np.nan,'outage_rate':float(np.mean(np.asarray(snrs)<threshold)) if snrs else np.nan,'mean_runtime_ms':float(np.mean(runtimes)) if runtimes else np.nan})
+ df=pd.DataFrame(rec);a.output.parent.mkdir(parents=True,exist_ok=True);df.to_csv(a.output,index=False);summary=df.groupby(['planner','trajectory_predictor','link_model','trajectory_uncertainty'],as_index=False,dropna=False).agg(tracks=('track_id','count'),feasible_rate=('feasible','mean'),outage_rate=('outage_rate','mean'),mean_snr_db=('mean_snr_db','mean'),path_length_m=('path_length_m','mean'),min_target_distance_m=('min_target_distance_m','mean'),mean_runtime_ms=('mean_runtime_ms','mean'));summary.to_csv(a.output.with_name(a.output.stem+'_summary.csv'),index=False);print(summary.to_string(index=False));print('Scientific status: measured CMHT target motion + simulated receding-horizon ego + modeled connectivity; P2/P3 share the same mean predictor when Transformer mode is enabled.')
 if __name__=='__main__':main()
