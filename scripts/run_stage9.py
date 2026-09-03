@@ -7,6 +7,7 @@ Usage:
 import sys
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -51,8 +52,30 @@ def main():
     out.mkdir(exist_ok=True)
     df = pd.DataFrame(rows)
     df.to_csv(out / "stage9_primary.csv", index=False)
-    print(df.to_string(index=False))
-    print(f"\nSaved: {out / 'stage9_primary.csv'}")
+
+    summary = df.groupby("planner", as_index=False).agg(
+        outage_fraction=("outage_fraction", "mean"),
+        link_lifetime_s=("link_lifetime_s", "mean"),
+        travel_time_s=("travel_time_s", "mean"),
+        path_length_m=("path_length_m", "mean"),
+        min_obstacle_distance_m=("min_obstacle_distance_m", "min"),
+    )
+    summary.to_csv(out / "stage9_summary.csv", index=False)
+
+    plt.figure(figsize=(7, 5))
+    for planner in summary["planner"]:
+        sub = df[df["planner"] == planner]
+        plt.scatter(sub["travel_time_s"], sub["outage_fraction"], label=planner)
+    plt.xlabel("Travel time (s)")
+    plt.ylabel("Outage fraction")
+    plt.title("Stage 9: mobility-connectivity trade-off")
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(out / "stage9_outage_vs_travel_time.png", dpi=200)
+    plt.close()
+
+    print(summary.to_string(index=False))
+    print(f"\nSaved results to: {out}")
 
 
 if __name__ == "__main__":
