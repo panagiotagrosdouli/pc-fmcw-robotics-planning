@@ -42,12 +42,8 @@ class BenchmarkSettings:
 
 def _prediction(history,horizon,dt):
     history=np.asarray(history,float)
-    if history.ndim != 2 or history.shape[1] != 2 or len(history) < 1:
-        raise ValueError("history must have shape (N, 2) with N >= 1")
-    if len(history) == 1:
-        mean=np.repeat(history[-1:, :], horizon, axis=0)
-    else:
-        mean=constant_velocity(history,horizon,dt)
+    if history.ndim != 2 or history.shape[1] != 2 or len(history) < 1: raise ValueError("history must have shape (N, 2) with N >= 1")
+    mean=np.repeat(history[-1:, :], horizon, axis=0) if len(history)==1 else constant_velocity(history,horizon,dt)
     target=np.zeros((horizon,4),float);target[:,:2]=mean
     if horizon>1:
         velocity=np.gradient(mean,dt,axis=0);target[:,3]=np.linalg.norm(velocity,axis=1)
@@ -90,12 +86,12 @@ def _simulate_episode(scenario,planner_name,seed,settings,link_predictor):
     observations=[];snr=[];outage=[];ber=[];goodput=[];target_distance=[];realized_ttc=[];obstacle_clearance=[];path_length=0.0;no_candidate=0;collision=False;previous=ego[:2].copy();steps=max(0,len(target)-1)
     for k in range(steps):
         observations.append(target[k,:2]+rng.normal(0.0,settings.observation_sigma_m,2));hist=observations[-settings.history_steps:];pred=_prediction(hist,settings.horizon_steps,settings.dt);truth=_truth_horizon(target,k+1,settings.horizon_steps);planner_target=pred
-        if planner_name=="P3":planner_target={"mean_xy":pred[:,:2],"sigma_m":settings.prediction_sigma_m}
+        if planner_name=="P3":planner_target={"mean_xy":pred[:,:2],"sigma_xy":np.full_like(pred[:,:2],settings.prediction_sigma_m)}
         elif planner_name=="P4":planner_target=truth
         result=planners[planner_name].plan(ego,planner_target,obstacles=scenario.obstacles,reference_speed=scenario.reference_speed,safety_target_prediction=pred)
         if result.candidate is None:no_candidate+=1
         ego=step(ego,_first_control(result),params);path_length+=float(np.linalg.norm(ego[:2]-previous));previous=ego[:2].copy();truth_now=target[k+1]
-        forecast=link_predictor.predict(np.repeat(ego[None,:],2,axis=0),np.repeat(truth_now[None,:],2,axis=0));snr.append(float(forecast.snr_db[0]));outage.append(float(forecast.outage_probability[0]));ber.append(float(forecast.ber[0]));goodput.append(float(forecast.goodput_bps[0]));d=float(np.linalg.norm(ego[:2]-truth_now[:2]));target_distance.append(d);collision=collision or d<settings.collision_distance_m;realized_ttc.append(_realized_ttc(ego,truth_now,settings.collision_distance_m))
+        forecast=link_predictor.predict(np.repeat(ego[None,:],2,axis=0),np.repeat(truth_now[None,:],2,axis=0));snr.append(float(forecast.snr_db[0]));outage.append(float(forecast.outage_probability[0]));ber.append(float(forecast.ber[0]));goodput.append(float(forecast.goodput[0]));d=float(np.linalg.norm(ego[:2]-truth_now[:2]));target_distance.append(d);collision=collision or d<settings.collision_distance_m;realized_ttc.append(_realized_ttc(ego,truth_now,settings.collision_distance_m))
         if len(scenario.obstacles):
             obs_xy=np.asarray([o[:2] for o in scenario.obstacles],float);obstacle_clearance.append(float(np.min(np.linalg.norm(obs_xy-ego[:2],axis=1))))
     return {"scenario":scenario.name,"planner":planner_name,"seed":seed,"steps":steps,"duration_s":steps*settings.dt,"mean_snr_db":float(np.mean(snr)),"mean_outage_probability":float(np.mean(outage)),"mean_ber_model":float(np.mean(ber)),"mean_goodput_bps_model":float(np.mean(goodput)),"path_length_m":path_length,"progress_m":float(ego[0]-scenario.ego_state[0]),"min_target_distance_m":float(np.min(target_distance)),"min_realized_ttc_s":float(np.min(realized_ttc)),"min_static_obstacle_clearance_m":float(np.min(obstacle_clearance)) if obstacle_clearance else np.inf,"collision_indicator":int(collision),"no_candidate_steps":no_candidate,"measured_optical_link":False}
