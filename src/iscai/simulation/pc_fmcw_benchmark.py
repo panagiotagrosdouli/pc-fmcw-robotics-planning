@@ -56,19 +56,36 @@ def _velocity_xy(state):
     return state[3]*np.array([np.cos(state[2]),np.sin(state[2])])
 
 
-def _realized_ttc(ego,target_state):
-    """Constant-relative-velocity TTC for the realized ego/target states.
+def _realized_ttc(ego,target_state,collision_distance_m=2.0):
+    """Constant-relative-velocity time to the collision-clearance boundary.
 
-    TTC is the time to closest approach when the relative motion is closing.
-    Infinite TTC denotes non-closing or degenerate relative motion. This is a
-    diagnostic safety metric, not an oracle signal exposed to any planner.
+    The metric solves ``||r + v t|| = collision_distance_m`` and returns the
+    earliest non-negative contact time. Infinite TTC denotes trajectories that
+    do not intersect the configured clearance disk under constant relative
+    velocity. This is an evaluation-only diagnostic and is never exposed to a
+    planner as future information.
     """
+    clearance=float(collision_distance_m)
+    if clearance<0.0:
+        raise ValueError("collision_distance_m must be non-negative")
     rel_pos=np.asarray(target_state[:2],float)-np.asarray(ego[:2],float)
+    distance=float(np.linalg.norm(rel_pos))
+    if distance<=clearance:
+        return 0.0
     rel_vel=_velocity_xy(target_state)-_velocity_xy(ego)
-    speed2=float(np.dot(rel_vel,rel_vel))
-    if speed2<=1e-12:return np.inf
-    t_closest=-float(np.dot(rel_pos,rel_vel))/speed2
-    return t_closest if t_closest>0.0 else np.inf
+    a=float(np.dot(rel_vel,rel_vel))
+    if a<=1e-12:
+        return np.inf
+    b=2.0*float(np.dot(rel_pos,rel_vel))
+    c=float(np.dot(rel_pos,rel_pos)-clearance**2)
+    disc=b*b-4.0*a*c
+    if disc<0.0:
+        return np.inf
+    root=np.sqrt(max(0.0,disc))
+    t1=(-b-root)/(2.0*a)
+    t2=(-b+root)/(2.0*a)
+    candidates=[t for t in (t1,t2) if t>=0.0]
+    return min(candidates) if candidates else np.inf
 
 
 def run_simulated_episode(planner_name,scenario,*,seed=0,settings=None,link=None):
@@ -108,7 +125,7 @@ def run_simulated_episode(planner_name,scenario,*,seed=0,settings=None,link=None
         realized=link.predict(ego[None,:],target[k+1:k+2])
         outages.append(float(realized.outage_probability[0])); snrs.append(float(realized.snr_db[0])); bers.append(float(realized.ber[0])); goodputs.append(float(realized.goodput[0]))
         target_dist.append(float(np.linalg.norm(ego[:2]-target[k+1,:2])))
-        realized_ttc.append(float(_realized_ttc(ego,target[k+1])))
+        realized_ttc.append(float(_realized_ttc(ego,target[k+1],settings.collision_distance_m)))
         for obs in scenario.obstacles:
             ox,oy,*r=obs; obstacle_clear.append(float(np.hypot(ego[0]-ox,ego[1]-oy)-(r[0] if r else 0.0)))
     pos=np.asarray(positions); min_target=min(target_dist) if target_dist else np.inf; min_obs=min(obstacle_clear) if obstacle_clear else np.inf
