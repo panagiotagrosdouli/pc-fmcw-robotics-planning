@@ -19,12 +19,14 @@ class RiskAwarePredictivePlanner(_BasePlanner):
         self.risk_power = float(risk_power)
         self.random_seed = random_seed
 
-    def plan(self, ego_state, target_prediction, obstacles=None, reference_speed=None):
+    def plan(self, ego_state, target_prediction, obstacles=None, reference_speed=None,
+             safety_target_prediction=None):
         mean_xy = np.asarray(target_prediction["mean_xy"], dtype=float)
         sigma_xy = np.asarray(target_prediction["sigma_xy"], dtype=float)
         if mean_xy.shape != sigma_xy.shape or mean_xy.ndim != 2 or mean_xy.shape[1] != 2:
             raise ValueError("mean_xy and sigma_xy must have identical shape (H, 2)")
-        candidates = self._candidates(ego_state, obstacles, target_prediction)
+        safety_target = target_prediction if safety_target_prediction is None else safety_target_prediction
+        candidates = self._candidates(ego_state, obstacles, safety_target)
         if not candidates:
             return PlanningResult(None, float("inf"), None)
         best = None
