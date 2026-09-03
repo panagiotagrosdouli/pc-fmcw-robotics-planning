@@ -2,6 +2,8 @@
 
 Predictive connectivity-aware autonomous motion planning for vehicles using a dataset-free PC-FMCW-informed simulation model.
 
+<img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/e2440283-661c-4707-b63a-d19ef3c7e6ae" />
+
 ## Research objective
 
 This repository implements the robotics extension of the PC-FMCW predictive-communications pipeline. The core idea is a closed-loop planner that evaluates candidate ego trajectories using predicted future communication quality and selects motion under hard vehicle, road, static-obstacle, and dynamic-target safety constraints.
