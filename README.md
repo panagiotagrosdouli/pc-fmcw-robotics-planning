@@ -8,7 +8,7 @@ This repository implements the robotics extension of the PC-FMCW predictive-comm
 
 The upstream PC-FMCW/communications model is treated as frozen as far as possible. The new contribution is the **ego motion decision layer**, not scheduling or a redesign of the PHY.
 
-For the paper-level experimental protocol and claim boundaries, see [`docs/PAPER_METHODS.md`](docs/PAPER_METHODS.md). For the explicit interface between the upstream PC-FMCW system and the robotics planner, see [`docs/PC_FMCW_ROBOTICS_BRIDGE.md`](docs/PC_FMCW_ROBOTICS_BRIDGE.md).
+For the paper-level experimental protocol and claim boundaries, see [`docs/PAPER_METHODS.md`](docs/PAPER_METHODS.md). For the explicit interface between the upstream PC-FMCW system and the robotics planner, see [`docs/PC_FMCW_ROBOTICS_BRIDGE.md`](docs/PC_FMCW_ROBOTICS_BRIDGE.md). Before converting experiment outputs into paper claims, tables, or figures, use [`docs/EXPERIMENT_REPORTING_CHECKLIST.md`](docs/EXPERIMENT_REPORTING_CHECKLIST.md).
 
 ## Planning pipeline
 
@@ -71,7 +71,7 @@ pc-fmcw-robotics-planning/
 
 ## Reproducibility
 
-Fixed configurations, seeded scenarios, machine-readable provenance, P0–P4 fairness rules, unit tests, CI smoke benchmarks, and figure/statistics scripts are maintained in the repository. The legacy CMHT/Rad-R utilities remain optional extensions and are not prerequisites for the core dataset-free paper.
+Fixed configurations, seeded scenarios, machine-readable provenance, P0–P4 fairness rules, unit tests, CI smoke benchmarks, and figure/statistics scripts are maintained in the repository. The manual `Paper Experiments` workflow runs the benchmark, paired statistical analysis, robustness sweeps, uncertainty-aware figures, reproducibility metadata, and artifact packaging as one versioned experiment bundle. The legacy CMHT/Rad-R utilities remain optional extensions and are not prerequisites for the core dataset-free paper.
 
 ## Status
 
