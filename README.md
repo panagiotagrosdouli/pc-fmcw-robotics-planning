@@ -34,6 +34,36 @@ All planners use the same candidate generator and hard safety filters.
 - How much mobility cost is required for a given connectivity gain?
 - At what prediction horizon and prediction-error regime does proactive planning cease to be beneficial?
 
+## Current implementation
+
+The Stage 9 core is now executable as a deterministic simulation prototype:
+
+- kinematic bicycle dynamics
+- Frenet-inspired candidate trajectory library
+- hard road/speed/obstacle filtering
+- trajectory-conditioned geometry-based link forecast
+- P0/P1/P2/P4 planner baselines
+- receding-horizon closed-loop episode runner
+- primary synthetic following/lateral-offset and lane-choice scenarios
+- CSV experiment output under `results/`
+
+The geometry predictor is intentionally a configurable surrogate. It must be replaced or calibrated against the frozen PC-FMCW predictor/PHY model before making final scientific claims.
+
+## Run the primary experiment
+
+From the repository root:
+
+```bash
+pip install -r requirements.txt
+python scripts/run_stage9.py
+```
+
+The script compares the planners on the deterministic primary scenarios and writes:
+
+```text
+results/stage9_primary.csv
+```
+
 ## Repository structure
 
 ```text
@@ -53,25 +83,16 @@ pc-fmcw-robotics-planning/
 └── requirements.txt
 ```
 
-## Initial implementation
+## Scientific scope
 
-The first implementation is simulation-first and CPU-friendly:
+The first paper target is simulation-first and CPU-friendly. The planned experimental story is predictive versus reactive connectivity-aware motion planning, with hard safety constraints, mobility-connectivity Pareto analysis, and robustness to prediction horizon and prediction error.
 
-- kinematic bicycle dynamics
-- Frenet/sample-based candidate trajectories
-- hard feasibility and collision filtering
-- trajectory-conditioned link forecasting
-- outage and link-survival as the primary connectivity objective
-- receding-horizon planning
-- deterministic synthetic scenarios
-- paired evaluation and Pareto analysis
-
-Higher-fidelity CommonRoad/CARLA integration and uncertainty-aware prediction are extensions after the core closed loop is validated.
+Higher-fidelity CommonRoad/CARLA integration, probabilistic uncertainty, and HIL/real-world validation are later stages rather than prerequisites for the core contribution.
 
 ## Reproducibility
 
-Experiment configurations, random seeds, machine-readable results, unit tests, and figure-generation scripts are kept in the repository so that the main experiments can be regenerated from fixed configurations.
+Experiment configurations, fixed scenarios, machine-readable results, unit tests, and figure-generation scripts are kept in the repository so that experiments can be regenerated from controlled inputs.
 
 ## Status
 
-🚧 Research prototype — Stage 9 implementation in progress.
+🚧 Research prototype — Stage 9 core closed loop implemented; experimental evaluation and PC-FMCW model integration next.
