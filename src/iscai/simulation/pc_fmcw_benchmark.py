@@ -116,9 +116,14 @@ def run_simulated_episode(planner_name,scenario,*,seed=0,settings=None,link=None
             planner_target=truth
         else:
             planner_target=pred
-        plan_kwargs=dict(obstacles=scenario.obstacles,reference_speed=scenario.reference_speed)
-        if planner_name=="P4":
-            plan_kwargs["safety_target_prediction"]=pred
+        # Pass the common mean prediction explicitly to every planner's safety
+        # interface. This makes the P0-P4 fairness invariant visible at the
+        # benchmark call site instead of relying on planner-specific defaults.
+        plan_kwargs=dict(
+            obstacles=scenario.obstacles,
+            reference_speed=scenario.reference_speed,
+            safety_target_prediction=pred,
+        )
         result=planners[planner_name].plan(ego,planner_target,**plan_kwargs)
         if result.candidate is None:no_candidate+=1
         ego=step(ego,_first_control(result),params); positions.append(ego[:2].copy())
