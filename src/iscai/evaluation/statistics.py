@@ -37,3 +37,48 @@ def paired_wilcoxon(a, b):
         return {"statistic": 0.0, "pvalue": 1.0}
     res = wilcoxon(a, b, alternative="two-sided", zero_method="wilcox")
     return {"statistic": float(res.statistic), "pvalue": float(res.pvalue)}
+
+
+def holm_adjust(pvalues):
+    """Holm step-down family-wise error correction."""
+    p = np.asarray(pvalues, dtype=float)
+    if p.ndim != 1:
+        raise ValueError("pvalues must be one-dimensional")
+    if np.any((p < 0) | (p > 1)):
+        raise ValueError("pvalues must lie in [0, 1]")
+    m = len(p)
+    if m == 0:
+        return p.copy()
+    order = np.argsort(p)
+    ranked = p[order]
+    adjusted_ranked = np.maximum.accumulate((m - np.arange(m)) * ranked)
+    adjusted_ranked = np.clip(adjusted_ranked, 0.0, 1.0)
+    adjusted = np.empty_like(adjusted_ranked)
+    adjusted[order] = adjusted_ranked
+    return adjusted
+
+
+def pareto_mask(values, minimize=None):
+    """Return mask of non-dominated rows for multi-objective values.
+
+    ``minimize`` is a boolean vector indicating objective direction. When omitted,
+    all objectives are minimized.
+    """
+    x = np.asarray(values, dtype=float)
+    if x.ndim != 2:
+        raise ValueError("values must have shape (N, D)")
+    if minimize is None:
+        minimize = np.ones(x.shape[1], dtype=bool)
+    minimize = np.asarray(minimize, dtype=bool)
+    if minimize.shape != (x.shape[1],):
+        raise ValueError("minimize must have length D")
+    z = x.copy()
+    z[:, ~minimize] *= -1.0
+    keep = np.ones(len(z), dtype=bool)
+    for i in range(len(z)):
+        if not keep[i]:
+            continue
+        dominates_i = np.all(z <= z[i], axis=1) & np.any(z < z[i], axis=1)
+        if np.any(dominates_i):
+            keep[i] = False
+    return keep
