@@ -92,14 +92,17 @@ def run_simulated_episode(planner_name,scenario,*,seed=0,settings=None,link=None
     """Run one seeded receding-horizon simulation episode."""
     if planner_name not in PLANNERS: raise ValueError(f"unknown planner {planner_name}")
     settings=settings or BenchmarkSettings(); link=link or PCFMCWPlanningLinkPredictor()
+    if settings.collision_distance_m < 0.0:
+        raise ValueError("collision_distance_m must be non-negative")
     params=VehicleParams(dt=settings.dt); rng=np.random.default_rng(seed)
     target=np.asarray(scenario.target_states,float); ego=np.asarray(scenario.ego_state,float).copy()
+    planner_common=dict(vehicle_params=params,target_clearance=settings.collision_distance_m)
     planners={
-      "P0":MobilityOnlyPlanner(link,vehicle_params=params),
-      "P1":ReactiveConnectivityPlanner(link,settings.connectivity_weight,params),
-      "P2":PredictiveConnectivityPlanner(link,settings.connectivity_weight,params),
-      "P3":RiskAwarePredictivePlanner(link,settings.connectivity_weight,params,mc_samples=settings.p3_mc_samples,threshold_db=link.geometry.outage_threshold_db,random_seed=seed),
-      "P4":OracleConnectivityPlanner(link,settings.connectivity_weight,params),
+      "P0":MobilityOnlyPlanner(link,**planner_common),
+      "P1":ReactiveConnectivityPlanner(link,settings.connectivity_weight,**planner_common),
+      "P2":PredictiveConnectivityPlanner(link,settings.connectivity_weight,**planner_common),
+      "P3":RiskAwarePredictivePlanner(link,settings.connectivity_weight,mc_samples=settings.p3_mc_samples,threshold_db=link.geometry.outage_threshold_db,random_seed=seed,**planner_common),
+      "P4":OracleConnectivityPlanner(link,settings.connectivity_weight,**planner_common),
     }
     history=[]; positions=[ego[:2].copy()]; outages=[]; snrs=[]; bers=[]; goodputs=[]; target_dist=[]; realized_ttc=[]; obstacle_clear=[]; no_candidate=0
     for k in range(len(target)-1):
