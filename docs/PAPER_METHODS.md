@@ -28,7 +28,7 @@ Candidate ego trajectories are generated with the repository vehicle dynamics an
 
 Dynamic-target safety compares candidate state j only with target prediction j. Future target positions are therefore not treated as a simultaneous static obstacle cloud.
 
-The same mean target prediction is used for dynamic safety across P0-P4. This prevents the oracle baseline from receiving privileged future truth for collision avoidance.
+The same mean target prediction is used for dynamic safety across P0-P4. This prevents the oracle baseline from receiving privileged future truth for collision avoidance. The configured collision-clearance radius is also passed to every planner as the dynamic-target safety clearance and is reused by the collision indicator and realized TTC diagnostic. Planning feasibility and evaluation therefore share one declared target-clearance boundary rather than independent thresholds.
 
 ## Planner definitions
 
@@ -66,4 +66,4 @@ The study does **not** by itself support claims of measured PC-FMCW optical-chan
 
 ## Reproducibility
 
-The repository maintains seeded benchmark scripts, robustness sweeps, paired statistical analysis, figure generation, unit/regression tests, CI smoke runs, and a manual full-paper experiment workflow with machine-readable provenance metadata. Numerical paper results should be generated from those reproducible outputs rather than inserted manually or inferred before the experiments are run.
+The repository maintains seeded benchmark scripts, robustness sweeps, paired statistical analysis, figure generation, unit/regression tests, CI smoke runs, and a manual full-paper experiment workflow with machine-readable provenance metadata. Benchmark CLI inputs are validated before experiment execution, including positive time step and horizon/sample counts and nonnegative uncertainty, connectivity weight, and collision-clearance settings. Numerical paper results should be generated from those reproducible outputs rather than inserted manually or inferred before the experiments are run.
