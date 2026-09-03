@@ -50,6 +50,27 @@ def _first_control(result):
     return np.asarray(result.candidate.controls[0],float)
 
 
+def _velocity_xy(state):
+    """Convert [x,y,yaw,speed] into Cartesian planar velocity."""
+    state=np.asarray(state,float)
+    return state[3]*np.array([np.cos(state[2]),np.sin(state[2])])
+
+
+def _realized_ttc(ego,target_state):
+    """Constant-relative-velocity TTC for the realized ego/target states.
+
+    TTC is the time to closest approach when the relative motion is closing.
+    Infinite TTC denotes non-closing or degenerate relative motion. This is a
+    diagnostic safety metric, not an oracle signal exposed to any planner.
+    """
+    rel_pos=np.asarray(target_state[:2],float)-np.asarray(ego[:2],float)
+    rel_vel=_velocity_xy(target_state)-_velocity_xy(ego)
+    speed2=float(np.dot(rel_vel,rel_vel))
+    if speed2<=1e-12:return np.inf
+    t_closest=-float(np.dot(rel_pos,rel_vel))/speed2
+    return t_closest if t_closest>0.0 else np.inf
+
+
 def run_simulated_episode(planner_name,scenario,*,seed=0,settings=None,link=None):
     """Run one seeded receding-horizon simulation episode."""
     if planner_name not in PLANNERS: raise ValueError(f"unknown planner {planner_name}")
@@ -63,7 +84,7 @@ def run_simulated_episode(planner_name,scenario,*,seed=0,settings=None,link=None
       "P3":RiskAwarePredictivePlanner(link,settings.connectivity_weight,params,mc_samples=settings.p3_mc_samples,threshold_db=link.geometry.outage_threshold_db,random_seed=seed),
       "P4":OracleConnectivityPlanner(link,settings.connectivity_weight,params),
     }
-    history=[]; positions=[ego[:2].copy()]; outages=[]; snrs=[]; bers=[]; goodputs=[]; target_dist=[]; obstacle_clear=[]; no_candidate=0
+    history=[]; positions=[ego[:2].copy()]; outages=[]; snrs=[]; bers=[]; goodputs=[]; target_dist=[]; realized_ttc=[]; obstacle_clear=[]; no_candidate=0
     for k in range(len(target)-1):
         observed=target[k,:2]+rng.normal(0.0,settings.observation_sigma_m,2); history.append(observed)
         hist=history[-settings.history_steps:]
@@ -87,10 +108,13 @@ def run_simulated_episode(planner_name,scenario,*,seed=0,settings=None,link=None
         realized=link.predict(ego[None,:],target[k+1:k+2])
         outages.append(float(realized.outage_probability[0])); snrs.append(float(realized.snr_db[0])); bers.append(float(realized.ber[0])); goodputs.append(float(realized.goodput[0]))
         target_dist.append(float(np.linalg.norm(ego[:2]-target[k+1,:2])))
+        realized_ttc.append(float(_realized_ttc(ego,target[k+1])))
         for obs in scenario.obstacles:
             ox,oy,*r=obs; obstacle_clear.append(float(np.hypot(ego[0]-ox,ego[1]-oy)-(r[0] if r else 0.0)))
     pos=np.asarray(positions); min_target=min(target_dist) if target_dist else np.inf; min_obs=min(obstacle_clear) if obstacle_clear else np.inf
-    return {"planner":planner_name,"scenario":scenario.name,"seed":int(seed),"duration_s":float((len(target)-1)*settings.dt),"path_length_m":float(np.linalg.norm(np.diff(pos,axis=0),axis=1).sum()),"progress_m":float(pos[-1,0]-pos[0,0]),"mean_outage_probability":float(np.mean(outages)),"mean_snr_db":float(np.mean(snrs)),"mean_ber_model":float(np.mean(bers)),"mean_goodput_bps_model":float(np.mean(goodputs)),"min_target_distance_m":float(min_target),"min_static_obstacle_clearance_m":float(min_obs),"collision_indicator":int(min_target<settings.collision_distance_m or min_obs<0.0),"no_candidate_steps":int(no_candidate),"connectivity_model":"PC-FMCW-informed simulation model","measured_optical_link":False}
+    finite_ttc=[value for value in realized_ttc if np.isfinite(value)]
+    min_ttc=min(finite_ttc) if finite_ttc else np.inf
+    return {"planner":planner_name,"scenario":scenario.name,"seed":int(seed),"duration_s":float((len(target)-1)*settings.dt),"path_length_m":float(np.linalg.norm(np.diff(pos,axis=0),axis=1).sum()),"progress_m":float(pos[-1,0]-pos[0,0]),"mean_outage_probability":float(np.mean(outages)),"mean_snr_db":float(np.mean(snrs)),"mean_ber_model":float(np.mean(bers)),"mean_goodput_bps_model":float(np.mean(goodputs)),"min_target_distance_m":float(min_target),"min_realized_ttc_s":float(min_ttc),"min_static_obstacle_clearance_m":float(min_obs),"collision_indicator":int(min_target<settings.collision_distance_m or min_obs<0.0),"no_candidate_steps":int(no_candidate),"connectivity_model":"PC-FMCW-informed simulation model","measured_optical_link":False}
 
 
 def run_benchmark(*,seeds=(0,),settings=None):
