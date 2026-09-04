@@ -31,6 +31,8 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default="configs/research_framework.yaml")
     parser.add_argument("--mode", choices=["core", "horizon", "weight", "risk", "shift", "blackout", "compute", "all"], default="core")
+    parser.add_argument("--setting-index", type=int, default=None, help="Run exactly one deterministic setting from the selected mode")
+    parser.add_argument("--list-settings", action="store_true", help="Print setting indices/IDs as JSON and exit")
     parser.add_argument("--seed-start", type=int, default=0)
     parser.add_argument("--seeds", type=int, default=None)
     parser.add_argument("--mc-samples", type=int, default=None)
@@ -53,6 +55,17 @@ def main():
 
     base = ResearchBenchmarkSettings(mc_samples=mc_samples)
     specs = build_experiment_specs(args.mode, config=cfg, base=base)
+    if args.list_settings:
+        print(json.dumps([
+            {"index": i, "experiment": spec.experiment, "setting_id": spec.setting_id}
+            for i, spec in enumerate(specs)
+        ]))
+        return
+    if args.setting_index is not None:
+        if args.setting_index < 0 or args.setting_index >= len(specs):
+            raise SystemExit(f"--setting-index must be in [0,{len(specs)-1}]")
+        specs = [specs[args.setting_index]]
+
     seeds = list(range(args.seed_start, args.seed_start + n_seeds))
     episodes, traces, specs_manifest = run_experiment_specs(specs, seeds)
 
@@ -80,6 +93,7 @@ def main():
         "git_commit": _git_sha(),
         "python_version": platform.python_version(),
         "mode": args.mode,
+        "setting_index": args.setting_index,
         "seeds": seeds,
         "base_settings": asdict(base),
         "experiment_specs": specs_manifest,
