@@ -8,15 +8,7 @@ on:
         required: true
         default: "core"
         type: choice
-        options:
-          - core
-          - horizon
-          - weight
-          - risk
-          - shift
-          - blackout
-          - compute
-          - all
+        options: [core, horizon, weight, risk, shift, blackout, compute, all]
       seeds:
         description: "Number of paired scenario seeds"
         required: true
@@ -63,7 +55,21 @@ jobs:
             --output-dir "results/research_framework/${RESEARCH_MODE}/analysis" \
             --bootstrap-samples 10000 \
             --rng-seed 2026
-      - name: Verify provenance and core outputs
+      - name: Build publication figures
+        run: |
+          python scripts/plot_research_framework.py \
+            --episodes "results/research_framework/${RESEARCH_MODE}/episodes.csv" \
+            --effects "results/research_framework/${RESEARCH_MODE}/analysis/paired_effects.csv" \
+            --trajectories "results/research_framework/${RESEARCH_MODE}/trajectories.csv" \
+            --output-dir "results/research_framework/${RESEARCH_MODE}/figures"
+      - name: Build publication tables
+        run: |
+          python scripts/build_research_paper_tables.py \
+            --episodes "results/research_framework/${RESEARCH_MODE}/episodes.csv" \
+            --effects "results/research_framework/${RESEARCH_MODE}/analysis/paired_effects.csv" \
+            --scenario-effects "results/research_framework/${RESEARCH_MODE}/analysis/scenario_paired_effects.csv" \
+            --output-dir "results/research_framework/${RESEARCH_MODE}/tables"
+      - name: Verify provenance and outputs
         run: |
           test -s "results/research_framework/${RESEARCH_MODE}/episodes.csv"
           test -s "results/research_framework/${RESEARCH_MODE}/summary.csv"
