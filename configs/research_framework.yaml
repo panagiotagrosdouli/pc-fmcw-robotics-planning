@@ -27,7 +27,10 @@ connectivity_weights: [0.0, 0.25, 0.5, 1.0, 2.0, 4.0]
 mc_sample_budgets: [1, 4, 8, 16, 32, 64]
 
 distribution_shift:
+  prediction_bias_x_m: [0.0, 0.5, 1.0, 2.0]
+  prediction_bias_y_m: [0.0, 0.25, 0.5, 1.0]
   prediction_noise_scale: [1.0, 1.5, 2.0, 3.0]
+  reported_uncertainty_scale: [0.5, 1.0, 1.5, 2.0]
   observation_delay_s: [0.0, 0.2, 0.5, 1.0]
   reference_snr_bias_db: [0.0, -1.0, -2.0, -4.0]
   pathloss_scale: [1.0, 1.1, 1.25, 1.5]
