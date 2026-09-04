@@ -11,10 +11,6 @@ on:
         description: "P3 Monte Carlo target samples"
         required: true
         default: "32"
-  push:
-    branches: [main]
-    paths:
-      - ".github/workflows/paper_experiments.yml"
 
 env:
   PAPER_SEEDS: ${{ github.event.inputs.seeds || '20' }}
@@ -59,10 +55,35 @@ jobs:
       - name: Install dependencies
         run: python -m pip install numpy scipy matplotlib pandas pyyaml scikit-learn h5py huggingface_hub
       - name: Run one robustness seed
-        run: |
-          python scripts/run_pc_fmcw_robustness_sweep.py --seeds 1 --seed-start "${{ matrix.seed }}" --mc-samples "$PAPER_MC_SAMPLES" --output-dir "results/paper/robustness-seed-${{ matrix.seed }}"
+        run: python scripts/run_pc_fmcw_robustness_sweep.py --seeds 1 --seed-start "${{ matrix.seed }}" --mc-samples "$PAPER_MC_SAMPLES" --output-dir "results/paper/robustness-seed-${{ matrix.seed }}"
       - uses: actions/upload-artifact@v4
         with:
           name: robustness-seed-${{ matrix.seed }}
           path: results/paper/robustness-seed-${{ matrix.seed }}
+          retention-days: 30
+
+  aggregate-robustness:
+    needs: robustness
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install analysis dependencies
+        run: python -m pip install numpy pandas matplotlib
+      - name: Download all robustness seed artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: robustness-seed-*
+          path: results/paper/shards
+      - name: Merge episodes and generate figures
+        run: |
+          python scripts/merge_pc_fmcw_robustness_shards.py --input-root results/paper/shards --output-dir results/paper/robustness --expected-seeds 20
+          python scripts/plot_pc_fmcw_robustness.py --episodes results/paper/robustness/episodes.csv --output-dir results/paper/robustness/figures --bootstrap-samples 10000 --bootstrap-seed 2026
+      - uses: actions/upload-artifact@v4
+        with:
+          name: paper-robustness-aggregated
+          path: results/paper/robustness
           retention-days: 30
