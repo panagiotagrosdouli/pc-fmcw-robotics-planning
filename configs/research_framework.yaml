@@ -5,53 +5,57 @@ benchmark:
   seeds: 20
   mc_samples: 32
   bootstrap_samples: 10000
-  planners: [P0, P1, P2, P3, P4]
+  planners: [P0, P1, P2, P3, P4, P2-CVaR, P2-Chance, P2-Adaptive, P2-Worst]
 
 risk_aware:
-  enabled: true
-  alpha_values: [0.8, 0.9, 0.95]
-  risk_weights: [0.0, 0.25, 0.5, 1.0, 2.0]
+  cvar_alpha_values: [0.8, 0.9, 0.95]
+  cvar_weights: [0.25, 0.5, 1.0, 2.0]
 
 chance_constraints:
-  enabled: true
-  outage_thresholds: [0.01, 0.05, 0.1]
-  violation_probabilities: [0.01, 0.05, 0.1, 0.2]
+  max_violation_probabilities: [0.01, 0.05, 0.1, 0.2]
+  hard_constraint: true
+  soft_penalty: 100.0
 
 adaptive_weight:
-  enabled: true
   base_weights: [0.25, 0.5, 1.0]
   max_weights: [1.0, 2.0, 4.0]
-  risk_activation_thresholds: [0.05, 0.1, 0.2]
+  activation_thresholds: [0.05, 0.1, 0.2]
 
-prediction_horizon_s: [0.0, 0.5, 1.0, 2.0, 3.0, 5.0]
+# H=0 is represented by reactive P1, not by an invalid zero-step predictive horizon.
+prediction_horizon_s: [0.5, 1.0, 2.0, 3.0, 5.0]
 connectivity_weights: [0.0, 0.25, 0.5, 1.0, 2.0, 4.0]
 mc_sample_budgets: [1, 4, 8, 16, 32, 64]
 
 distribution_shift:
-  bias_db: [0.0, 1.0, 2.0, 4.0]
-  noise_scale: [1.0, 1.5, 2.0, 3.0]
+  prediction_noise_scale: [1.0, 1.5, 2.0, 3.0]
   observation_delay_s: [0.0, 0.2, 0.5, 1.0]
-  propagation_mismatch_scale: [1.0, 1.1, 1.25, 1.5]
+  reference_snr_bias_db: [0.0, -1.0, -2.0, -4.0]
+  pathloss_scale: [1.0, 1.1, 1.25, 1.5]
+  beam_sigma_scale: [1.0, 0.9, 0.75, 0.5]
 
-blackout_scenarios:
-  - sudden_blockage
-  - persistent_nlos
-  - intermittent_link
-  - rapid_degradation
+blackout:
+  attenuation_db: 20.0
+  kinds: [sudden_blockage, persistent_nlos, intermittent_link, rapid_degradation]
+  visibility: [hidden, visible]
 
 reporting:
   paired_effects:
     - [P1, P2]
     - [P2, P3]
     - [P2, P4]
+    - [P2, P2-CVaR]
+    - [P2, P2-Chance]
+    - [P2, P2-Adaptive]
+    - [P2, P2-Worst]
   primary_metrics:
-    - outage_rate
+    - mean_outage_probability
     - mean_snr_db
-    - goodput_bps
+    - mean_goodput_bps_model
     - progress_m
-    - collision
+    - collision_indicator
   compute_metrics:
-    - planning_time_s
+    - mean_planning_time_s
+    - p95_planning_time_s
     - candidate_evaluations
   retain_negative_results: true
   separate_safety_claims: true
