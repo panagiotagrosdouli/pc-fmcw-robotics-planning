@@ -1,0 +1,77 @@
+name: Research Framework Experiments
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Experiment family"
+        required: true
+        default: "core"
+        type: choice
+        options:
+          - core
+          - horizon
+          - weight
+          - risk
+          - shift
+          - blackout
+          - compute
+          - all
+      seeds:
+        description: "Number of paired scenario seeds"
+        required: true
+        default: "20"
+      mc_samples:
+        description: "Monte Carlo samples for uncertainty-aware planners"
+        required: true
+        default: "32"
+
+env:
+  RESEARCH_MODE: ${{ github.event.inputs.mode || 'core' }}
+  RESEARCH_SEEDS: ${{ github.event.inputs.seeds || '20' }}
+  RESEARCH_MC_SAMPLES: ${{ github.event.inputs.mc_samples || '32' }}
+
+jobs:
+  experiment:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Record environment provenance
+        run: |
+          mkdir -p "results/research_framework/${RESEARCH_MODE}"
+          git rev-parse HEAD > "results/research_framework/${RESEARCH_MODE}/workflow_commit_sha.txt"
+          python --version > "results/research_framework/${RESEARCH_MODE}/python_version.txt"
+          python -m pip freeze > "results/research_framework/${RESEARCH_MODE}/pip_freeze.txt"
+      - name: Run research experiment family
+        run: |
+          python scripts/run_research_framework.py \
+            --mode "$RESEARCH_MODE" \
+            --seeds "$RESEARCH_SEEDS" \
+            --mc-samples "$RESEARCH_MC_SAMPLES" \
+            --output-dir "results/research_framework/${RESEARCH_MODE}"
+      - name: Run paired statistical analysis
+        run: |
+          python scripts/analyze_research_framework.py \
+            --input "results/research_framework/${RESEARCH_MODE}/episodes.csv" \
+            --output-dir "results/research_framework/${RESEARCH_MODE}/analysis" \
+            --bootstrap-samples 10000 \
+            --rng-seed 2026
+      - name: Verify provenance and core outputs
+        run: |
+          test -s "results/research_framework/${RESEARCH_MODE}/episodes.csv"
+          test -s "results/research_framework/${RESEARCH_MODE}/summary.csv"
+          test -s "results/research_framework/${RESEARCH_MODE}/manifest.json"
+          test -s "results/research_framework/${RESEARCH_MODE}/analysis/paired_effects.csv"
+          test "$(git rev-parse HEAD)" = "$(cat results/research_framework/${RESEARCH_MODE}/commit_sha.txt)"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: research-framework-${{ github.event.inputs.mode || 'core' }}
+          path: results/research_framework/${{ github.event.inputs.mode || 'core' }}
+          retention-days: 90
