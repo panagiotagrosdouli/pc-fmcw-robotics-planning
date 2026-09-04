@@ -57,7 +57,7 @@ def main() -> None:
     group_cols = ["sweep_parameter", "sweep_value", "planner"]
     summary = episodes.groupby(group_cols, as_index=False)[METRICS].mean()
     counts = episodes.groupby(group_cols, as_index=False).size().rename(columns={"size": "episodes"})
-    summary = counts.merge(summary, on=group_cols, how="one_to_one")
+    summary = counts.merge(summary, on=group_cols, how="inner", validate="one_to_one")
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
     episodes.to_csv(args.output_dir / "episodes.csv", index=False)
