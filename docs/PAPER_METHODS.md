@@ -46,6 +46,13 @@ The benchmark uses controlled parameterized target-motion scenarios and seeded o
 
 Reported connectivity quantities are model outputs. Safety/mobility diagnostics include path length, progress, minimum target distance, static-obstacle clearance, collision indicator, no-candidate steps, and realized collision-boundary TTC.
 
+The benchmark additionally records the first realized collision time, number of
+collision steps, and mutually exclusive candidate-rejection counts for road,
+speed, static-obstacle, and dynamic-target filters. Prediction quality is
+recorded as time-averaged closed-loop ADE and FDE against simulated future target
+truth. These diagnostics are evaluation outputs only and are never exposed to a
+deployable planner.
+
 The realized TTC diagnostic uses constant relative velocity at the evaluated state and computes the earliest nonnegative time at which relative position reaches the declared collision-clearance radius. If the current separation is already inside that radius, TTC is zero; if the constant-velocity relative trajectory does not intersect the collision disk, TTC is infinite. This diagnostic is evaluated from realized simulator states and is not exposed to a planner as future information.
 
 ## Statistical analysis
@@ -67,3 +74,8 @@ The study does **not** by itself support claims of measured PC-FMCW optical-chan
 ## Reproducibility
 
 The repository maintains seeded benchmark scripts, robustness sweeps, paired statistical analysis, figure generation, unit/regression tests, CI smoke runs, and a manual full-paper experiment workflow with machine-readable provenance metadata. Benchmark CLI inputs are validated before experiment execution, including positive time step and horizon/sample counts and nonnegative uncertainty, connectivity weight, and collision-clearance settings. Numerical paper results should be generated from those reproducible outputs rather than inserted manually or inferred before the experiments are run.
+
+The manual workflow derives both the benchmark seed count and the robustness
+job matrix from the same workflow input. This prevents a nominal seed-count
+change from silently leaving the robustness experiment fixed at a different
+number of seeds.
