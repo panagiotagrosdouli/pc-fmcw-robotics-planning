@@ -1,8 +1,8 @@
 """Communication-model stressors for closed-loop robustness experiments.
 
 The wrappers in this module keep ground-truth and planning models explicitly
-separate.  A planning predictor can be biased or mismatched while realized link
-metrics are still evaluated by an unmodified reference predictor.  Time-indexed
+separate. A planning predictor can be biased or mismatched while realized link
+metrics are still evaluated by an unmodified reference predictor. Time-indexed
 blackout profiles can also be applied deterministically and reproducibly.
 """
 
@@ -104,6 +104,33 @@ class TimeIndexedStressedLinkPredictor:
             **base,
             "stress_profile": self.profile.kind,
             "stress_attenuation_db": self.profile.attenuation_db,
+            "stress_information": "future_profile_visible",
+        }
+
+
+class ReactiveTimeIndexedStressedLinkPredictor(TimeIndexedStressedLinkPredictor):
+    """Reactive stress model that exposes only the current attenuation state.
+
+    Every point in the planner's candidate horizon is scored with the attenuation
+    observed at ``current_step``. This prevents a reactive baseline from receiving
+    privileged knowledge of a future scheduled blockage while preserving the same
+    underlying link model and realized stress profile.
+    """
+
+    def predict(self, ego_trajectory, target_prediction, link_history=None):
+        forecast = self.base_predictor.predict(ego_trajectory, target_prediction, link_history)
+        n = len(forecast.snr_db)
+        current = self.profile.attenuation(np.asarray([self.current_step]), self.episode_steps)
+        attenuation = float(current[0]) if current.size else 0.0
+        return _forecast_from_snr(np.asarray(forecast.snr_db, dtype=float) - attenuation, self.base_predictor)
+
+    def provenance(self):
+        base = self.base_predictor.provenance() if hasattr(self.base_predictor, "provenance") else {}
+        return {
+            **base,
+            "stress_profile": self.profile.kind,
+            "stress_attenuation_db": self.profile.attenuation_db,
+            "stress_information": "current_state_only",
         }
 
 
