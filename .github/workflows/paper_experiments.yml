@@ -11,6 +11,10 @@ on:
         description: "P3 Monte Carlo target samples"
         required: true
         default: "32"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/paper_experiments.yml"
 
 env:
   PAPER_SEEDS: ${{ github.event.inputs.seeds || '20' }}
