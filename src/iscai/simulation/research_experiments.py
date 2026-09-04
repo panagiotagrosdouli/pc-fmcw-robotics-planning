@@ -108,8 +108,14 @@ def build_experiment_specs(mode: str, config: dict | None = None,
     elif mode == "shift":
         planners = ("P1", "P2", "P3", "P2-CVaR", "P2-Chance", "P2-Adaptive", "P2-Worst")
         shift = cfg["distribution_shift"]
+        for bias in shift["prediction_bias_x_m"]:
+            specs.append(ExperimentSpec("shift", f"pred_bias_x={float(bias):g}m", replace(base, prediction_bias_x_m=float(bias)), planners))
+        for bias in shift["prediction_bias_y_m"]:
+            specs.append(ExperimentSpec("shift", f"pred_bias_y={float(bias):g}m", replace(base, prediction_bias_y_m=float(bias)), planners))
         for scale in shift["prediction_noise_scale"]:
             specs.append(ExperimentSpec("shift", f"pred_noise={float(scale):g}", replace(base, prediction_noise_scale=float(scale)), planners))
+        for scale in shift["reported_uncertainty_scale"]:
+            specs.append(ExperimentSpec("shift", f"uncertainty_x={float(scale):g}", replace(base, reported_uncertainty_scale=float(scale)), planners))
         for delay_s in shift["observation_delay_s"]:
             delay_steps = int(round(float(delay_s) / base.dt))
             specs.append(ExperimentSpec("shift", f"delay={float(delay_s):g}s", replace(base, observation_delay_steps=delay_steps), planners))
