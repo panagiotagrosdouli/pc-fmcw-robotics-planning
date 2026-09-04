@@ -21,81 +21,50 @@ env:
   PAPER_MC_SAMPLES: ${{ github.event.inputs.mc_samples || '32' }}
 
 jobs:
-  paper-experiments:
+  benchmark:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: pip
-      - name: Validate experiment inputs
+      - name: Install dependencies
+        run: python -m pip install numpy scipy matplotlib pandas pyyaml scikit-learn h5py huggingface_hub
+      - name: Run benchmark and paired analysis
         run: |
-          python - <<'PY'
-          import os
-          for name in ('PAPER_SEEDS', 'PAPER_MC_SAMPLES'):
-              raw = os.environ[name]
-              try:
-                  value = int(raw)
-              except ValueError as exc:
-                  raise SystemExit(f'{name} must be an integer, got {raw!r}') from exc
-              if value < 1:
-                  raise SystemExit(f'{name} must be >= 1, got {value}')
-          PY
-      - name: Install experiment dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install numpy scipy matplotlib pandas pyyaml scikit-learn h5py huggingface_hub
-      - name: Run dataset-free PC-FMCW benchmark
-        run: |
-          python scripts/run_pc_fmcw_robotics_benchmark.py \
-            --seeds "$PAPER_SEEDS" \
-            --mc-samples "$PAPER_MC_SAMPLES" \
-            --output-dir results/paper/benchmark
-      - name: Run paired statistical analysis
-        run: |
-          python scripts/analyze_pc_fmcw_benchmark.py \
-            --input results/paper/benchmark/episodes.csv \
-            --output-dir results/paper/benchmark \
-            --bootstrap-samples 10000
-      - name: Run robustness sweeps
-        run: |
-          python scripts/run_pc_fmcw_robustness_sweep.py \
-            --seeds "$PAPER_SEEDS" \
-            --mc-samples "$PAPER_MC_SAMPLES" \
-            --output-dir results/paper/robustness
-      - name: Generate robustness figures with uncertainty
-        run: |
-          python scripts/plot_pc_fmcw_robustness.py \
-            --episodes results/paper/robustness/episodes.csv \
-            --bootstrap-samples 10000 \
-            --bootstrap-seed 2026 \
-            --output-dir results/paper/robustness/figures
-      - name: Record reproducibility metadata
-        run: |
-          python - <<'PY'
-          import json, os, platform, subprocess, sys
-          from pathlib import Path
-          out = Path('results/paper/reproducibility.json')
-          out.parent.mkdir(parents=True, exist_ok=True)
-          metadata = {
-              'commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
-              'python': sys.version,
-              'platform': platform.platform(),
-              'seeds': int(os.environ['PAPER_SEEDS']),
-              'p3_mc_samples': int(os.environ['PAPER_MC_SAMPLES']),
-              'paired_analysis_bootstrap_samples': 10000,
-              'robustness_bootstrap_samples': 10000,
-              'robustness_bootstrap_seed': 2026,
-              'claim_boundary': 'PC-FMCW-informed controlled simulation; not measured optical or real-vehicle validation.',
-          }
-          out.write_text(json.dumps(metadata, indent=2) + '\n')
-          PY
-      - name: Upload paper experiment bundle
-        uses: actions/upload-artifact@v4
+          python scripts/run_pc_fmcw_robotics_benchmark.py --seeds "$PAPER_SEEDS" --mc-samples "$PAPER_MC_SAMPLES" --output-dir results/paper/benchmark
+          python scripts/analyze_pc_fmcw_benchmark.py --input results/paper/benchmark/episodes.csv --output-dir results/paper/benchmark --bootstrap-samples 10000
+      - uses: actions/upload-artifact@v4
         with:
-          name: pc-fmcw-paper-experiments-${{ github.sha }}
-          path: results/paper
-          if-no-files-found: error
+          name: paper-benchmark
+          path: results/paper/benchmark
+          retention-days: 30
+
+  robustness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: python -m pip install numpy scipy matplotlib pandas pyyaml scikit-learn h5py huggingface_hub
+      - name: Run robustness seed shard
+        run: |
+          SHARD_SIZE=$(( PAPER_SEEDS / 4 ))
+          START=$(( ${{ matrix.shard }} * SHARD_SIZE ))
+          if [ "${{ matrix.shard }}" -eq 3 ]; then COUNT=$(( PAPER_SEEDS - START )); else COUNT=$SHARD_SIZE; fi
+          python scripts/run_pc_fmcw_robustness_sweep.py --seeds "$COUNT" --seed-start "$START" --mc-samples "$PAPER_MC_SAMPLES" --output-dir "results/paper/robustness-shard-${{ matrix.shard }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: robustness-shard-${{ matrix.shard }}
+          path: results/paper/robustness-shard-${{ matrix.shard }}
           retention-days: 30
