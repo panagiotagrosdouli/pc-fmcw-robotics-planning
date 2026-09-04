@@ -44,11 +44,12 @@ jobs:
 
   robustness:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 60
     strategy:
       fail-fast: false
+      max-parallel: 20
       matrix:
-        shard: [0, 1, 2, 3]
+        seed: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -57,14 +58,11 @@ jobs:
           cache: pip
       - name: Install dependencies
         run: python -m pip install numpy scipy matplotlib pandas pyyaml scikit-learn h5py huggingface_hub
-      - name: Run robustness seed shard
+      - name: Run one robustness seed
         run: |
-          SHARD_SIZE=$(( PAPER_SEEDS / 4 ))
-          START=$(( ${{ matrix.shard }} * SHARD_SIZE ))
-          if [ "${{ matrix.shard }}" -eq 3 ]; then COUNT=$(( PAPER_SEEDS - START )); else COUNT=$SHARD_SIZE; fi
-          python scripts/run_pc_fmcw_robustness_sweep.py --seeds "$COUNT" --seed-start "$START" --mc-samples "$PAPER_MC_SAMPLES" --output-dir "results/paper/robustness-shard-${{ matrix.shard }}"
+          python scripts/run_pc_fmcw_robustness_sweep.py --seeds 1 --seed-start "${{ matrix.seed }}" --mc-samples "$PAPER_MC_SAMPLES" --output-dir "results/paper/robustness-seed-${{ matrix.seed }}"
       - uses: actions/upload-artifact@v4
         with:
-          name: robustness-shard-${{ matrix.shard }}
-          path: results/paper/robustness-shard-${{ matrix.shard }}
+          name: robustness-seed-${{ matrix.seed }}
+          path: results/paper/robustness-seed-${{ matrix.seed }}
           retention-days: 30
