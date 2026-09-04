@@ -34,4 +34,4 @@ Every numerical table or chart must be generated from saved experiment outputs. 
 
 ## Minimum result package before paper claims
 
-A paper-ready result package should contain the benchmark `episodes.csv`, planner summary, paired-effects table, scenario summary, robustness episode/summary outputs, robustness figures, and reproducibility metadata. If any component is missing or a CI/full-workflow run fails, numerical conclusions should remain provisional until the reproducible run is complete.
+A paper-ready result package should contain the benchmark `episodes.csv`, planner summary, aggregate and per-scenario paired-effects tables, scenario summary, the safety/prediction diagnostics under `diagnostics/`, robustness episode/summary outputs, robustness figures, and reproducibility metadata. Collision interpretation must use the per-scenario collision timing and candidate-rejection outputs rather than the aggregate collision rate alone. If any component is missing or a CI/full-workflow run fails, numerical conclusions should remain provisional until the reproducible run is complete.
