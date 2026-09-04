@@ -21,6 +21,25 @@ env:
   PAPER_MC_SAMPLES: ${{ github.event.inputs.mc_samples || '32' }}
 
 jobs:
+  prepare-robustness:
+    runs-on: ubuntu-latest
+    outputs:
+      seeds: ${{ steps.matrix.outputs.seeds }}
+    steps:
+      - id: matrix
+        name: Build requested seed matrix
+        env:
+          SEED_COUNT: ${{ env.PAPER_SEEDS }}
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          import os
+          count = int(os.environ["SEED_COUNT"])
+          if count < 1:
+              raise SystemExit("seeds must be positive")
+          print("seeds=" + json.dumps(list(range(count))))
+          PY
+
   benchmark:
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -36,6 +55,7 @@ jobs:
         run: |
           python scripts/run_pc_fmcw_robotics_benchmark.py --seeds "$PAPER_SEEDS" --mc-samples "$PAPER_MC_SAMPLES" --output-dir results/paper/benchmark
           python scripts/analyze_pc_fmcw_benchmark.py --input results/paper/benchmark/episodes.csv --output-dir results/paper/benchmark --bootstrap-samples 10000
+          python scripts/diagnose_pc_fmcw_benchmark.py --input results/paper/benchmark/episodes.csv --output-dir results/paper/benchmark/diagnostics
       - uses: actions/upload-artifact@v4
         with:
           name: paper-benchmark
@@ -43,13 +63,14 @@ jobs:
           retention-days: 30
 
   robustness:
+    needs: prepare-robustness
     runs-on: ubuntu-latest
     timeout-minutes: 60
     strategy:
       fail-fast: false
       max-parallel: 20
       matrix:
-        seed: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+        seed: ${{ fromJSON(needs.prepare-robustness.outputs.seeds) }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -84,7 +105,7 @@ jobs:
           path: results/paper/shards
       - name: Merge episodes and generate figures
         run: |
-          python scripts/merge_pc_fmcw_robustness_shards.py --input-root results/paper/shards --output-dir results/paper/robustness --expected-seeds 20
+          python scripts/merge_pc_fmcw_robustness_shards.py --input-root results/paper/shards --output-dir results/paper/robustness --expected-seeds "$PAPER_SEEDS"
           python scripts/plot_pc_fmcw_robustness.py --episodes results/paper/robustness/episodes.csv --output-dir results/paper/robustness/figures --bootstrap-samples 10000 --bootstrap-seed 2026
       - uses: actions/upload-artifact@v4
         with:

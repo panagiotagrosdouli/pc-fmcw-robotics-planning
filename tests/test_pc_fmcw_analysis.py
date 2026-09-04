@@ -30,6 +30,13 @@ def test_analysis_preserves_seed_scenario_pairing():
     assert (p12["mean_delta_b_minus_a"] == 1.0).all()
 
 
+def test_scenario_analysis_keeps_scenarios_separate():
+    out = analysis.analyze_by_scenario(_frame(), bootstrap_samples=100)
+    assert set(out["scenario"]) == {"a", "b"}
+    assert set(out["n_pairs"]) == {2}
+    assert len(out) == 2 * len(analysis.PAIRINGS) * len(analysis.METRICS)
+
+
 def test_analysis_rejects_duplicate_episode_keys():
     df = _frame()
     df = pd.concat([df, df.iloc[[0]]], ignore_index=True)

@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from .costs import mobility_cost, connectivity_cost
-from .feasibility import filter_feasible, filter_dynamic_target
+from .feasibility import filter_with_diagnostics
 from .trajectory import generate_candidates
 
 
@@ -36,11 +36,18 @@ class _BasePlanner:
         self.connectivity_weight = connectivity_weight
         self.vehicle_params = vehicle_params
         self.target_clearance = float(target_clearance)
+        self.last_feasibility_counts = None
 
     def _candidates(self, ego_state, obstacles=None, safety_target_prediction=None):
         candidates = generate_candidates(ego_state, params=self.vehicle_params)
-        candidates = filter_feasible(candidates, obstacles=obstacles)
-        return filter_dynamic_target(candidates, _target_xy(safety_target_prediction), self.target_clearance)
+        candidates, counts = filter_with_diagnostics(
+            candidates,
+            target_xy=_target_xy(safety_target_prediction),
+            obstacles=obstacles,
+            target_clearance=self.target_clearance,
+        )
+        self.last_feasibility_counts = counts
+        return candidates
 
 
 class MobilityOnlyPlanner(_BasePlanner):

@@ -106,6 +106,21 @@ def analyze(df, bootstrap_samples=5000):
     return out
 
 
+def analyze_by_scenario(df, bootstrap_samples=5000):
+    """Run the declared paired comparisons separately within each scenario."""
+    frames = []
+    for scenario, frame in df.groupby("scenario", sort=True):
+        effects = analyze(frame, bootstrap_samples).copy()
+        effects.insert(0, "scenario", scenario)
+        frames.append(effects)
+    if not frames:
+        raise ValueError("no scenarios available for per-scenario analysis")
+    out = pd.concat(frames, ignore_index=True)
+    # Correct across the complete reported family of scenario-level tests.
+    out["holm_p"] = holm_adjust(out["wilcoxon_p"].to_numpy(float))
+    return out
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--input", type=Path, default=Path("results/pc_fmcw_sim/episodes.csv"))
@@ -122,6 +137,8 @@ def main():
     outdir.mkdir(parents=True, exist_ok=True)
     effects = analyze(df, args.bootstrap_samples)
     effects.to_csv(outdir / "paired_effects.csv", index=False)
+    scenario_effects = analyze_by_scenario(df, args.bootstrap_samples)
+    scenario_effects.to_csv(outdir / "scenario_paired_effects.csv", index=False)
     scenario_summary = df.groupby(["scenario", "planner"], as_index=False).agg(
         episodes=("seed", "size"),
         outage=("mean_outage_probability", "mean"),

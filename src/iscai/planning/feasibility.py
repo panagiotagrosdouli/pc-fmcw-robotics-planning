@@ -63,3 +63,30 @@ def filter_dynamic_target(candidates, target_xy, min_clearance=2.0):
         if candidate.feasible:
             feasible.append(candidate)
     return feasible
+
+
+def filter_with_diagnostics(candidates, target_xy=None, obstacles=None,
+                            lane_half_width=1.75, static_clearance=1.5,
+                            target_clearance=2.0):
+    """Apply all hard filters once and return mutually exclusive rejection counts."""
+    obstacles = np.empty((0, 3)) if obstacles is None else np.asarray(obstacles, dtype=float)
+    counts = {"generated": len(candidates), "road": 0, "speed": 0,
+              "static": 0, "dynamic": 0, "feasible": 0}
+    feasible = []
+    for candidate in candidates:
+        if not check_road_bounds(candidate.states, lane_half_width):
+            counts["road"] += 1
+        elif not check_speed(candidate.states):
+            counts["speed"] += 1
+        elif not check_obstacles(candidate.states, obstacles, static_clearance):
+            counts["static"] += 1
+        elif target_xy is not None and not check_dynamic_target(
+            candidate.states, target_xy, target_clearance
+        ):
+            counts["dynamic"] += 1
+        else:
+            counts["feasible"] += 1
+            feasible.append(candidate)
+            continue
+        candidate.feasible = False
+    return feasible, counts
