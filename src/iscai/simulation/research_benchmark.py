@@ -1,6 +1,6 @@
 """Closed-loop research benchmark for robotics under communication uncertainty.
 
-This module extends, rather than replaces, the frozen P0-P4 benchmark.  It keeps
+This module extends, rather than replaces, the frozen P0-P4 benchmark. It keeps
 common motion dynamics, candidate generation, safety filtering, scenario seeds,
 and realized-link evaluation while allowing explicitly versioned information and
 risk formulations to be compared under prediction error and link-model shift.
@@ -15,6 +15,7 @@ import numpy as np
 from iscai.connectivity.pc_fmcw_bridge import PCFMCWPlanningLinkPredictor
 from iscai.connectivity.stress import (
     LinkStressProfile,
+    ReactiveTimeIndexedStressedLinkPredictor,
     TimeIndexedStressedLinkPredictor,
     make_mismatched_pc_fmcw_predictor,
 )
@@ -67,7 +68,6 @@ class ResearchBenchmarkSettings:
     mc_samples: int = 32
     collision_distance_m: float = 2.0
 
-    # Risk formulations.
     cvar_alpha: float = 0.9
     cvar_weight: float = 1.0
     chance_max_violation_probability: float = 0.1
@@ -76,8 +76,6 @@ class ResearchBenchmarkSettings:
     adaptive_max_connectivity_weight: float = 4.0
     adaptive_activation_threshold: float = 0.1
 
-    # Prediction-channel shift.  These affect connectivity planning only unless
-    # stress_safety_prediction is explicitly enabled.
     prediction_bias_x_m: float = 0.0
     prediction_bias_y_m: float = 0.0
     prediction_noise_scale: float = 1.0
@@ -85,14 +83,11 @@ class ResearchBenchmarkSettings:
     observation_delay_steps: int = 0
     stress_safety_prediction: bool = False
 
-    # Planner-only link-model mismatch; realized evaluation uses the reference.
     reference_snr_bias_db: float = 0.0
     pathloss_scale: float = 1.0
     beam_sigma_scale: float = 1.0
     outage_threshold_bias_db: float = 0.0
 
-    # Time-indexed channel stress.  If visible_to_planner=False it is an
-    # unmodeled distribution shift; otherwise predictive planners can foresee it.
     blackout_kind: str = "none"
     blackout_attenuation_db: float = 20.0
     blackout_visible_to_planner: bool = False
@@ -131,11 +126,6 @@ class ResearchBenchmarkSettings:
         LinkStressProfile(kind=self.blackout_kind, attenuation_db=self.blackout_attenuation_db)
 
 
-def _velocity_xy(state):
-    state = np.asarray(state, dtype=float)
-    return state[3] * np.array([np.cos(state[2]), np.sin(state[2])])
-
-
 def _planner_prediction(observations, settings, rng):
     available_end = max(1, len(observations) - int(settings.observation_delay_steps))
     history = observations[:available_end][-settings.history_steps :]
@@ -168,27 +158,32 @@ def _make_link_models(settings, episode_steps):
     return planning, realized
 
 
+def _reactive_link_if_needed(planner_name, planning_link):
+    if planner_name != "P1" or not isinstance(planning_link, TimeIndexedStressedLinkPredictor):
+        return planning_link
+    return ReactiveTimeIndexedStressedLinkPredictor(
+        planning_link.base_predictor,
+        planning_link.profile,
+        episode_steps=planning_link.episode_steps,
+    )
+
+
 def _make_planner(planner_name, settings, params, planning_link, seed):
+    planner_link = _reactive_link_if_needed(planner_name, planning_link)
     common = dict(vehicle_params=params, target_clearance=settings.collision_distance_m)
     if planner_name == "P0":
-        return MobilityOnlyPlanner(planning_link, connectivity_weight=0.0, **common)
+        return MobilityOnlyPlanner(planner_link, connectivity_weight=0.0, **common)
     if planner_name == "P1":
-        return ReactiveConnectivityPlanner(planning_link, connectivity_weight=settings.connectivity_weight, **common)
+        return ReactiveConnectivityPlanner(planner_link, connectivity_weight=settings.connectivity_weight, **common)
     if planner_name == "P2":
-        return PredictiveConnectivityPlanner(planning_link, connectivity_weight=settings.connectivity_weight, **common)
+        return PredictiveConnectivityPlanner(planner_link, connectivity_weight=settings.connectivity_weight, **common)
     if planner_name == "P3":
-        return RiskAwarePredictivePlanner(
-            planning_link,
-            connectivity_weight=settings.connectivity_weight,
-            mc_samples=settings.mc_samples,
-            random_seed=seed,
-            **common,
-        )
+        return RiskAwarePredictivePlanner(planner_link, connectivity_weight=settings.connectivity_weight, mc_samples=settings.mc_samples, random_seed=seed, **common)
     if planner_name == "P4":
-        return OracleConnectivityPlanner(planning_link, connectivity_weight=settings.connectivity_weight, **common)
+        return OracleConnectivityPlanner(planner_link, connectivity_weight=settings.connectivity_weight, **common)
     if planner_name == "P2-CVaR":
         return CVaRPredictiveConnectivityPlanner(
-            planning_link,
+            planner_link,
             connectivity_weight=settings.connectivity_weight,
             mc_samples=settings.mc_samples,
             cvar_alpha=settings.cvar_alpha,
@@ -198,7 +193,7 @@ def _make_planner(planner_name, settings, params, planning_link, seed):
         )
     if planner_name == "P2-Chance":
         return ChanceConstrainedPredictivePlanner(
-            planning_link,
+            planner_link,
             connectivity_weight=settings.connectivity_weight,
             mc_samples=settings.mc_samples,
             max_violation_probability=settings.chance_max_violation_probability,
@@ -209,7 +204,7 @@ def _make_planner(planner_name, settings, params, planning_link, seed):
         )
     if planner_name == "P2-Adaptive":
         return AdaptiveConnectivityPlanner(
-            planning_link,
+            planner_link,
             connectivity_weight=settings.connectivity_weight,
             max_connectivity_weight=settings.adaptive_max_connectivity_weight,
             activation_threshold=settings.adaptive_activation_threshold,
@@ -217,7 +212,7 @@ def _make_planner(planner_name, settings, params, planning_link, seed):
         )
     if planner_name == "P2-Worst":
         return WorstCasePredictiveConnectivityPlanner(
-            planning_link,
+            planner_link,
             connectivity_weight=settings.connectivity_weight,
             mc_samples=settings.mc_samples,
             random_seed=seed,
@@ -243,12 +238,7 @@ def _extract_planner_metadata(result):
     }
 
 
-def run_research_episode(
-    planner_name,
-    scenario,
-    seed=0,
-    settings=ResearchBenchmarkSettings(),
-):
+def run_research_episode(planner_name, scenario, seed=0, settings=ResearchBenchmarkSettings()):
     """Run one matched closed-loop episode and return summary plus step trace."""
     if planner_name not in RESEARCH_PLANNERS:
         raise ValueError(f"unknown research planner: {planner_name}")
@@ -260,19 +250,10 @@ def run_research_episode(
     planning_link, realized_link = _make_link_models(settings, steps)
     planner = _make_planner(planner_name, settings, params, planning_link, int(seed))
 
-    observations = []
-    snr = []
-    outage = []
-    ber = []
-    goodput = []
-    target_distance = []
-    realized_ttc = []
-    obstacle_clearance = []
-    prediction_ade = []
-    prediction_fde = []
-    planning_times = []
-    applied_weights = []
-    chance_violations = []
+    observations, snr, outage, ber, goodput = [], [], [], [], []
+    target_distance, realized_ttc, obstacle_clearance = [], [], []
+    prediction_ade, prediction_fde, planning_times = [], [], []
+    applied_weights, chance_violations = [], []
     chance_unsatisfied_steps = 0
     path_length = 0.0
     no_candidate = 0
@@ -301,15 +282,12 @@ def run_research_episode(
         if planner_name in {"P3", "P2-CVaR", "P2-Chance", "P2-Worst"}:
             planner_target = {
                 "mean_xy": connectivity_pred[:, :2],
-                "sigma_xy": np.full_like(
-                    connectivity_pred[:, :2],
-                    settings.prediction_sigma_m * settings.reported_uncertainty_scale,
-                ),
+                "sigma_xy": np.full_like(connectivity_pred[:, :2], settings.prediction_sigma_m * settings.reported_uncertainty_scale),
             }
         elif planner_name == "P4":
             planner_target = truth
 
-        _set_model_step(planning_link, k + 1)
+        _set_model_step(getattr(planner, "link_predictor", None), k + 1)
         start = perf_counter()
         result = planner.plan(
             ego,
@@ -323,13 +301,7 @@ def run_research_episode(
 
         feasibility = getattr(planner, "last_feasibility_counts", None)
         if feasibility is None:
-            feasibility = _candidate_feasibility_counts(
-                ego,
-                scenario.obstacles,
-                safety_pred,
-                params,
-                settings.collision_distance_m,
-            )
+            feasibility = _candidate_feasibility_counts(ego, scenario.obstacles, safety_pred, params, settings.collision_distance_m)
         for key, value in feasibility.items():
             candidate_counts[key] += int(value)
         if feasibility["generated"] - feasibility["road"] - feasibility["speed"] - feasibility["static"] == 0:
@@ -353,10 +325,7 @@ def run_research_episode(
         truth_now = target[k + 1]
 
         _set_model_step(realized_link, k + 1)
-        realized = realized_link.predict(
-            np.repeat(ego[None, :], 2, axis=0),
-            np.repeat(truth_now[None, :], 2, axis=0),
-        )
+        realized = realized_link.predict(np.repeat(ego[None, :], 2, axis=0), np.repeat(truth_now[None, :], 2, axis=0))
         snr_now = float(realized.snr_db[0])
         outage_now = float(realized.outage_probability[0])
         ber_now = float(realized.ber[0])
@@ -456,12 +425,7 @@ def run_research_episode(
     return summary, trace
 
 
-def run_research_benchmark(
-    seeds=range(10),
-    settings=ResearchBenchmarkSettings(),
-    scenarios=None,
-    planners=RESEARCH_PLANNERS,
-):
+def run_research_benchmark(seeds=range(10), settings=ResearchBenchmarkSettings(), scenarios=None, planners=RESEARCH_PLANNERS):
     """Run a matched planner/scenario/seed matrix and return episodes and traces."""
     if scenarios is None:
         scenarios = make_primary_scenarios()
