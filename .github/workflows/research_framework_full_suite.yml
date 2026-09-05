@@ -1,0 +1,144 @@
+name: Research Framework Full Suite
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/research_framework_full_suite.yml"
+  workflow_dispatch:
+
+env:
+  RESEARCH_MODE: all
+  RESEARCH_SEEDS: "20"
+  RESEARCH_MC_SAMPLES: "32"
+  PYTHONPATH: ${{ github.workspace }}/src
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      settings: ${{ steps.matrix.outputs.settings }}
+      setting_count: ${{ steps.matrix.outputs.setting_count }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install matrix dependencies
+        run: python -m pip install numpy pandas pyyaml scipy
+      - id: matrix
+        name: Build full predeclared setting matrix
+        run: |
+          SETTINGS="$(python scripts/run_research_framework.py --mode "$RESEARCH_MODE" --mc-samples "$RESEARCH_MC_SAMPLES" --list-settings)"
+          python - "$SETTINGS" <<'PY' >> "$GITHUB_OUTPUT"
+          import json, sys
+          settings = json.loads(sys.argv[1])
+          if not settings:
+              raise SystemExit("full research suite produced no settings")
+          if len(settings) > 256:
+              raise SystemExit("GitHub matrix exceeds 256 settings; split the protocol family")
+          print("settings=" + json.dumps(settings, separators=(",", ":")))
+          print("setting_count=" + str(len(settings)))
+          PY
+
+  experiment:
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      max-parallel: 12
+      matrix:
+        include: ${{ fromJSON(needs.prepare.outputs.settings) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Run one predeclared setting
+        run: |
+          OUT="results/research_shards/setting-${{ matrix.index }}"
+          python scripts/run_research_framework.py \
+            --mode "$RESEARCH_MODE" \
+            --setting-index "${{ matrix.index }}" \
+            --seeds "$RESEARCH_SEEDS" \
+            --mc-samples "$RESEARCH_MC_SAMPLES" \
+            --output-dir "$OUT"
+          python --version > "$OUT/python_version.txt"
+          python -m pip freeze > "$OUT/pip_freeze.txt"
+      - name: Verify shard provenance
+        run: |
+          OUT="results/research_shards/setting-${{ matrix.index }}"
+          test -s "$OUT/episodes.csv"
+          test -s "$OUT/manifest.json"
+          test "$(git rev-parse HEAD)" = "$(cat "$OUT/commit_sha.txt")"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: research-shard-all-${{ matrix.index }}
+          path: results/research_shards/setting-${{ matrix.index }}
+          retention-days: 90
+
+  aggregate:
+    needs: [prepare, experiment]
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install analysis dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Download setting shards
+        uses: actions/download-artifact@v4
+        with:
+          pattern: research-shard-all-*
+          path: results/research_downloads
+      - name: Merge and validate shards
+        run: |
+          OUT="results/research_framework/all"
+          python scripts/merge_research_framework_shards.py \
+            --input-root results/research_downloads \
+            --output-dir "$OUT" \
+            --expected-settings "${{ needs.prepare.outputs.setting_count }}"
+          git rev-parse HEAD > "$OUT/workflow_commit_sha.txt"
+          python --version > "$OUT/python_version.txt"
+          python -m pip freeze > "$OUT/pip_freeze.txt"
+      - name: Run paired statistical analysis
+        run: |
+          OUT="results/research_framework/all"
+          python scripts/analyze_research_framework.py \
+            --input "$OUT/episodes.csv" \
+            --output-dir "$OUT/analysis" \
+            --bootstrap-samples 10000 \
+            --rng-seed 2026
+      - name: Build publication figures and tables
+        run: |
+          OUT="results/research_framework/all"
+          python scripts/plot_research_framework.py \
+            --episodes "$OUT/episodes.csv" \
+            --effects "$OUT/analysis/paired_effects.csv" \
+            --trajectories "$OUT/trajectories.csv" \
+            --output-dir "$OUT/figures"
+          python scripts/build_research_paper_tables.py \
+            --episodes "$OUT/episodes.csv" \
+            --effects "$OUT/analysis/paired_effects.csv" \
+            --scenario-effects "$OUT/analysis/scenario_paired_effects.csv" \
+            --output-dir "$OUT/tables"
+      - name: Verify merged provenance and outputs
+        run: |
+          OUT="results/research_framework/all"
+          test -s "$OUT/episodes.csv"
+          test -s "$OUT/summary.csv"
+          test -s "$OUT/manifest.json"
+          test -s "$OUT/analysis/paired_effects.csv"
+          test "$(git rev-parse HEAD)" = "$(cat "$OUT/commit_sha.txt")"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: research-framework-all-aggregated
+          path: results/research_framework/all
+          retention-days: 90
