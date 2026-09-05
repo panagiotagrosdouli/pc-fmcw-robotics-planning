@@ -1,0 +1,86 @@
+name: Research Framework Aggregate Recovery
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/research_framework_aggregate_recovery.yml"
+  workflow_dispatch:
+
+env:
+  PYTHONPATH: ${{ github.workspace }}/src
+  SOURCE_RUN_ID: "33974564594"
+  SOURCE_COMMIT_SHA: "62480bf85fb3e30f13d815e42e73fb6dccb6ef66"
+  EXPECTED_SETTINGS: "126"
+
+jobs:
+  aggregate-recovery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install analysis dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Download completed full-suite shards
+        uses: actions/download-artifact@v4
+        with:
+          pattern: research-shard-all-*
+          path: results/research_downloads
+          run-id: ${{ env.SOURCE_RUN_ID }}
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+      - name: Merge and validate shards
+        run: |
+          OUT="results/research_framework/all"
+          python scripts/merge_research_framework_shards.py \
+            --input-root results/research_downloads \
+            --output-dir "$OUT" \
+            --expected-settings "$EXPECTED_SETTINGS"
+          test "$SOURCE_COMMIT_SHA" = "$(cat "$OUT/commit_sha.txt")"
+          git rev-parse HEAD > "$OUT/workflow_commit_sha.txt"
+          printf '%s\n' "$SOURCE_RUN_ID" > "$OUT/source_run_id.txt"
+          printf '%s\n' "$SOURCE_COMMIT_SHA" > "$OUT/source_experiment_commit_sha.txt"
+          python --version > "$OUT/python_version.txt"
+          python -m pip freeze > "$OUT/pip_freeze.txt"
+      - name: Run paired statistical analysis
+        run: |
+          OUT="results/research_framework/all"
+          python scripts/analyze_research_framework.py \
+            --input "$OUT/episodes.csv" \
+            --output-dir "$OUT/analysis" \
+            --bootstrap-samples 10000 \
+            --rng-seed 2026
+      - name: Build publication figures and tables
+        run: |
+          OUT="results/research_framework/all"
+          python scripts/plot_research_framework.py \
+            --episodes "$OUT/episodes.csv" \
+            --effects "$OUT/analysis/paired_effects.csv" \
+            --trajectories "$OUT/trajectories.csv" \
+            --output-dir "$OUT/figures"
+          python scripts/build_research_paper_tables.py \
+            --episodes "$OUT/episodes.csv" \
+            --effects "$OUT/analysis/paired_effects.csv" \
+            --scenario-effects "$OUT/analysis/scenario_paired_effects.csv" \
+            --output-dir "$OUT/tables"
+      - name: Verify merged provenance and outputs
+        run: |
+          OUT="results/research_framework/all"
+          test -s "$OUT/episodes.csv"
+          test -s "$OUT/summary.csv"
+          test -s "$OUT/manifest.json"
+          test -s "$OUT/analysis/paired_effects.csv"
+          test -s "$OUT/analysis/scenario_paired_effects.csv"
+          test "$SOURCE_COMMIT_SHA" = "$(cat "$OUT/commit_sha.txt")"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: research-framework-all-aggregated-recovered
+          path: results/research_framework/all
+          retention-days: 90
