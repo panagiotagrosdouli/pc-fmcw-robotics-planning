@@ -8,21 +8,24 @@ benchmark:
   planners: [P0, P1, P2, P3, P4, P2-CVaR, P2-Chance, P2-Adaptive, P2-Worst]
 
 risk_aware:
+  enabled: true
   cvar_alpha_values: [0.8, 0.9, 0.95]
   cvar_weights: [0.25, 0.5, 1.0, 2.0]
 
 chance_constraints:
+  enabled: true
   max_violation_probabilities: [0.01, 0.05, 0.1, 0.2]
   hard_constraint: true
   soft_penalty: 100.0
 
 adaptive_weight:
+  enabled: true
   base_weights: [0.25, 0.5, 1.0]
   max_weights: [1.0, 2.0, 4.0]
   activation_thresholds: [0.05, 0.1, 0.2]
 
-# H=0 is represented by reactive P1, not by an invalid zero-step predictive horizon.
-prediction_horizon_s: [0.5, 1.0, 2.0, 3.0, 5.0]
+# H=0 is the reactive-information control condition (P1), not a zero-step predictive rollout.
+prediction_horizon_s: [0.0, 0.5, 1.0, 2.0, 3.0, 5.0]
 connectivity_weights: [0.0, 0.25, 0.5, 1.0, 2.0, 4.0]
 mc_sample_budgets: [1, 4, 8, 16, 32, 64]
 
@@ -36,6 +39,7 @@ distribution_shift:
   pathloss_scale: [1.0, 1.1, 1.25, 1.5]
   beam_sigma_scale: [1.0, 0.9, 0.75, 0.5]
 
+blackout_scenarios: [sudden_blockage, persistent_nlos, intermittent_link, rapid_degradation]
 blackout:
   attenuation_db: 20.0
   kinds: [sudden_blockage, persistent_nlos, intermittent_link, rapid_degradation]
