@@ -22,6 +22,7 @@ env:
   RESEARCH_MODE: ${{ github.event.inputs.mode || 'core' }}
   RESEARCH_SEEDS: ${{ github.event.inputs.seeds || '20' }}
   RESEARCH_MC_SAMPLES: ${{ github.event.inputs.mc_samples || '32' }}
+  PYTHONPATH: ${{ github.workspace }}/src
 
 jobs:
   prepare:
