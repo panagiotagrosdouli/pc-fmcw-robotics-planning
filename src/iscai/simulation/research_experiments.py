@@ -62,10 +62,17 @@ def build_experiment_specs(mode: str, config: dict | None = None,
         specs.append(ExperimentSpec("core", "nominal", base, all_planners))
 
     elif mode == "horizon":
-        planners = ("P1", "P2", "P3", "P4", "P2-CVaR", "P2-Chance", "P2-Adaptive")
+        predictive_planners = ("P1", "P2", "P3", "P4", "P2-CVaR", "P2-Chance", "P2-Adaptive")
         for horizon_s in cfg["prediction_horizon_s"]:
+            horizon_s = float(horizon_s)
+            if horizon_s == 0.0:
+                # H=0 is the reactive-information control condition. Keep a valid
+                # rollout length internally and run only P1 rather than inventing
+                # a zero-step predictive planner.
+                specs.append(ExperimentSpec("horizon", "H=0s", base, ("P1",)))
+                continue
             settings = replace(base, horizon_steps=_steps(horizon_s, base.dt))
-            specs.append(ExperimentSpec("horizon", f"H={float(horizon_s):g}s", settings, planners))
+            specs.append(ExperimentSpec("horizon", f"H={horizon_s:g}s", settings, predictive_planners))
 
     elif mode == "weight":
         planners = ("P0", "P1", "P2", "P3", "P2-CVaR", "P2-Chance", "P2-Adaptive")
@@ -146,9 +153,14 @@ def build_experiment_specs(mode: str, config: dict | None = None,
         horizons = cfg["prediction_horizon_s"]
         mc_budgets = cfg["mc_sample_budgets"]
         for horizon_s in horizons:
+            horizon_s = float(horizon_s)
+            if horizon_s <= 0.0:
+                # Compute-performance applies to predictive planners only; the
+                # H=0 reactive control is already represented in the horizon family.
+                continue
             for mc_samples in mc_budgets:
                 settings = replace(base, horizon_steps=_steps(horizon_s, base.dt), mc_samples=int(mc_samples))
-                specs.append(ExperimentSpec("compute", f"H={float(horizon_s):g}s_mc={int(mc_samples)}", settings, planners))
+                specs.append(ExperimentSpec("compute", f"H={horizon_s:g}s_mc={int(mc_samples)}", settings, planners))
 
     elif mode == "all":
         for family in ("core", "horizon", "weight", "risk", "shift", "blackout", "compute"):
