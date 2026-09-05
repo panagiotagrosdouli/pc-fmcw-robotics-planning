@@ -36,6 +36,34 @@ jobs:
           run-id: ${{ env.SOURCE_RUN_ID }}
           github-token: ${{ github.token }}
           repository: ${{ github.repository }}
+      - name: Download any shards omitted by artifact pagination
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p results/research_downloads
+          gh api --paginate \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN_ID}/artifacts?per_page=100" \
+            --jq '.artifacts[] | select(.name | startswith("research-shard-all-")) | [.id, .name] | @tsv' \
+            > /tmp/research_artifacts.tsv
+          COUNT="$(wc -l < /tmp/research_artifacts.tsv | tr -d ' ')"
+          test "$COUNT" = "$EXPECTED_SETTINGS"
+          while IFS=$'\t' read -r ARTIFACT_ID ARTIFACT_NAME; do
+            DEST="results/research_downloads/${ARTIFACT_NAME}"
+            if [ -d "$DEST" ]; then
+              continue
+            fi
+            mkdir -p "$DEST"
+            gh api \
+              -H "Accept: application/vnd.github+json" \
+              "repos/${GITHUB_REPOSITORY}/actions/artifacts/${ARTIFACT_ID}/zip" \
+              > "/tmp/${ARTIFACT_NAME}.zip"
+            unzip -q "/tmp/${ARTIFACT_NAME}.zip" -d "$DEST"
+            rm -f "/tmp/${ARTIFACT_NAME}.zip"
+          done < /tmp/research_artifacts.tsv
+          DOWNLOADED="$(find results/research_downloads -mindepth 1 -maxdepth 1 -type d -name 'research-shard-all-*' | wc -l | tr -d ' ')"
+          test "$DOWNLOADED" = "$EXPECTED_SETTINGS"
       - name: Merge and validate shards
         run: |
           OUT="results/research_framework/all"
