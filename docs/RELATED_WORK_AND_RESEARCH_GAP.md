@@ -1,93 +1,284 @@
-# Related Work and Research Gap
+# Related Work, Research Gap, and Proposed Paper Idea
 
-## Why this document exists
+## Quick explanation for a reader
 
-This note explains how the PC-FMCW robotics-planning project relates to nearby research areas, what has already been established in the literature, and what the defensible research gap is for a possible paper.
+This repository is intended to support a possible research paper on **predictive connectivity-aware motion planning for autonomous vehicles using PC-FMCW-informed sensing and communication information**.
 
-The goal is **not** to claim that communication-aware motion planning, predictive connectivity planning, or ISAC-assisted planning are new by themselves. All of those directions already have relevant prior work. The narrower question investigated here is how **PC-FMCW-informed target prediction and future link forecasting can be coupled to closed-loop ego-motion selection**, and whether predictive connectivity information provides a measurable advantage over reactive connectivity-aware planning under otherwise identical planning and safety mechanisms.
+The paper idea is not to invent communication-aware motion planning or PC-FMCW itself. Instead, the idea is to connect the two in a specific closed-loop decision problem:
 
----
+> **Can an autonomous vehicle make better motion decisions if it predicts how each possible future trajectory will affect its future communication link, instead of reacting only to the link quality observed now?**
 
-## Project in one picture
-
-The intended closed-loop chain is:
-
-```text
-PC-FMCW sensing / tracking
-          |
-          v
-Target-state history and prediction
-          |
-          v
-Candidate future ego trajectories
-          |
-          v
-Future relative ego-target geometry
-          |
-          v
-PC-FMCW-informed future link prediction
-(SNR / outage / BER / goodput)
-          |
-          v
-Safety + mobility + connectivity scoring
-          |
-          v
-Ego-motion decision
-          |
-          v
-Execute first control and replan
-```
-
-The important coupling is therefore not merely
-
-```text
-communication -> motion
-```
-
-but
-
-```text
-sensing/prediction -> alternative future ego motions
-                   -> trajectory-conditioned future link state
-                   -> motion decision
-                   -> closed-loop replanning
-```
+The planned study uses PC-FMCW-informed target tracking/prediction, evaluates alternative ego-vehicle trajectories, predicts the future communication quality associated with each trajectory, and lets the planner use that information when selecting the next motion.
 
 ---
 
-## Closely related research directions
+## What we propose to do
+
+At every planning step, the system will:
+
+```text
+1. Observe / track the target using PC-FMCW-informed sensing information
+                       |
+                       v
+2. Predict the target's future motion
+                       |
+                       v
+3. Generate several feasible future trajectories for the ego vehicle
+                       |
+                       v
+4. For every candidate trajectory, calculate the future ego-target geometry
+                       |
+                       v
+5. Predict the communication quality along that candidate trajectory
+   (modeled SNR / outage / BER / goodput)
+                       |
+                       v
+6. Reject trajectories violating vehicle, road, obstacle, or target-safety constraints
+                       |
+                       v
+7. Score the remaining trajectories using mobility + connectivity objectives
+                       |
+                       v
+8. Select a trajectory, execute only its first control action, observe again, and replan
+```
+
+Therefore the vehicle is not simply asking:
+
+```text
+How good is my communication link now?
+```
+
+It is asking:
+
+```text
+If I choose trajectory A, what is my predicted future link?
+If I choose trajectory B, what is my predicted future link?
+If I choose trajectory C, what is my predicted future link?
+
+Which safe trajectory gives the best mobility/connectivity trade-off?
+```
+
+That is the central idea of the proposed paper.
+
+---
+
+## Main paper idea
+
+A possible working title is:
+
+> **PC-FMCW-Informed Predictive Connectivity-Aware Motion Planning for Autonomous Vehicles**
+
+A more question-driven title could be:
+
+> **Does Future Link Prediction Improve Connectivity-Aware Motion Planning? A PC-FMCW-Informed Autonomous-Vehicle Study**
+
+The main research question is:
+
+> **Does forecasting the future communication state induced by alternative ego trajectories provide a measurable advantage over reacting to the current communication state?**
+
+The paper would answer this using a controlled closed-loop simulation in which the planners are deliberately constructed to isolate the effect of future connectivity prediction.
+
+---
+
+## The planners we compare
+
+### P0 — Mobility-only baseline
+
+P0 plans vehicle motion without optimizing communication quality.
+
+Purpose:
+
+```text
+What happens if connectivity is ignored?
+```
+
+### P1 — Reactive connectivity-aware planner
+
+P1 considers communication quality, but does so myopically/reactively.
+
+Conceptually:
+
+```text
+current link state
+      -> motion decision
+```
+
+Purpose:
+
+```text
+Is reacting to current connectivity enough?
+```
+
+### P2 — Predictive connectivity-aware planner — main proposed method
+
+P2 predicts the future target motion and evaluates future communication quality along every candidate ego trajectory.
+
+Conceptually:
+
+```text
+predicted target motion
+        +
+candidate ego trajectory
+        |
+        v
+predicted future relative geometry
+        |
+        v
+predicted future communication quality
+        |
+        v
+motion decision
+```
+
+Purpose:
+
+```text
+Does future connectivity prediction improve the decision compared with P1?
+```
+
+**P1 versus P2 is the central experiment of the paper.**
+
+### P3 — Risk-aware predictive planner
+
+P3 extends P2 by propagating uncertainty in the target prediction and using a risk-sensitive connectivity score.
+
+Purpose:
+
+```text
+Does explicitly modeling prediction uncertainty provide additional benefit beyond P2?
+```
+
+### P4 — Oracle connectivity reference
+
+P4 is not a deployable planner. It is allowed to use simulator ground-truth future target motion only when forecasting connectivity. It does not receive an oracle safety advantage.
+
+Purpose:
+
+```text
+How much additional performance would perfect future connectivity information provide?
+```
+
+This gives an approximate upper reference against which P2 can be interpreted.
+
+---
+
+## What would be new in our paper
+
+The proposed contribution is **not** any individual component in isolation.
+
+Communication-aware motion planning already exists. Predictive/network-aware planning already exists. Optical communication-aware MPC exists. PC-FMCW sensing and communication exist. Recent ISAC work also connects sensing/communication design with vehicle planning.
+
+Our proposed contribution is the specific closed-loop combination:
+
+```text
+PC-FMCW-informed sensing / tracking
+              +
+target-motion prediction
+              +
+candidate ego trajectories
+              +
+trajectory-conditioned future communication prediction
+              +
+safety-constrained closed-loop motion selection
+              +
+controlled reactive-vs-predictive evaluation
+```
+
+In other words, we investigate whether **PC-FMCW-informed future information can be converted into an actual motion-planning advantage**.
+
+The novelty should therefore be presented as the combination, system coupling, and controlled scientific question—not as the invention of communication-aware planning itself.
+
+---
+
+## Why this is different from simply doing PC-FMCW
+
+Existing PC-FMCW research primarily establishes the physical-layer capability to combine sensing and communication.
+
+A simplified representation is:
+
+```text
+PC-FMCW waveform/system
+       |
+       +----> sensing / ranging / tracking
+       |
+       +----> communication
+```
+
+For example, experimental PC-FMCW work has demonstrated joint sensing and communication properties and practical automotive-radar relevance. Optical PC-FMCW work has also proposed integrated sensing, communication, and illumination for intelligent vehicles.
+
+Our robotics paper starts **after** this upstream capability:
+
+```text
+PC-FMCW-informed sensing
+        |
+        v
+target state / target prediction
+        |
+        v
+What should the autonomous vehicle DO with this information?
+        |
+        v
+motion planning
+```
+
+The paper therefore moves the problem from the PHY/sensing layer into the autonomous decision layer.
+
+---
+
+## Why this is different from ordinary communication-aware planning
+
+Communication-aware robotics is already an established field. Prior work has used wireless connectivity constraints, spatial channel maps, time-varying communication maps, and predicted communication conditions when planning robot trajectories.
+
+Therefore we cannot claim:
+
+> "We are the first to use communication information in robot motion planning."
+
+Nor can we claim:
+
+> "We are the first to predict future connectivity during planning."
+
+Our narrower distinction is that the predicted communication state is conditioned jointly on:
+
+```text
+predicted motion of the tracked target
+                 +
+future candidate motion of the ego vehicle
+```
+
+so each possible ego trajectory produces a different predicted future relative geometry and therefore a different modeled future PC-FMCW link.
+
+---
+
+## Closely related work
 
 ### 1. Communication-aware motion planning
 
-Communication-aware robotics is an established research direction. Prior work has shown that robot motion can be planned while accounting for wireless connectivity, communication constraints, spatial channel models, and communication-quality maps.
+Ghaffarkhah and Mostofi and related communication-aware robotics literature established that robot trajectories can account for wireless communication quality and connectivity.
 
-A representative early direction is the work of Ghaffarkhah and Mostofi on communication-aware motion planning in mobile networks. Related work has also considered time-dependent spatial maps of communication quality for network-aware multi-robot path planning.
+Related work has also considered time-dependent spatial communication-quality maps for network-aware planning.
 
-**What this means for our claims:**
+**What it establishes:**
 
-We must **not** claim that incorporating communication quality into motion planning is new.
+```text
+communication information -> robot motion planning
+```
 
-Likewise, the general idea of reasoning about prospective or future communication quality during planning is not new by itself.
+**What we investigate instead:**
 
-**Difference from this project:**
+```text
+PC-FMCW-informed target prediction
+        + candidate ego motion
+        -> trajectory-conditioned future link prediction
+        -> closed-loop ego-motion selection
+```
 
-The present project is specifically concerned with a PC-FMCW-informed autonomous-vehicle setting in which target-state prediction and each candidate ego trajectory jointly determine the predicted future relative geometry and, consequently, the modeled future link state.
-
----
-
-### 2. Recent communication-aware planning using radio maps
-
-Recent work continues to develop communication-aware robot planning using online estimates of radio conditions and QoS/risk maps. Such methods reinforce the point that connectivity-aware planning is already a mature broader concept.
-
-**Difference from this project:**
-
-The source of predictive information here is not primarily a learned or estimated static/spatial radio map. Instead, connectivity is conditioned on the **predicted motion of a tracked target and the candidate future motion of the ego vehicle**. The link forecast therefore changes with the candidate trajectory evaluated by the planner.
+Thus, communication-aware planning itself is not our novelty.
 
 ---
 
-### 3. Planning-Oriented Integrated Sensing and Communication (PISAC)
+### 2. Planning-Oriented Integrated Sensing and Communication (PISAC)
 
-A particularly important nearby paper is:
+A particularly important nearby work is:
 
 **X. Jin et al., “Planning Oriented Integrated Sensing and Communication,” IEEE ICC 2026.**
 
@@ -95,38 +286,42 @@ DOI: `10.1109/ICC59461.2026.11587040`
 
 Preprint: <https://arxiv.org/abs/2510.23021>
 
-This work explicitly bridges ISAC physical-layer design and autonomous-vehicle motion planning. Its key idea is to allocate ISAC resources so that sensing uncertainty is reduced for planning-critical obstacles, which in turn expands the safe navigable region available to the ego vehicle.
-
-A simplified view of that coupling is:
+This work connects ISAC physical-layer resource allocation with autonomous-vehicle planning. Its simplified coupling is:
 
 ```text
 ISAC resource allocation
         -> sensing uncertainty
-        -> obstacle representation / safe space
+        -> obstacle representation / safe navigable space
         -> motion planning
 ```
 
-**Why it is important:**
+This is important because it means we cannot claim that ISAC and vehicle planning have never been connected.
 
-This paper means we cannot claim that connecting ISAC and vehicle motion planning is itself unexplored.
-
-**Difference from this project:**
-
-The causal direction studied here is different:
+**Our direction is different:**
 
 ```text
 PC-FMCW-informed target state/prediction
-        -> candidate-dependent future link forecast
+        -> candidate-dependent future communication forecast
         -> ego-motion selection
 ```
 
-Rather than optimizing communication/sensing resources so that planning becomes easier, this project asks whether the **vehicle should change its motion because different candidate motions imply different future communication states**.
+PISAC asks, roughly:
+
+```text
+How should ISAC resources be adapted to improve information useful for planning?
+```
+
+Our paper asks:
+
+```text
+How should vehicle motion be adapted when future communication quality can be predicted?
+```
 
 ---
 
-### 4. Free-Space Optical communication-driven NMPC
+### 3. Free-Space Optical communication-driven NMPC
 
-Another especially close work is:
+Another close work is:
 
 **G. Silano, D. Bonilla Licea, H. El Hammouti, and M. Saska, “Free-Space Optical Communication-Driven NMPC Framework for Multi-Rotor Aerial Vehicles in Structured Inspection Scenarios,” IEEE SMC 2025.**
 
@@ -134,280 +329,275 @@ DOI: `10.1109/SMC58881.2025.11343117`
 
 Preprint: <https://arxiv.org/abs/2507.04443>
 
-This work integrates Free-Space Optical (FSO) connectivity constraints into nonlinear model predictive control for aerial vehicles. It considers beam alignment, minimum link quality, mobile-relay tracking, and obstacle avoidance.
+This work incorporates FSO connectivity/alignment requirements into nonlinear model predictive control for aerial vehicles.
 
-A simplified view is:
+Simplified:
 
 ```text
 FSO link/alignment constraints
         -> NMPC
-        -> communication-aware vehicle motion
+        -> communication-aware motion
 ```
 
-**Why it is important:**
+It demonstrates that optical communication-aware MPC/NMPC is not new in general.
 
-This is strong evidence that **optical communication-aware model-predictive motion planning cannot be claimed as new in general**.
-
-**Difference from this project:**
-
-Our focus is not simply maintaining an optical constraint or alignment condition. The planner uses a PC-FMCW-informed target prediction and evaluates how alternative ego trajectories change future relative geometry and modeled future communication quantities. The experimental question also explicitly isolates **reactive versus predictive connectivity-aware planning**.
+Our proposed study differs because its core question is not merely maintaining an optical-link constraint. It uses predicted target motion and alternative ego trajectories to forecast future link metrics and explicitly compares reactive versus predictive connectivity-aware decisions.
 
 ---
 
-### 5. PC-FMCW sensing and communications
+### 4. PC-FMCW sensing and communications
 
-PC-FMCW research establishes the upstream motivation for using a phase-coded FMCW architecture for integrated sensing and communications. Existing experimental and system-oriented PC-FMCW studies focus primarily on waveform, sensing, ranging/radar, communications, interference, and related physical-layer properties.
+PC-FMCW literature provides the upstream technical motivation. Examples include experimental studies of phase-coded FMCW for joint sensing and communications, phase-coded FMCW RadCom systems, and optical PC-FMCW integrated sensing/communication/illumination concepts for intelligent vehicles.
 
-In optical/intelligent-vehicle settings, related PC-FMCW concepts have also been proposed for integrated sensing, communication, and illumination.
-
-A simplified view of much of this literature is:
+These studies primarily investigate questions such as:
 
 ```text
-PC-FMCW waveform/system
-        -> sensing
-        + communication
+Can PC-FMCW sense and communicate simultaneously?
+How accurately can it range/detect targets?
+What communication performance can it provide?
+What waveform/receiver trade-offs arise?
 ```
 
-**Difference from this project:**
-
-The robotics question begins after the upstream system has provided target-state information. The contribution is not a redesign of the PC-FMCW waveform or PHY. Instead, it asks what an autonomous motion planner should do with the predicted sensing/communication state.
-
-The additional loop is:
+Our proposed robotics study asks the next decision-level question:
 
 ```text
-PC-FMCW-informed sensing
-        -> target prediction
-        -> future link consequences of ego motion
-        -> autonomous motion decision
+Once PC-FMCW-informed target/link information is available,
+how should an autonomous vehicle change its motion?
 ```
 
 ---
 
-## What we should NOT claim
-
-The following claims would be too broad and should not be used in a paper:
-
-> “Communication-aware motion planning has not previously been studied.”
-
-False: there is substantial prior literature.
-
-> “Predicting future communication quality for robot planning is new.”
-
-Too broad: prospective/time-dependent connectivity has already appeared in communication-aware planning.
-
-> “ISAC has not previously been integrated with autonomous motion planning.”
-
-False: recent work such as PISAC explicitly couples ISAC and vehicle planning.
-
-> “Optical communication has not previously been incorporated into MPC/NMPC motion planning.”
-
-False: FSO communication-driven NMPC provides a clear counterexample.
-
-> “This work validates real PC-FMCW optical performance or real autonomous-driving safety.”
-
-Not supported by the current benchmark. The current study is a controlled, PC-FMCW-informed, model-based simulation.
-
----
-
-## The defensible research gap
-
-The gap is narrower and lies at the intersection of these areas.
+## The research gap we can reasonably claim
 
 A conservative formulation is:
 
 > **Prior work has established communication-aware motion planning, prospective connectivity-aware planning, optical communication-constrained control, and more recently the coupling of ISAC resource allocation with autonomous-vehicle planning. Comparatively less attention has been given to using PC-FMCW-informed target prediction to forecast the communication consequences of alternative future ego motions and directly incorporate those trajectory-conditioned forecasts into closed-loop vehicle motion selection.**
 
-The project therefore investigates the following specific question:
+The paper then investigates this gap experimentally rather than merely asserting it.
 
-> **Does forecasting the future communication state induced by alternative ego trajectories provide a measurable advantage over reacting to the current communication state in a PC-FMCW-informed autonomous-driving setting?**
+The central test is:
 
-This is deliberately narrower than claiming a new field of communication-aware planning.
+```text
+Reactive connectivity knowledge (P1)
+                 vs.
+Predictive trajectory-conditioned connectivity (P2)
+```
+
+under otherwise common planning and safety mechanisms.
 
 ---
 
-## Why P1 versus P2 is scientifically important
+## Why P1 versus P2 is the key scientific experiment
 
-The benchmark is designed so that the main comparison can isolate the value of predictive connectivity information.
+The comparison is designed so that P1 and P2 are not two unrelated algorithms.
 
-### P1 — Reactive connectivity-aware planner
+They share the basic vehicle model, candidate generation, target prediction used for safety, road/static-obstacle constraints, and dynamic-target safety mechanisms.
 
-P1 uses current/myopic link information for connectivity scoring while using the common predicted target trajectory for safety.
-
-Conceptually:
+The important difference is how connectivity information enters the decision:
 
 ```text
-current link state -> motion decision
-```
+P1:
+current / myopic connectivity
+        -> score candidate motion
 
-### P2 — Predictive connectivity-aware planner
-
-P2 evaluates future connectivity along each candidate trajectory using predicted target motion.
-
-Conceptually:
-
-```text
+P2:
 predicted target motion
-        + candidate ego trajectory
-        -> predicted future relative geometry
-        -> predicted future link
-        -> motion decision
+        + future candidate ego motion
+        -> future relative geometry
+        -> future connectivity
+        -> score candidate motion
 ```
 
-P1 and P2 share the same basic motion-generation and safety framework. This is important because it makes the experiment more informative than simply comparing two unrelated planners.
+Therefore, if P2 systematically outperforms P1 in communication outcomes while mobility and safety mechanisms remain common, we have evidence specifically for the **value of future connectivity prediction**.
 
-The central scientific comparison becomes:
-
-```text
-Reactive knowledge of connectivity
-              vs.
-Predictive trajectory-conditioned connectivity
-```
-
-rather than:
-
-```text
-our complete system vs. an unrelated baseline
-```
+This is stronger scientifically than comparing a complete proposed system against an unrelated baseline where many components change simultaneously.
 
 ---
 
-## Current baseline evidence
+## What the current experiment already suggests
 
-The verified 20-seed controlled simulation currently shows a clear P1-to-P2 improvement in the modeled communication metrics.
-
-Mean modeled outage changes approximately from:
+The verified 20-seed controlled baseline currently gives:
 
 ```text
-P1: 0.07977
-P2: 0.06220
+Mean modeled outage
+P1 reactive:    ~0.07977
+P2 predictive:  ~0.06220
 ```
 
-corresponding to an absolute reduction of about `0.01757` and a relative reduction of roughly 22% from the P1 value.
+This is an absolute reduction of approximately `0.01757`, corresponding to roughly a **22% relative reduction in modeled outage** from P1 to P2.
 
-The paired analysis currently reports a 95% paired-bootstrap interval of approximately:
+The paired 95% bootstrap interval is approximately:
 
 ```text
 [-0.02516, -0.01066]
 ```
 
-with Holm-corrected paired Wilcoxon `p = 0.000501` for the outage comparison.
-
-The same baseline also shows improvements in modeled SNR, BER, and goodput for P2 relative to P1.
-
-These results support a **narrow comparative simulation claim**: predictive connectivity-aware planning improves modeled link outcomes relative to the reactive P1 planner under the tested controlled conditions.
-
-They do **not** establish real-world optical-link performance or real-road autonomous-driving superiority.
-
----
-
-## P3 and P4 are useful even when they do not win
-
-The current baseline does not show statistically significant improvements from P2 to the risk-sensitive P3 planner after multiplicity correction. Likewise, the oracle-connectivity P4 reference currently provides only small additional numerical improvements over P2.
-
-This is scientifically useful rather than necessarily a negative result.
-
-If the observation remains stable under robustness experiments, it may indicate a regime in which useful future prediction captures most of the connectivity-relevant benefit:
+and the Holm-corrected paired Wilcoxon result is:
 
 ```text
-Reactive P1
-    |
-    | substantial benefit from future prediction
-    v
-Predictive P2
-    |
-    | relatively small additional benefit
-    v
-Oracle P4
+p = 0.000501
 ```
 
-A possible interpretation to test—not assume—is that perfect future target knowledge has diminishing value once the planner already possesses a sufficiently informative practical prediction.
+The current baseline also shows improvements in modeled SNR, BER, and goodput for P2 relative to P1.
 
-This conclusion should only be made if the robustness analysis supports it.
+Therefore the current evidence supports the narrow statement:
 
----
+> **Under the tested controlled model-based conditions, predictive connectivity-aware planning produces significantly better modeled communication outcomes than the reactive connectivity-aware planner.**
 
-## Important limitation: safety results
-
-The current verified baseline has the same collision rate (`0.40`) for all five planners.
-
-Therefore the current results **must not** be presented as evidence that predictive connectivity planning improves collision safety.
-
-Before publication, the collision behavior should be analyzed by scenario using the available diagnostics, including candidate rejection causes, no-candidate steps, minimum clearances, collision timing, and realized TTC. The analysis should determine whether collisions arise from intentionally difficult/infeasible scenarios, candidate-set limitations, prediction error, or another aspect of the simulation/planning setup.
-
-The current defensible conclusion is about **modeled connectivity improvement**, not improved safety.
+This is currently the strongest result around which the paper can be organized.
 
 ---
 
-## Proposed paper positioning
+## Why P3 and P4 still matter
 
-A suitable positioning statement is:
+The current baseline does not show a statistically significant P2-to-P3 improvement after multiplicity correction. The P4 oracle reference also gives only small additional numerical improvements over P2.
 
-> **This work does not introduce communication-aware planning as a new concept. Instead, it studies a specific closed-loop coupling between PC-FMCW-informed target prediction, trajectory-conditioned future link forecasting, and autonomous ego-motion selection. Through controlled reactive, predictive, risk-aware, and oracle-reference planners, the study isolates whether future connectivity prediction improves motion decisions beyond reactive link-aware planning while maintaining common safety and motion-generation mechanisms.**
-
-A concise description of the novelty is:
+If this remains true after robustness testing, an interesting scientific result may emerge:
 
 ```text
-PC-FMCW-informed prediction
-          +
-trajectory-conditioned future connectivity
-          +
-closed-loop ego-motion planning
-          +
-controlled reactive-vs-predictive evaluation
+P1 reactive
+     |
+     | large benefit from useful future prediction
+     v
+P2 predictive
+     |
+     | small additional benefit from more/perfect future information
+     v
+P3 risk-aware / P4 oracle
 ```
 
-The novelty should be presented as the **combination and experimental question**, not as invention of any one of those broad components in isolation.
+One hypothesis to test is that, under some operating regimes, practical prediction already captures most of the connectivity-relevant future information needed for motion planning.
+
+This must be tested through robustness experiments rather than assumed from the baseline alone.
 
 ---
 
-## Candidate contribution statements
+## What still needs to be done for the paper
 
-For a future paper, the contributions could be framed approximately as follows:
+### 1. Complete and aggregate robustness experiments
 
-1. **Closed-loop PC-FMCW-informed planning framework.** A motion-planning framework coupling target prediction and candidate ego trajectories to modeled future communication quality.
+We need to determine whether the P2-over-P1 result persists when varying:
 
-2. **Controlled reactive-versus-predictive study.** A benchmark designed to isolate the value of future connectivity forecasting while keeping vehicle dynamics, candidate generation, target prediction used for safety, and hard feasibility constraints common across the relevant planners.
+- target observation noise,
+- prediction uncertainty,
+- planning horizon,
+- connectivity-objective weight,
+- scenario/seed realizations.
 
-3. **Risk-aware and oracle-bounded analysis.** Risk-sensitive and connectivity-only oracle references for studying the value of uncertainty treatment and the remaining performance gap to perfect future connectivity information.
+The objective is to show where predictive planning helps, where it does not, and how sensitive the result is to modeling choices.
 
-These statements should be updated after the full robustness study and collision analysis are completed.
+### 2. Investigate the collision result
+
+The current baseline has collision rate `0.40` for every planner.
+
+Therefore we **cannot claim a safety improvement**.
+
+We need scenario-level analysis using candidate-rejection counts, no-candidate steps, minimum clearance, first collision time, realized TTC, and prediction error to determine whether collisions arise from infeasible scenarios, limitations of the candidate set, prediction errors, or another modeling/planning mechanism.
+
+### 3. Report computational cost
+
+A robotics/planning paper should report the computational burden of P0-P4, especially P2 and Monte-Carlo-based P3.
+
+Useful quantities include:
+
+```text
+mean planning time / replanning step
+95th-percentile planning time
+number of candidate trajectories
+planning horizon
+P3 Monte Carlo sample count
+```
+
+This allows us to discuss whether the approach is compatible with online receding-horizon execution.
+
+### 4. Perform final literature verification
+
+Before submission, the related-work search should be expanded using IEEE Xplore, Google Scholar, Scopus/Web of Science where available, and recent arXiv literature.
+
+Priority language such as `first`, `first-ever`, or `no previous work` should not be used unless a systematic literature search supports it.
+
+### 5. Optional stronger validation
+
+The present study is deliberately a controlled PC-FMCW-informed analytical simulation.
+
+A later validation layer using measured link data, hardware, trace-driven connectivity, or a higher-fidelity simulator would strengthen external validity, but it should remain clearly separated from the claims supported by the present benchmark.
 
 ---
 
-## References / starting points
+## What we should NOT claim
 
-The following are particularly important papers or literature directions to inspect when positioning the work. This is a working related-work list, not yet a complete systematic bibliography.
+The following claims are too broad:
 
-### Communication-aware robotics
+> “Communication-aware motion planning has not previously been studied.”
 
-- Ghaffarkhah, A. and Mostofi, Y., work on **Communication-Aware Motion Planning in Mobile Networks**.
-- Related work on **time-dependent spatial maps of communication quality for network-aware multi-robot path planning**.
+False.
 
-These works establish that communication-aware and prospective-connectivity-aware motion planning predate the present project.
+> “Predicting future communication quality for robot planning is new.”
 
-### Planning-oriented ISAC
+Too broad.
 
-- X. Jin, G. Li, S. Wang, F. Liu, M. Wen, H. Arslan, D. W. K. Ng, and C. Xu, **“Planning Oriented Integrated Sensing and Communication,”** IEEE International Conference on Communications (ICC), 2026. DOI: `10.1109/ICC59461.2026.11587040`. Preprint: <https://arxiv.org/abs/2510.23021>
+> “ISAC has never been integrated with autonomous motion planning.”
 
-### Optical communication-aware control
+False given recent planning-oriented ISAC work.
 
-- G. Silano, D. Bonilla Licea, H. El Hammouti, and M. Saska, **“Free-Space Optical Communication-Driven NMPC Framework for Multi-Rotor Aerial Vehicles in Structured Inspection Scenarios,”** IEEE International Conference on Systems, Man, and Cybernetics (SMC), 2025. DOI: `10.1109/SMC58881.2025.11343117`. Preprint: <https://arxiv.org/abs/2507.04443>
+> “Optical communication has never been incorporated into MPC/NMPC.”
 
-### PC-FMCW / integrated sensing and communication
+False given FSO communication-driven NMPC.
 
-- Experimental and system-level literature on phase-coded FMCW for joint sensing and communications should be cited as the upstream technical foundation.
-- Optical PC-FMCW / integrated sensing-communication-illumination work for intelligent vehicles is particularly relevant when motivating the vehicle setting.
+> “The current results validate real PC-FMCW optical-link performance.”
 
-A final paper submission should perform a broader database search (IEEE Xplore, Scopus/Web of Science where available, Google Scholar, arXiv) before using priority language such as “first,” “first-ever,” or “no previous work.”
+Not supported.
+
+> “The proposed predictive planner improves autonomous-driving safety.”
+
+Not supported by the current collision results.
+
+---
+
+## Proposed paper contributions
+
+If the robustness and diagnostic experiments support the current findings, the paper contributions can be framed approximately as:
+
+1. **PC-FMCW-informed closed-loop motion planning:** a framework coupling predicted target motion and candidate ego trajectories to trajectory-conditioned future communication quality.
+
+2. **Reactive-versus-predictive isolation:** a controlled benchmark designed to measure the value of future connectivity prediction while maintaining common vehicle dynamics, candidate generation, target prediction for safety, and hard feasibility constraints.
+
+3. **Risk-aware and oracle-bounded analysis:** uncertainty-aware and connectivity-only oracle references that quantify the additional value of uncertainty treatment and perfect future information.
+
+4. **Reproducible sensitivity analysis:** paired statistical evaluation and robustness sweeps identifying the operating conditions under which predictive connectivity information changes closed-loop outcomes.
+
+The exact contribution list should be finalized only after the complete robustness and collision analyses.
+
+---
+
+## Paper story in one paragraph
+
+A simple way to explain the intended paper to another researcher is:
+
+> **PC-FMCW systems can provide sensing and communication capabilities, but our question is what an autonomous vehicle should do with predictive information from such a system. We construct a closed-loop motion planner that predicts target motion, evaluates several possible future ego trajectories, estimates the future communication quality associated with each trajectory, rejects unsafe candidates, and chooses motion using both mobility and connectivity objectives. The main experiment compares a reactive planner that uses myopic connectivity information with a predictive planner that reasons over future trajectory-conditioned connectivity. The goal is to determine whether forecasting where the link is going to be provides a measurable decision-making advantage over reacting to where the link is now.**
+
+---
+
+## Paper story in one sentence
+
+> **We study whether an autonomous vehicle can use PC-FMCW-informed prediction not only to understand its environment, but also to choose motion that proactively improves its future communication state.**
 
 ---
 
 ## Bottom line
 
-The project should **not** be sold as “the first communication-aware planner.”
+The paper is **not**:
 
-The more defensible story is:
+```text
+"We invented communication-aware planning."
+```
 
-> Communication-aware planning already exists. Predictive/network-aware planning already exists. Optical communication-aware MPC already exists. ISAC-to-planning coupling now exists. **The open question addressed here is the closed-loop use of PC-FMCW-informed target prediction to evaluate the future communication consequences of alternative ego trajectories, and whether that predictive information materially improves autonomous motion decisions compared with a reactive connectivity-aware planner.**
+It is:
 
-That is the research question the P0–P4 benchmark is designed to study.
+```text
+"Given a PC-FMCW-informed autonomous system,
+can predicted future target/link information be turned into
+better closed-loop motion decisions than reactive connectivity information?"
+```
+
+The current P1-versus-P2 result is the main evidence for that question. Robustness analysis, collision diagnosis, runtime evaluation, and final literature verification are the remaining major steps before turning the repository into a submission-ready paper.
