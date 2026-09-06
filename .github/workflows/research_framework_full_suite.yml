@@ -84,7 +84,7 @@ jobs:
   aggregate:
     needs: [prepare, experiment]
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 360
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
