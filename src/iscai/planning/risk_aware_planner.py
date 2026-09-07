@@ -2,7 +2,7 @@
 from __future__ import annotations
 import numpy as np
 from .costs import mobility_cost
-from .planners import PlanningResult, _BasePlanner
+from .planners import PlanningResult, _BasePlanner, _future_candidate_states
 from .risk_cost import risk_cost
 
 
@@ -33,14 +33,15 @@ class RiskAwarePredictivePlanner(_BasePlanner):
         base_rng = np.random.default_rng(self.random_seed)
         candidate_seeds = base_rng.integers(0, np.iinfo(np.uint32).max, size=len(candidates), dtype=np.uint32)
         for idx, candidate in enumerate(candidates):
-            n = min(len(candidate.states), len(mean_xy))
+            future_states = _future_candidate_states(candidate)
+            n = min(len(future_states), len(mean_xy))
             rng = np.random.default_rng(int(candidate_seeds[idx]))
             target_samples = mean_xy[None, :n, :] + rng.normal(size=(self.mc_samples, n, 2)) * sigma_xy[None, :n, :]
             snr_samples = []
             for target_xy in target_samples:
                 target = np.zeros((n, 4), dtype=float)
                 target[:, :2] = target_xy
-                forecast = self.link_predictor.predict(candidate, target)
+                forecast = self.link_predictor.predict(future_states[:n], target)
                 snr_samples.append(np.asarray(forecast.snr_db, dtype=float))
             snr_samples = np.stack(snr_samples)
             conn = risk_cost(snr_samples, self.threshold_db, self.risk_power)
