@@ -15,12 +15,14 @@ def _candidate(points):
 
 def test_dynamic_target_is_time_aligned_not_static_cloud():
     candidate = _candidate([[0, 0], [1, 0], [2, 0]])
-    # Forecasts start at the next planning step, so candidate.states[1]
-    # aligns with target[0].
+    # check_dynamic_target is a low-level primitive: its two arguments must
+    # already represent the same time indices. Here we explicitly pass the
+    # future ego states because the forecast begins at k+1.
+    future = candidate.states[1:]
     target = np.array([[10, 0], [2, 0]], dtype=float)
-    assert check_dynamic_target(candidate.states, target, min_clearance=0.5) is False
+    assert check_dynamic_target(future, target, min_clearance=0.5) is False
     shifted = np.array([[2, 0], [10, 0]], dtype=float)
-    assert check_dynamic_target(candidate.states, shifted, min_clearance=0.5) is True
+    assert check_dynamic_target(future, shifted, min_clearance=0.5) is True
 
 
 def test_dynamic_filter_removes_collision_candidate():
