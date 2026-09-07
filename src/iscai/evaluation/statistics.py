@@ -3,6 +3,7 @@ from __future__ import annotations
 import numpy as np
 from scipy.stats import wilcoxon
 
+
 def paired_bootstrap_delta(a,b,*,samples=10000,confidence=.95,rng=0):
     a=np.asarray(a,float); b=np.asarray(b,float)
     if a.shape!=b.shape or a.ndim!=1: raise ValueError('a and b must be paired 1D arrays with identical shape')
@@ -10,13 +11,33 @@ def paired_bootstrap_delta(a,b,*,samples=10000,confidence=.95,rng=0):
     d=b-a; gen=np.random.default_rng(rng); idx=gen.integers(0,len(d),size=(samples,len(d))); boot=d[idx].mean(axis=1); alpha=1-confidence
     return {'mean_delta':float(d.mean()),'ci_low':float(np.quantile(boot,alpha/2)),'ci_high':float(np.quantile(boot,1-alpha/2))}
 
-def cluster_paired_bootstrap_delta(a,b,clusters,*,samples=10000,confidence=.95,rng=0):
-    """Paired bootstrap of b-a resampling independent clusters, not rows.
 
-    Each bootstrap draw samples cluster IDs with replacement and includes every
-    paired observation belonging to the sampled cluster. This avoids treating
-    overlapping windows/decisions from one CMHT track as independent units.
+def paired_effect_sizes(a,b):
+    """Paired standardized mean difference and rank-biserial correlation.
+
+    Returns candidate-minus-baseline effects. ``cohens_dz`` is mean(delta) divided
+    by the sample standard deviation of paired differences. Rank-biserial
+    correlation uses signed ranks after dropping zero differences.
     """
+    a=np.asarray(a,float); b=np.asarray(b,float)
+    if a.shape!=b.shape or a.ndim!=1: raise ValueError('a and b must be paired 1D arrays with identical shape')
+    if len(a)==0: raise ValueError('empty paired arrays')
+    d=b-a
+    sd=float(np.std(d,ddof=1)) if len(d)>1 else 0.0
+    dz=0.0 if sd==0.0 else float(np.mean(d)/sd)
+    nz=d[~np.isclose(d,0.0)]
+    if len(nz)==0:
+        rbc=0.0
+    else:
+        order=np.argsort(np.abs(nz),kind='mergesort')
+        ranks=np.empty(len(nz),float); ranks[order]=np.arange(1,len(nz)+1,dtype=float)
+        pos=float(ranks[nz>0].sum()); neg=float(ranks[nz<0].sum()); denom=pos+neg
+        rbc=0.0 if denom==0.0 else (pos-neg)/denom
+    return {'cohens_dz':float(dz),'rank_biserial':float(rbc)}
+
+
+def cluster_paired_bootstrap_delta(a,b,clusters,*,samples=10000,confidence=.95,rng=0):
+    """Paired bootstrap of b-a resampling independent clusters, not rows."""
     a=np.asarray(a,float); b=np.asarray(b,float); c=np.asarray(clusters)
     if a.shape!=b.shape or a.ndim!=1 or c.shape!=a.shape: raise ValueError('a, b, and clusters must be paired 1D arrays')
     if len(a)==0: raise ValueError('empty paired arrays')
@@ -27,12 +48,14 @@ def cluster_paired_bootstrap_delta(a,b,clusters,*,samples=10000,confidence=.95,r
     alpha=1-confidence
     return {'mean_delta':float(d.mean()),'ci_low':float(np.quantile(boot,alpha/2)),'ci_high':float(np.quantile(boot,1-alpha/2)),'n_clusters':int(len(ids))}
 
+
 def paired_wilcoxon(a,b):
     a=np.asarray(a,float); b=np.asarray(b,float)
     if a.shape!=b.shape or a.ndim!=1: raise ValueError('a and b must be paired 1D arrays with identical shape')
     d=b-a
     if np.allclose(d,0.): return {'statistic':0.,'pvalue':1.}
     r=wilcoxon(a,b,alternative='two-sided',zero_method='wilcox'); return {'statistic':float(r.statistic),'pvalue':float(r.pvalue)}
+
 
 def holm_adjust(pvalues):
     p=np.asarray(pvalues,float)
@@ -41,6 +64,7 @@ def holm_adjust(pvalues):
     m=len(p)
     if not m:return p.copy()
     order=np.argsort(p); ranked=p[order]; ar=np.maximum.accumulate((m-np.arange(m))*ranked); ar=np.clip(ar,0.,1.); out=np.empty_like(ar); out[order]=ar; return out
+
 
 def pareto_mask(values,minimize=None):
     x=np.asarray(values,float)
