@@ -51,6 +51,9 @@ def test_paired_effects_preserve_scenario_seed_pairing():
     assert row["n_pairs"] == 6
     assert row["n_seed_clusters"] == 3
     assert row["mean_delta"] < 0.0
+    assert row["candidate_lower_fraction"] == 1.0
+    assert row["candidate_higher_fraction"] == 0.0
+    assert row["tie_fraction"] == 0.0
 
 
 def test_break_even_flags_predictive_advantage():
