@@ -5,12 +5,16 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/research_framework_full_suite.yml"
+      - "configs/experiments/part_b_final.yaml"
   workflow_dispatch:
 
 env:
   RESEARCH_MODE: all
-  RESEARCH_SEEDS: "20"
+  RESEARCH_SEED_START: "1000"
+  RESEARCH_SEEDS: "50"
   RESEARCH_MC_SAMPLES: "32"
+  BOOTSTRAP_SAMPLES: "100000"
+  BOOTSTRAP_RNG_SEED: "20260907"
   PYTHONPATH: ${{ github.workspace }}/src
 
 jobs:
@@ -26,19 +30,30 @@ jobs:
           python-version: "3.11"
       - name: Install matrix dependencies
         run: python -m pip install numpy pandas pyyaml scipy
+      - name: Verify frozen Part B protocol
+        run: |
+          python - <<'PY'
+          import yaml
+          cfg=yaml.safe_load(open('configs/experiments/part_b_final.yaml'))
+          c=cfg['confirmatory']
+          assert cfg['protocol_version']=='part-b-final-v1'
+          assert int(c['seed_start'])==int('${{ env.RESEARCH_SEED_START }}')
+          assert int(c['seeds'])==int('${{ env.RESEARCH_SEEDS }}')
+          assert int(c['bootstrap_samples'])==int('${{ env.BOOTSTRAP_SAMPLES }}')
+          assert int(c['bootstrap_rng_seed'])==int('${{ env.BOOTSTRAP_RNG_SEED }}')
+          assert int(cfg['simulation']['p3_mc_samples'])==int('${{ env.RESEARCH_MC_SAMPLES }}')
+          PY
       - id: matrix
         name: Build full predeclared setting matrix
         run: |
           SETTINGS="$(python scripts/run_research_framework.py --mode "$RESEARCH_MODE" --mc-samples "$RESEARCH_MC_SAMPLES" --list-settings)"
           python - "$SETTINGS" <<'PY' >> "$GITHUB_OUTPUT"
           import json, sys
-          settings = json.loads(sys.argv[1])
-          if not settings:
-              raise SystemExit("full research suite produced no settings")
-          if len(settings) > 256:
-              raise SystemExit("GitHub matrix exceeds 256 settings; split the protocol family")
-          print("settings=" + json.dumps(settings, separators=(",", ":")))
-          print("setting_count=" + str(len(settings)))
+          settings=json.loads(sys.argv[1])
+          if not settings: raise SystemExit('full research suite produced no settings')
+          if len(settings)>256: raise SystemExit('GitHub matrix exceeds 256 settings; split the protocol family')
+          print('settings='+json.dumps(settings,separators=(',',':')))
+          print('setting_count='+str(len(settings)))
           PY
 
   experiment:
@@ -64,9 +79,11 @@ jobs:
           python scripts/run_research_framework.py \
             --mode "$RESEARCH_MODE" \
             --setting-index "${{ matrix.index }}" \
+            --seed-start "$RESEARCH_SEED_START" \
             --seeds "$RESEARCH_SEEDS" \
             --mc-samples "$RESEARCH_MC_SAMPLES" \
             --output-dir "$OUT"
+          cp configs/experiments/part_b_final.yaml "$OUT/part_b_final.yaml"
           python --version > "$OUT/python_version.txt"
           python -m pip freeze > "$OUT/pip_freeze.txt"
       - name: Verify shard provenance
@@ -74,10 +91,11 @@ jobs:
           OUT="results/research_shards/setting-${{ matrix.index }}"
           test -s "$OUT/episodes.csv"
           test -s "$OUT/manifest.json"
+          test -s "$OUT/part_b_final.yaml"
           test "$(git rev-parse HEAD)" = "$(cat "$OUT/commit_sha.txt")"
       - uses: actions/upload-artifact@v4
         with:
-          name: research-shard-all-${{ matrix.index }}
+          name: part-b-final-shard-${{ matrix.index }}
           path: results/research_shards/setting-${{ matrix.index }}
           retention-days: 90
 
@@ -96,29 +114,30 @@ jobs:
       - name: Download setting shards
         uses: actions/download-artifact@v4
         with:
-          pattern: research-shard-all-*
+          pattern: part-b-final-shard-*
           path: results/research_downloads
       - name: Merge and validate shards
         run: |
-          OUT="results/research_framework/all"
+          OUT="results/research_framework/part_b_final_v1"
           python scripts/merge_research_framework_shards.py \
             --input-root results/research_downloads \
             --output-dir "$OUT" \
             --expected-settings "${{ needs.prepare.outputs.setting_count }}"
+          cp configs/experiments/part_b_final.yaml "$OUT/part_b_final.yaml"
           git rev-parse HEAD > "$OUT/workflow_commit_sha.txt"
           python --version > "$OUT/python_version.txt"
           python -m pip freeze > "$OUT/pip_freeze.txt"
       - name: Run paired statistical analysis
         run: |
-          OUT="results/research_framework/all"
+          OUT="results/research_framework/part_b_final_v1"
           python scripts/analyze_research_framework.py \
             --input "$OUT/episodes.csv" \
             --output-dir "$OUT/analysis" \
-            --bootstrap-samples 10000 \
-            --rng-seed 2026
+            --bootstrap-samples "$BOOTSTRAP_SAMPLES" \
+            --rng-seed "$BOOTSTRAP_RNG_SEED"
       - name: Build publication figures and tables
         run: |
-          OUT="results/research_framework/all"
+          OUT="results/research_framework/part_b_final_v1"
           python scripts/plot_research_framework.py \
             --episodes "$OUT/episodes.csv" \
             --effects "$OUT/analysis/paired_effects.csv" \
@@ -131,14 +150,15 @@ jobs:
             --output-dir "$OUT/tables"
       - name: Verify merged provenance and outputs
         run: |
-          OUT="results/research_framework/all"
+          OUT="results/research_framework/part_b_final_v1"
           test -s "$OUT/episodes.csv"
           test -s "$OUT/summary.csv"
           test -s "$OUT/manifest.json"
+          test -s "$OUT/part_b_final.yaml"
           test -s "$OUT/analysis/paired_effects.csv"
           test "$(git rev-parse HEAD)" = "$(cat "$OUT/commit_sha.txt")"
       - uses: actions/upload-artifact@v4
         with:
-          name: research-framework-all-aggregated
-          path: results/research_framework/all
+          name: part-b-final-v1-aggregated
+          path: results/research_framework/part_b_final_v1
           retention-days: 90
