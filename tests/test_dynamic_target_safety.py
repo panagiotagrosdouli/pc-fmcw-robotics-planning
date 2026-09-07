@@ -15,19 +15,19 @@ def _candidate(points):
 
 def test_dynamic_target_is_time_aligned_not_static_cloud():
     candidate = _candidate([[0, 0], [1, 0], [2, 0]])
-    target = np.array([[10, 0], [1, 0], [10, 0]], dtype=float)
+    # Forecasts start at the next planning step, so candidate.states[1]
+    # aligns with target[0].
+    target = np.array([[10, 0], [2, 0]], dtype=float)
     assert check_dynamic_target(candidate.states, target, min_clearance=0.5) is False
-    shifted = np.array([[1, 0], [10, 0], [10, 0]], dtype=float)
+    shifted = np.array([[2, 0], [10, 0]], dtype=float)
     assert check_dynamic_target(candidate.states, shifted, min_clearance=0.5) is True
 
 
 def test_dynamic_filter_removes_collision_candidate():
     safe = _candidate([[0, 0], [1, 0], [2, 0]])
     unsafe = _candidate([[0, 1], [1, 1], [2, 1]])
-    target = np.array([[10, 1], [1, 1], [10, 1]], dtype=float)
+    target = np.array([[1, 1], [10, 1]], dtype=float)
     kept = filter_dynamic_target([safe, unsafe], target, min_clearance=0.4)
-    # CandidateTrajectory contains NumPy arrays, so dataclass equality is not a
-    # valid membership test. Identity is the intended contract of this filter.
     assert any(candidate is safe for candidate in kept)
     assert all(candidate is not unsafe for candidate in kept)
     assert safe.feasible is True
@@ -41,6 +41,7 @@ def test_p0_uses_target_prediction_for_safety_not_connectivity_objective():
     target[:, 0] = np.linspace(1.0, 25.0, 30)
     result = planner.plan(ego, target, obstacles=[], reference_speed=8.0)
     if result.candidate is not None:
-        n = min(len(result.candidate.states), len(target))
-        d = np.linalg.norm(result.candidate.states[:n, :2] - target[:n, :2], axis=1)
+        future = result.candidate.states[1:]
+        n = min(len(future), len(target))
+        d = np.linalg.norm(future[:n, :2] - target[:n, :2], axis=1)
         assert np.all(d >= 2.0)
