@@ -1,0 +1,72 @@
+protocol_version: part-b-final-v1
+study: predictive_connectivity_aware_receding_horizon_planning
+claim_boundary: "Controlled PC-FMCW-informed analytical simulation; not measured optical performance and not real-world autonomous-driving validation."
+
+confirmatory:
+  seed_start: 1000
+  seeds: 50
+  bootstrap_samples: 100000
+  bootstrap_rng_seed: 20260907
+  planners: [P0, P1, P2, P3, P4]
+  primary_comparisons:
+    - [P1, P2]
+    - [P2, P3]
+    - [P2, P4]
+  primary_communication_metrics:
+    - mean_outage_probability
+    - mean_snr_db
+    - min_snr_db
+    - mean_ber_model
+    - mean_goodput_bps_model
+  robotics_metrics:
+    - progress_m
+    - path_length_m
+    - min_target_distance_m
+    - min_static_obstacle_clearance_m
+    - collision_indicator
+    - min_realized_ttc_s
+    - no_candidate_rate
+  multiplicity_family: "Within each confirmatory planner comparison across the five primary communication metrics. Robotics/safety outcomes are separate gate/diagnostic families."
+
+simulation:
+  dt_s: 0.1
+  history_steps: 8
+  horizon_steps: 20
+  observation_sigma_m: 0.20
+  prediction_sigma_m: 0.75
+  connectivity_weight: 1.0
+  p3_mc_samples: 32
+  collision_distance_m: 2.0
+
+link:
+  upstream_reference_context: "PanagiotaGr/ISCAI_pc_fmcw"
+  carrier_frequency_hz: 193.4e12
+  chirp_bandwidth_hz: 10.0e9
+  chirp_duration_s: 10.0e-6
+  data_rate_bps: 1.0e9
+  reference_snr_db: 20.0
+  reference_distance_m: 10.0
+  pathloss_exponent: 2.0
+  beam_sigma_rad: 0.12
+  outage_threshold_db: 8.0
+  outage_softness_db: 2.0
+  geometry_model: "declared analytical simulation assumption; not a measured optical calibration"
+
+robustness:
+  target_prediction_error_m: [0.25, 0.5, 0.75, 1.0, 1.5]
+  connectivity_weight: [0.0, 0.5, 1.0, 2.0, 4.0]
+  planning_horizon_steps: [8, 12, 20, 30]
+  observation_sigma_m: [0.0, 0.1, 0.2, 0.4, 0.8]
+  reference_snr_bias_db: [0.0, -1.0, -2.0, -4.0]
+  pathloss_scale: [1.0, 1.1, 1.25, 1.5]
+  beam_sigma_scale: [1.0, 0.9, 0.75, 0.5]
+  reported_uncertainty_scale: [0.5, 1.0, 1.5, 2.0]
+  observation_delay_s: [0.0, 0.2, 0.5, 1.0]
+
+reporting:
+  retain_negative_results: true
+  oracle_connectivity_only: true
+  separate_safety_claims: true
+  no_candidate_counts_are_diagnostic_only: true
+  candidate_rejection_counts_are_diagnostic_only: true
+  packet_or_optical_measurement_claims: false
