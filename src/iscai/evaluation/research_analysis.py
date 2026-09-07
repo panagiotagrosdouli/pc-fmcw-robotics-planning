@@ -60,6 +60,20 @@ def _paired(frame: pd.DataFrame, baseline: str, candidate: str, metric: str):
     return pivot[[baseline, candidate]].replace([np.inf, -np.inf], np.nan).dropna().reset_index()
 
 
+def _win_tie_loss(a: np.ndarray, b: np.ndarray, *, atol: float = 1e-12) -> dict:
+    """Candidate-minus-baseline directional fractions on paired episode units."""
+    d = np.asarray(b, float) - np.asarray(a, float)
+    ties = np.isclose(d, 0.0, rtol=0.0, atol=atol)
+    wins = d > atol
+    losses = d < -atol
+    n = len(d)
+    return {
+        "candidate_higher_fraction": float(np.sum(wins) / n),
+        "tie_fraction": float(np.sum(ties) / n),
+        "candidate_lower_fraction": float(np.sum(losses) / n),
+    }
+
+
 def paired_effects(frame: pd.DataFrame, comparisons=DEFAULT_COMPARISONS, metrics=DEFAULT_METRICS,
                    *, bootstrap_samples=10000, rng=2026) -> pd.DataFrame:
     """Return paired candidate-minus-baseline effects for every experiment setting."""
@@ -77,6 +91,7 @@ def paired_effects(frame: pd.DataFrame, comparisons=DEFAULT_COMPARISONS, metrics
                 clustered = cluster_paired_bootstrap_delta(a, b, paired["seed"].to_numpy(), samples=bootstrap_samples, rng=rng)
                 test = paired_wilcoxon(a, b)
                 effect = paired_effect_sizes(a, b)
+                directional = _win_tie_loss(a, b)
                 rows.append({
                     "experiment": experiment, "setting_id": setting_id,
                     "baseline": baseline, "candidate": candidate, "metric": metric,
@@ -85,6 +100,7 @@ def paired_effects(frame: pd.DataFrame, comparisons=DEFAULT_COMPARISONS, metrics
                     "mean_delta": ordinary["mean_delta"], "ci_low": ordinary["ci_low"], "ci_high": ordinary["ci_high"],
                     "cluster_ci_low": clustered["ci_low"], "cluster_ci_high": clustered["ci_high"],
                     "cohens_dz": effect["cohens_dz"], "rank_biserial": effect["rank_biserial"],
+                    **directional,
                     "wilcoxon_statistic": test["statistic"], "pvalue": test["pvalue"],
                 })
     out = pd.DataFrame(rows)
