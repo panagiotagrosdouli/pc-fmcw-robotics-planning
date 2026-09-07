@@ -29,6 +29,12 @@ def _target_xy(target_prediction):
     return target[:, :2]
 
 
+def _future_candidate_states(candidate):
+    """Return candidate states starting at k+1, excluding the current ego state."""
+    states = np.asarray(candidate.states, dtype=float)
+    return states[1:]
+
+
 class _BasePlanner:
     def __init__(self, link_predictor=None, connectivity_weight=1.0, vehicle_params=None,
                  target_clearance=2.0):
@@ -71,10 +77,13 @@ class ReactiveConnectivityPlanner(_BasePlanner):
         if not candidates:
             return PlanningResult(None, float("inf"), None)
         target = np.asarray(target_prediction, dtype=float)
-        current = np.repeat(target[:1], max(len(c.states) for c in candidates), axis=0)
+        max_future_steps = max(len(_future_candidate_states(c)) for c in candidates)
+        current = np.repeat(target[:1], max_future_steps, axis=0)
         best = None
         for candidate in candidates:
-            forecast = self.link_predictor.predict(candidate, current)
+            future_states = _future_candidate_states(candidate)
+            n = min(len(future_states), len(current))
+            forecast = self.link_predictor.predict(future_states[:n], current[:n])
             score = mobility_cost(candidate, reference_speed) + self.connectivity_weight * connectivity_cost(forecast)
             if best is None or score < best.score:
                 best = PlanningResult(candidate, score, forecast)
@@ -92,8 +101,9 @@ class PredictiveConnectivityPlanner(_BasePlanner):
         best = None
         target = np.asarray(target_prediction, dtype=float)
         for candidate in candidates:
-            n = min(len(candidate.states), len(target))
-            forecast = self.link_predictor.predict(candidate, target[:n])
+            future_states = _future_candidate_states(candidate)
+            n = min(len(future_states), len(target))
+            forecast = self.link_predictor.predict(future_states[:n], target[:n])
             score = mobility_cost(candidate, reference_speed) + self.connectivity_weight * connectivity_cost(forecast)
             if best is None or score < best.score:
                 best = PlanningResult(candidate, score, forecast)
