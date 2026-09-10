@@ -1,7 +1,7 @@
 # PC-FMCW Robotics Planning
 
 Predictive connectivity-aware autonomous motion planning for vehicles using a dataset-free PC-FMCW-informed simulation model.
-<img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/8653884e-ef49-4b1d-a028-9e946b9255b3" />
+
 
 ## Research objective
 
