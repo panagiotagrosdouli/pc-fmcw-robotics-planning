@@ -7,6 +7,7 @@ on:
       - 'scripts/run_pc_fmcw_robotics_benchmark.py'
       - 'scripts/analyze_pc_fmcw_benchmark.py'
       - 'scripts/diagnose_pc_fmcw_benchmark.py'
+      - 'scripts/build_part_b_confirmatory_report.py'
       - 'scripts/build_dual_branch_evidence_table.py'
       - 'docs/paper/DUAL_BRANCH_ANALYSIS.md'
       - '.github/workflows/part_b_confirmatory.yml'
@@ -56,6 +57,11 @@ jobs:
           python scripts/diagnose_pc_fmcw_benchmark.py \
             --input results/part_b_final/episodes.csv \
             --output-dir results/part_b_final/diagnostics
+      - name: Build artifact-derived manuscript report
+        run: |
+          python scripts/build_part_b_confirmatory_report.py \
+            --input-dir results/part_b_final \
+            --output results/part_b_final/CONFIRMATORY_REPORT.md
       - uses: actions/upload-artifact@v4
         with:
           name: part-b-final-v1-confirmatory
