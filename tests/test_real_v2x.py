@@ -49,5 +49,10 @@ def test_candidate_scorer_penalizes_unsupported():
 def test_explicit_candidate_lag_context_is_not_overwritten():
     from iscai.connectivity.real_v2x.predictors import make_features
     d=_df("candidate").iloc[:3].copy(); d["delay_lag1"]=77.0; d["sinr_lag1"]=-3.0
-    f=make_features(d)
-    assert np.all(f.delay_lag1==77.0) and np.all(f.sinr_lag1==-3.0)
+    f=make_features(d); assert np.all(f.delay_lag1==77.0) and np.all(f.sinr_lag1==-3.0)
+
+def test_support_conditional_conformal_uses_distance_bins():
+    from iscai.connectivity.real_v2x.uncertainty import SupportConditionalConformalCalibrator
+    y=np.r_[np.zeros(120),np.ones(120)*10]; p=np.zeros(240); d=np.r_[np.zeros(120)+.5,np.zeros(120)+8]
+    c=SupportConditionalConformalCalibrator(alpha=.1,min_bin_samples=50).fit(y,p,d)
+    r=c.radii([.5,8.0]); assert r[1] > r[0]
