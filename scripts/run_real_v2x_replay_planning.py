@@ -6,11 +6,6 @@ CICV5G sample, the decision proxy ranks several future samples on the same measu
 route. Future delay is never exposed to P0-P3; it is used only after selection as a
 measured outcome. The experiment therefore tests whether a causal QoS predictor has
 decision value while avoiding fabricated QoS labels at arbitrary unmeasured positions.
-
-QoS-map/support queries are batched per held-out run and offset. The recorded decision
-time therefore measures lightweight score/rank execution after the predictor has supplied
-its horizon forecasts, while a separate preprocessing time records batched map/support
-inference. Neither number is called real-time capability without an explicit budget.
 """
 from __future__ import annotations
 import argparse, json, time
@@ -65,43 +60,12 @@ def calibrate_for_offset(cal, spatial_model, h, alpha):
             g.y.to_numpy(float), g.p.to_numpy(float), g.m.to_numpy(float)
         ) if len(g) >= 100 else 1.0
     pred = np.empty(len(ca), float)
-    for key, idxs in ca.groupby(list(CONTEXT), dropna=False, sort=False).groups.items():
-        pos = np.asarray([ca.index.get_loc(i) for i in idxs], dtype=int)
-        w = float(weights.get(key_tuple(key), 1.0))
-        pred[pos] = w * ca.current_delay_ms.to_numpy(float)[pos] + (1.0 - w) * spatial[pos]
+    for i, row in ca.iterrows():
+        k = tuple(row[c] for c in CONTEXT)
+        w = float(weights.get(k, 1.0))
+        pred[i] = w * float(row.current_delay_ms) + (1.0 - w) * float(spatial[i])
     calibrator = ResidualConformalCalibrator(alpha).fit(ca.delay_ms.to_numpy(float), pred)
     return weights, calibrator
-
-def horizon_forecasts(g, offsets, spatial, support, calibration):
-    """Batch all predictor/support queries for one run without using future QoS as input."""
-    max_h = max(offsets)
-    n = len(g) - max_h
-    if n <= 0:
-        return {}, 0.0
-    current_delay = g.delay_ms.to_numpy(float)[:n]
-    result = {}
-    start = time.perf_counter_ns()
-    for h in offsets:
-        future = g.iloc[h:h+n].copy().reset_index(drop=True)
-        map_pred = np.asarray(spatial.predict(future), float)
-        weights, calibrator = calibration[h]
-        w = np.ones(n, float)
-        for key, idxs in future.groupby(list(CONTEXT), dropna=False, sort=False).groups.items():
-            pos = np.asarray(list(idxs), dtype=int)
-            w[pos] = float(weights.get(key_tuple(key), 1.0))
-        pred = w * current_delay + (1.0 - w) * map_pred
-        _, hi = calibrator.interval(pred)
-        sup = support.evaluate(future)
-        result[h] = {
-            "pred": pred,
-            "upper": np.asarray(hi, float),
-            "supported": np.asarray(sup["supported"], bool),
-            "nearest": np.asarray(sup["nearest_distance_m"], float),
-            "truth": future.delay_ms.to_numpy(float),
-            "mobility": abs(h - int(np.median(offsets))) / max(int(np.median(offsets)), 1),
-        }
-    elapsed_ms = (time.perf_counter_ns() - start) / 1e6
-    return result, elapsed_ms
 
 def main():
     ap = argparse.ArgumentParser()
@@ -139,30 +103,33 @@ def main():
         calibration[h] = (weights, calibrator)
 
     rows = []
-    decision_us = []
-    inference_ms = []
-    candidate_count = 0
+    timing = []
     for run_id, g0 in test.groupby("run_id", sort=False):
         g = g0.sort_values("pub_time_ms").reset_index(drop=True)
-        forecasts, infer_ms = horizon_forecasts(g, offsets, spatial, support, calibration)
-        inference_ms.append(infer_ms)
-        if not forecasts:
-            continue
-        n = len(next(iter(forecasts.values()))["pred"])
-        candidate_count += n * len(offsets)
-        for t in range(n):
-            start = time.perf_counter_ns()
+        max_h = max(offsets)
+        for t in range(0, len(g) - max_h):
+            current = g.iloc[t]
             candidates = []
+            start = time.perf_counter_ns()
             for h in offsets:
-                f = forecasts[h]
+                future = g.iloc[t + h:t + h + 1].copy()
+                map_pred = float(spatial.predict(future)[0])
+                k = tuple(future.iloc[0][c] for c in CONTEXT)
+                weights, calibrator = calibration[h]
+                w = float(weights.get(k, 1.0))
+                pred = w * float(current.delay_ms) + (1.0 - w) * map_pred
+                _, hi = calibrator.interval(np.asarray([pred], float))
+                sup = support.evaluate(future)
+                supported = bool(sup["supported"][0])
+                nearest = float(sup["nearest_distance_m"][0])
+                mobility = abs(h - nominal) / max(nominal, 1)
                 candidates.append({
-                    "h": h, "pred": float(f["pred"][t]), "upper": float(f["upper"][t]),
-                    "supported": bool(f["supported"][t]), "nearest_train_m": float(f["nearest"][t]),
-                    "mobility": abs(h - nominal) / max(nominal, 1),
-                    "truth_delay": float(f["truth"][t]),
+                    "h": h, "pred": pred, "upper": float(hi[0]),
+                    "supported": supported, "nearest_train_m": nearest,
+                    "mobility": mobility, "truth_delay": float(future.delay_ms.iloc[0]),
                 })
+            timing.append((time.perf_counter_ns() - start) / 1000.0)
 
-            selected = {}
             for mode in ("P0", "P1", "P2", "P3"):
                 scored = []
                 for c in candidates:
@@ -175,10 +142,7 @@ def main():
                             score += args.risk_weight * float(c["upper"] > args.delay_threshold_ms)
                             score += args.unsupported_penalty * float(not c["supported"])
                     scored.append((score, c))
-                selected[mode] = min(scored, key=lambda z: (z[0], abs(z[1]["h"] - nominal)))
-            decision_us.append((time.perf_counter_ns() - start) / 1000.0)
-
-            for mode, (score, chosen) in selected.items():
+                score, chosen = min(scored, key=lambda z: (z[0], abs(z[1]["h"] - nominal)))
                 rows.append({
                     "run_id": run_id, "t_index": t, "mode": mode, "score": score,
                     "chosen_horizon_steps": chosen["h"], "nominal_horizon_steps": nominal,
@@ -210,19 +174,15 @@ def main():
         mean_mobility_deviation=("mean_mobility_deviation", "mean"),
     ).reset_index()
     summary.to_csv(out / "summary.csv", index=False)
-    total_infer_ms = float(np.sum(inference_ms)) if inference_ms else 0.0
     meta = {
         "seed": args.seed, "offsets": offsets, "nominal_horizon": nominal,
         "delay_threshold_ms": args.delay_threshold_ms,
         "threshold_status": "experimental operating point; not a universal standard",
         "support_radius_m": args.support_radius_m,
         "support_min_neighbors": args.support_min_neighbors,
-        "candidate_queries": candidate_count,
-        "batched_qos_support_inference_ms_total": total_infer_ms,
-        "batched_qos_support_inference_us_per_candidate": 1000.0 * total_infer_ms / max(candidate_count, 1),
-        "decision_scoring_us_mean": float(np.mean(decision_us)) if decision_us else None,
-        "decision_scoring_us_p95": float(np.percentile(decision_us, 95)) if decision_us else None,
-        "claim_boundary": "Route-constrained offline measured replay; future measured QoS is outcome-only. Timing is measured software execution on the CI host, not a certified real-time guarantee.",
+        "decision_compute_us_mean": float(np.mean(timing)) if timing else None,
+        "decision_compute_us_p95": float(np.percentile(timing, 95)) if timing else None,
+        "claim_boundary": "Route-constrained offline measured replay; future measured QoS is outcome-only. This is decision-value evidence, not closed-loop vehicle or arbitrary counterfactual validation.",
         "split": split,
     }
     (out / "metadata.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
