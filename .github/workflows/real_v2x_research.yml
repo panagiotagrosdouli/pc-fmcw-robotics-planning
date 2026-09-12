@@ -1,0 +1,34 @@
+name: Real V2X research smoke
+on:
+  pull_request:
+    paths:
+      - 'src/iscai/connectivity/real_v2x/**'
+      - 'scripts/prepare_cicv5g.py'
+      - 'scripts/run_real_v2x_support_study.py'
+      - 'scripts/analyze_real_v2x_support_study.py'
+      - 'tests/test_real_v2x.py'
+      - '.github/workflows/real_v2x_research.yml'
+  workflow_dispatch:
+
+jobs:
+  measured-data-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - run: python -m pip install numpy pandas scipy scikit-learn matplotlib pytest
+      - run: python -m pytest -q tests/test_real_v2x.py
+      - name: Download public CICV5G W2S measurements
+        run: python scripts/prepare_cicv5g.py --output data/raw/cicv5g
+      - name: Run leakage-safe measured-data study
+        run: PYTHONPATH=src python scripts/run_real_v2x_support_study.py --data data/raw/cicv5g --output results/real_v2x_support
+      - name: Analyze measured-data study
+        run: python scripts/analyze_real_v2x_support_study.py --input results/real_v2x_support --bootstrap 1000
+      - uses: actions/upload-artifact@v4
+        with:
+          name: real-v2x-support-study
+          path: results/real_v2x_support/
