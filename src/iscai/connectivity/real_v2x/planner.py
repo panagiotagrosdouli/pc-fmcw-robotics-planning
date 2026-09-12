@@ -15,9 +15,10 @@ def score_candidates(candidates, predictor, support_model=None, calibrator=None,
                      delay_threshold_ms=50.0, unsupported_penalty=1.0):
     """Score already-safe tabular candidate trajectories using measured-data QoS models.
 
-    Each candidate is dict(df=<future states with QoS context>, mobility_cost=float).
-    Safety remains external and common across planner variants; this adapter must only
-    receive candidates that survived the repository's hard-safety filters.
+    Each candidate is dict(df=<future states with causal QoS context>, mobility_cost=float).
+    Safety remains external and common across planner variants. Counterfactual candidate
+    tables must carry current/causal lag context explicitly; future measured QoS must not
+    be inserted as a planner input.
     """
     out=[]
     for c in candidates:
@@ -25,7 +26,9 @@ def score_candidates(candidates, predictor, support_model=None, calibrator=None,
         if mode == PlannerMode.P0:
             out.append({**c,"score":mobility,"comm_cost":0.0,"risk_cost":0.0}); continue
         if mode == PlannerMode.P1:
-            pred=np.repeat(float(df["delay_lag1"].iloc[0]),len(df)) if "delay_lag1" in df else np.repeat(float(df["delay_ms"].iloc[0]),len(df))
+            if "delay_lag1" not in df:
+                raise ValueError("P1 requires causal current delay in delay_lag1; future measured delay must not be used")
+            pred=np.repeat(float(df["delay_lag1"].iloc[0]),len(df))
         else:
             pred=np.asarray(predictor.predict(df),float)
         comm=float(np.mean(_norm(pred,0,delay_threshold_ms*2)))
