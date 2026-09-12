@@ -28,6 +28,8 @@ jobs:
       - run: python -m pip install numpy pandas scipy scikit-learn matplotlib pytest
       - run: python -m pytest -q tests/test_real_v2x.py
       - name: Download public CICV5G W2S measurements
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python scripts/prepare_cicv5g.py --output data/raw/cicv5g
       - name: Run leakage-safe measured-data study
         run: PYTHONPATH=src python scripts/run_real_v2x_support_study.py --data data/raw/cicv5g --output results/real_v2x_support
