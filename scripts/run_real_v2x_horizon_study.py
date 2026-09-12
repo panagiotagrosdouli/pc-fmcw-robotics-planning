@@ -54,9 +54,9 @@ def main():
                 cond=SupportConditionalConformalCalibrator(a.alpha).fit(cy,cf,cd); alo,ahi=cond.interval(tf,td)
                 rec.update({"global_coverage":float(np.mean((ty>=glo)&(ty<=ghi))),"adaptive_coverage":float(np.mean((ty>=alo)&(ty<=ahi))),"global_width_ms":float(np.mean(ghi-glo)),"adaptive_width_ms":float(np.mean(ahi-alo)),"adaptive_bin_counts":json.dumps(cond.counts_),"adaptive_bin_radii_ms":json.dumps(cond.radii_.tolist())})
             summary.append(rec)
-            temp=te[["run_id"]].copy(); temp["y"]=ty; temp["persist"]=tp; temp["map"]=tm; temp["fusion"]=tf
+            temp=te[["run_id"]].copy(); temp["y"]=ty; temp["persist"]=tp; temp["map_pred"]=tm; temp["fusion"]=tf
             for run,g in temp.groupby("run_id"):
-                runrows.append({"target":target,"horizon_steps":h,"run_id":run,"n":len(g),"persistence_mae":float(np.mean(np.abs(g.y-g.persist))),"spatial_mae":float(np.mean(np.abs(g.y-g.map))),"fusion_mae":float(np.mean(np.abs(g.y-g.fusion))),"fusion_persistence_weight":w})
+                runrows.append({"target":target,"horizon_steps":h,"run_id":run,"n":len(g),"persistence_mae":float(np.mean(np.abs(g["y"]-g["persist"]))),"spatial_mae":float(np.mean(np.abs(g["y"]-g["map_pred"]))),"fusion_mae":float(np.mean(np.abs(g["y"]-g["fusion"]))),"fusion_persistence_weight":w})
     pd.DataFrame(summary).to_csv(out/"horizon_summary.csv",index=False); pd.DataFrame(runrows).to_csv(out/"horizon_run_metrics.csv",index=False); (out/"split.json").write_text(json.dumps(split,indent=2),encoding="utf-8"); print(pd.DataFrame(summary).to_string(index=False))
 
 if __name__=="__main__": main()
