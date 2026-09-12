@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'manuscripts/**'
+      - 'scripts/build_paper2_publication_assets.py'
       - '.github/workflows/manuscript_ci.yml'
   workflow_dispatch:
 
@@ -13,10 +14,22 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-      - name: Install LaTeX
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install manuscript dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends texlive-latex-base texlive-latex-extra texlive-fonts-recommended texlive-publishers
+          sudo apt-get install -y --no-install-recommends texlive-latex-base texlive-latex-extra texlive-fonts-recommended texlive-publishers texlive-science
+          python -m pip install --upgrade pip
+          python -m pip install pandas matplotlib jinja2
+      - name: Regenerate Paper 2 publication assets when snapshot exists
+        run: |
+          if [ -f manuscripts/paper2_real_v2x/results_archive/predictor_metrics.csv ]; then
+            python scripts/build_paper2_publication_assets.py \
+              manuscripts/paper2_real_v2x/results_archive \
+              --out manuscripts/paper2_real_v2x/generated
+          fi
       - name: Compile all manuscript sources
         run: |
           set -euo pipefail
@@ -32,19 +45,19 @@ jobs:
             echo 'No manuscript .tex sources found' >&2
             exit 1
           fi
-      - name: Reject unresolved LaTeX markers
+      - name: Reject unresolved manuscript markers
         run: |
           if grep -RInE 'TODO|TBD|undefined references|Citation.*undefined' manuscripts --include='*.tex'; then
             echo 'Unresolved manuscript markers detected' >&2
             exit 1
           fi
-      - name: Collect PDFs
+      - name: Collect manuscript outputs
         run: |
-          mkdir -p manuscript-pdfs
-          find manuscripts -type f -name 'paper*.pdf' -exec cp {} manuscript-pdfs/ \;
-          test -n "$(find manuscript-pdfs -type f -name '*.pdf' -print -quit)"
+          mkdir -p manuscript-artifacts
+          find manuscripts -type f \( -name 'paper*.pdf' -o -path '*/generated/*.pdf' -o -path '*/generated/*.svg' -o -path '*/generated/*.tex' -o -path '*/generated/*.csv' \) -exec cp --parents {} manuscript-artifacts/ \;
+          test -n "$(find manuscript-artifacts -type f -name 'paper*.pdf' -print -quit)"
       - uses: actions/upload-artifact@v4
         with:
-          name: manuscript-pdfs
-          path: manuscript-pdfs/
+          name: manuscript-publication-assets
+          path: manuscript-artifacts/
           retention-days: 90
