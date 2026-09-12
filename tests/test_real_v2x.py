@@ -45,3 +45,9 @@ def test_candidate_scorer_penalizes_unsupported():
     a=pd.DataFrame({"mock_pred":[10,10],"supported":[True,True]}); b=pd.DataFrame({"mock_pred":[10,10],"supported":[False,False]})
     ranked=score_candidates([{"name":"a","df":a,"mobility_cost":0.0},{"name":"b","df":b,"mobility_cost":0.0}],Predictor(),Support(),mode=PlannerMode.P2,unsupported_penalty=2.0)
     assert ranked[0]["name"]=="a" and ranked[1]["score"]>ranked[0]["score"]
+
+def test_explicit_candidate_lag_context_is_not_overwritten():
+    from iscai.connectivity.real_v2x.predictors import make_features
+    d=_df("candidate").iloc[:3].copy(); d["delay_lag1"]=77.0; d["sinr_lag1"]=-3.0
+    f=make_features(d)
+    assert np.all(f.delay_lag1==77.0) and np.all(f.sinr_lag1==-3.0)
