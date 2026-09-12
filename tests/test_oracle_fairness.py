@@ -20,8 +20,9 @@ def test_p4_oracle_forecast_cannot_bypass_common_safety_prediction(monkeypatch):
 
     planner = OracleConnectivityPlanner(LinkPredictor(), target_clearance=0.5)
     ego = np.array([0.0, 0.0, 0.0, 5.0])
-    oracle_target = np.array([[20.0, 20.0], [20.0, 20.0], [20.0, 20.0]])
-    common_safety_target = np.array([[0.0, 0.0], [1.0, 0.0], [2.0, 0.0]])
+    oracle_target = np.array([[20.0, 20.0], [20.0, 20.0]], dtype=float)
+    # Common safety forecast starts at k+1 and collides with candidate.states[1].
+    common_safety_target = np.array([[1.0, 0.0], [2.0, 0.0]], dtype=float)
 
     result = planner.plan(
         ego,
