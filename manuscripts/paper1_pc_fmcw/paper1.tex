@@ -9,7 +9,7 @@ Repository: \texttt{pc-fmcw-robotics-planning}}}
 \maketitle
 
 \begin{abstract}
-Phase-coded frequency-modulated continuous-wave (PC-FMCW) laser headlamps can integrate sensing, communication, and illumination, but the upstream optical architecture stops before autonomous motion selection. This paper develops a model-based perception-to-action layer that uses tracked target motion to predict future relative geometry, evaluates candidate ego trajectories through a PC-FMCW-informed analytical connectivity model, applies common hard safety filters, and selects motion in receding horizon. The planner ladder P0--P4 isolates mobility-only, reactive, predictive, risk-aware predictive, and simulator-oracle communication information. Historical V1 experiments provide strong exploratory evidence that predictive P2 avoids the modeled link degradation observed under reactive P1, and a directional-versus-distance-only ablation indicates that the effect is tied to the modeled directional geometry rather than generic distance minimization. However, V1 failed the intended robotics safety gate and omitted a frozen \texttt{min\_snr\_db} endpoint from the executed schema. The repository therefore treats V1 as diagnostic and launches a separate safety-remediation study on development-only seeds before any fresh confirmatory run. This manuscript intentionally leaves final confirmatory numerical claims pending until the safety gate and fresh V2 protocol complete.
+Phase-coded frequency-modulated continuous-wave (PC-FMCW) laser headlamps can integrate sensing, communication, and illumination, but the upstream optical architecture stops before autonomous motion selection. This paper develops a model-based perception-to-action layer that uses tracked target motion to predict future relative geometry, evaluates candidate ego trajectories through a PC-FMCW-informed analytical connectivity model, applies common hard safety filters, and selects motion in receding horizon. The planner ladder P0--P4 isolates mobility-only, reactive, predictive, risk-aware predictive, and simulator-oracle communication information. Historical V1 experiments provide strong exploratory evidence that predictive P2 avoids the modeled link degradation observed under reactive P1, and a directional-versus-distance-only ablation indicates that the effect is tied to modeled directional geometry rather than generic distance minimization. V1 nevertheless failed the robotics safety gate. A subsequent V2 development-only study with shared straight maximum-braking candidates removed most collisions but still failed the predeclared hard gate because no-candidate episodes remained and P1/P2 retained overtake collisions. Fresh V2 confirmatory seeds were therefore automatically skipped. The current V3 protocol adds communication-agnostic braking-plus-lateral-evasion candidates and selects a planning-only prediction-error margin on new development seeds before allowing a completely fresh confirmatory run. Final confirmatory numerical claims remain intentionally gated until V3 passes.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -65,11 +65,17 @@ P4 uses simulator future truth for connectivity only and provides an upper-refer
 The executed receding-horizon action is the first control of the selected feasible candidate.
 
 \section{Safety Envelope and Protocol Integrity}
-The historical V1 experiment revealed a safety failure shared across planners: collisions occurred in \texttt{following\_lateral\_offset} and \texttt{overtake}, and the candidate lattice experienced substantial no-feasible-candidate periods. The original candidate speed offsets $(-2,0,+2)$ m/s did not always represent the physically available braking envelope. A shared maximum-braking candidate has therefore been introduced identically for P0--P4.
+The historical V1 experiment revealed a shared safety failure: collisions occurred in \texttt{following\_lateral\_offset} and \texttt{overtake}, and the candidate lattice experienced substantial no-feasible-candidate periods. V1 also cannot serve as the final frozen confirmatory record because the executed artifact did not originally contain the predeclared \texttt{min\_snr\_db} endpoint.
 
-Crucially, V1 is not relabeled as successful confirmation. Development seeds 3000--3019 are reserved for safety remediation. Only if that gate passes may fresh confirmatory seeds 4000--4049 be evaluated. A separate fresh directional-geometry ablation uses seeds 5000--5019. This separation prevents post-failure tuning on confirmatory seeds.
+V2 introduced straight maximum-physical-braking candidates identically for P0--P4 and reserved seeds 3000--3019 for development only. This intervention substantially improved safety but the development gate still failed. In \texttt{lane\_choice}, every planner retained 25 no-candidate steps because the straight braking trajectory remained inside the static-obstacle exclusion envelope. In \texttt{overtake}, P1 retained collision rate 1.0 and P2 0.05, showing that feasibility against the constant-velocity mean prediction was not sufficient to guarantee the 2.0 m realized collision threshold. Because the V2 gate failed, confirmatory seeds 4000--4049 and fresh geometry seeds 5000--5019 were automatically skipped.
 
-The V2 hard gate requires zero collision episodes, zero episodes containing no-candidate steps, exact capture of all five frozen communication endpoints, exactly 50 fresh confirmatory seeds, seed-level aggregation across repeated scenarios, and Holm correction within each five-endpoint planner-comparison family.
+V3 preserves that negative result and starts from new development seeds 6000--6019. Its structural safety envelope combines maximum physical braking with every predeclared lateral offset, allowing braking plus lateral evasion without changing acceleration limits. Separately, V3 distinguishes the physical collision distance $d_{\mathrm{col}}=2.0$ m from a planning-only prediction margin $m_s$:
+\begin{equation}
+d_{\mathrm{plan}} = d_{\mathrm{col}} + m_s.
+\end{equation}
+The predeclared development candidates are $m_s\in\{0,0.5,1.0,1.5,2.0,2.5,3.0\}$ m. The frozen selection rule is to choose the minimum candidate margin achieving zero collision episodes and zero episodes with no-candidate steps across every scenario and planner. If no margin passes, confirmation remains blocked. The physical collision definition is never relaxed.
+
+Only after that selector passes may fresh V3 confirmatory seeds 7000--7049 and fresh geometry seeds 8000--8019 run. The exact five communication endpoints and seed-level bootstrap/Wilcoxon/Holm analysis remain unchanged.
 
 \section{Historical V1 Evidence: Exploratory Only}
 The completed V1 50-seed run provides strong model-based exploratory communication effects but cannot support safe-autonomous-motion claims because of the safety failure and endpoint-schema mismatch.
@@ -86,7 +92,7 @@ These effects indicate that predictive connectivity scoring avoids the degradati
 \section{Directional-Geometry Mechanism Ablation}
 A historical paired directional-versus-distance-only ablation indicates that the P2--P1 benefit is concentrated in the directional model. In the directional case, P2--P1 effects are approximately $-0.01657$ outage, $+1.544$ dB mean SNR, $-0.00825$ modeled BER, and $+8.254$ Mbit/s modeled goodput. The distance-only variant shows negligible outage change and a small SNR decrease. The directional-minus-distance-only interaction is therefore large and consistently signed.
 
-This is mechanism evidence inside the analytical simulator. It is not physical validation of an optical headlamp channel.
+This is mechanism evidence inside the analytical simulator. It is not physical validation of an optical headlamp channel. Because V3 changes the feasible trajectory family, the mechanism ablation must be repeated on fresh seeds after the V3 safety formulation is selected.
 
 \section{Parameter Provenance and Interpretation}
 The source paper reports a carrier frequency of approximately 193.4 THz, corresponding to a wavelength near 1550 nm, while the headlamp context is also described using ``blue laser'' terminology. The repository does not silently resolve this inconsistency. The reported frequency is treated as a source-paper simulation parameter only. No claims about visible-blue photometry, eye safety, detector responsivity, or atmospheric propagation are inferred from it.
@@ -95,23 +101,23 @@ The source paper reports a carrier frequency of approximately 193.4 THz, corresp
 Communication-aware motion planning predates this work \cite{ghaffarkhah2011}. QoS-aware autonomous-vehicle trajectory planning and modern radio-map-aware planning also exist \cite{ullah2025,gordon2026}. The contribution is therefore not generic communication-aware navigation. The defensible novelty is a PC-FMCW-specific perception-to-action integration that couples target tracking and future relative geometry to a directional analytical communication model and evaluates predictive-versus-reactive motion under explicit safety and mechanism audits.
 
 \section{Pending Confirmatory Analysis}
-The final Paper 1 Results section is intentionally gated. It will be populated only after:
+The final Paper 1 Results section remains intentionally gated. It will be populated only after:
 \begin{enumerate}
-\item the development-only safety study passes;
-\item the frozen V2 protocol remains unchanged;
-\item seeds 4000--4049 complete;
-\item the hard safety gate passes;
-\item all five communication endpoints are present;
+\item the V3 development-only selector passes its predeclared zero-collision/zero-no-candidate rule;
+\item the selected planning margin and structural safety envelope remain unchanged;
+\item fresh seeds 7000--7049 complete;
+\item the fresh hard safety gate passes;
+\item all five frozen communication endpoints are present;
 \item seed-level bootstrap/Wilcoxon/Holm inference completes; and
-\item the fresh directional-versus-distance-only ablation completes.
+\item the fresh seeds 8000--8019 directional-versus-distance-only ablation completes.
 \end{enumerate}
-Until then, this manuscript must not present V1 as confirmatory robotics evidence.
+Until then, neither V1 nor failed V2 development evidence is presented as confirmatory robotics evidence.
 
 \section{Limitations}
-The optical/connectivity branch is model-based and is not calibrated against measured PC-FMCW optical communication hardware. V1 did not establish safe autonomous behavior. The candidate set, target-motion model, and analytical link model limit external validity. P4 is a simulator oracle, not a realizable controller. Any final claim must remain within the tested scenarios and frozen protocol.
+The optical/connectivity branch is model-based and is not calibrated against measured PC-FMCW optical communication hardware. V1 and V2 did not establish the final safety-gated autonomous result. The candidate set, target-motion model, and analytical link model limit external validity. P4 is a simulator oracle, not a realizable controller. Any final claim must remain within the tested scenarios and frozen protocol.
 
 \section{Conclusion}
-This work extends a PC-FMCW ISCAI concept into a predictive autonomous motion layer. Historical V1 evidence strongly suggests that future link prediction can prevent the modeled communication degradation produced by a reactive planner, and mechanism ablation ties that effect to directional geometry. However, scientific closure depends on a fresh post-remediation safety-gated V2 experiment. The paper therefore separates promising model-based mechanism evidence from final confirmatory robotics claims rather than conflating them.
+This work extends a PC-FMCW ISCAI concept into a predictive autonomous motion layer. Historical V1 evidence strongly suggests that future link prediction can prevent the modeled communication degradation produced by a reactive planner, and mechanism ablation ties that effect to directional geometry. Yet the safety audits demonstrate why a communication benefit cannot be promoted to an autonomous-driving claim without a separate motion-safety gate. V2 correctly failed that gate; V3 now uses a fresh development-selection protocol and completely fresh confirmation range. The paper therefore separates promising model-based mechanism evidence from final confirmatory robotics claims rather than conflating them.
 
 \begin{thebibliography}{4}
 \bibitem{liu2026}
