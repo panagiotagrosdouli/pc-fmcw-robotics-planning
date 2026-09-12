@@ -56,3 +56,12 @@ def test_support_conditional_conformal_uses_distance_bins():
     y=np.r_[np.zeros(120),np.ones(120)*10]; p=np.zeros(240); d=np.r_[np.zeros(120)+.5,np.zeros(120)+8]
     c=SupportConditionalConformalCalibrator(alpha=.1,min_bin_samples=50).fit(y,p,d)
     r=c.radii([.5,8.0]); assert r[1] > r[0]
+
+def test_conditioned_spatial_map_separates_known_network_contexts():
+    from iscai.connectivity.real_v2x.predictors import ConditionedSpatialKNNPredictor
+    a=_df("a"); b=_df("b");
+    for d,net,delay in [(a,"n8",10.0),(b,"n78",40.0)]:
+        d["network"]=net; d["direction"]="w2s"; d["nominal_speed_kmh"]=30.0; d["delay_ms"]=delay
+    train=pd.concat([a,b],ignore_index=True); m=ConditionedSpatialKNNPredictor("delay_ms",n_neighbors=3,min_group_samples=5).fit(train)
+    q=train.iloc[[0,20]].copy(); pred=m.predict(q)
+    assert pred[0] < 15 and pred[1] > 35
