@@ -38,11 +38,12 @@ def generate_candidates(
 ) -> list[CandidateTrajectory]:
     """Generate dynamically consistent candidates in the ego-heading frame.
 
-    A quintic lateral profile supplies an analytic desired lateral acceleration.
-    At each control instant that acceleration is converted to steering using the
-    contemporaneous longitudinal speed, then propagated once through the
-    kinematic bicycle model. Candidate geometry therefore remains consistent
-    with the controls that are actually executed.
+    The nominal lattice combines lateral quintics with speed targets.  A small
+    straight-line emergency-braking family is appended at every horizon.  This
+    is a safety-envelope candidate, not a communication-specific action: it
+    guarantees that the planner can consider physically available braking down
+    to zero speed instead of being limited by the nominal ``-2 m/s`` speed
+    offset.  Hard road/obstacle/dynamic-target filters still decide feasibility.
     """
     params = params or VehicleParams()
     state = np.asarray(state, dtype=float)
@@ -71,4 +72,13 @@ def generate_candidates(
                 candidates.append(
                     CandidateTrajectory(states, controls, horizon, lateral_offset, target_speed)
                 )
+
+    # Safety fallback family: maximum straight-line braking over each horizon.
+    # Deduplicate only against an exactly equivalent nominal target-speed action.
+    for horizon in horizons:
+        steps = max(2, int(round(horizon / params.dt)))
+        controls = np.zeros((steps, 2), dtype=float)
+        controls[:, 0] = params.min_accel
+        states = rollout(state, controls, params)
+        candidates.append(CandidateTrajectory(states, controls, horizon, 0.0, 0.0))
     return candidates

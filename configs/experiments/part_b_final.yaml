@@ -1,12 +1,18 @@
-protocol_version: part-b-final-v1
+protocol_version: part-b-final-v2
 study: predictive_connectivity_aware_receding_horizon_planning
 claim_boundary: "Controlled PC-FMCW-informed analytical simulation; not measured optical performance and not real-world autonomous-driving validation."
 
+protocol_history:
+  invalidated_v1_seed_range: [1000, 1049]
+  invalidation_reason: "Safety gate failed in two scenario families and min_snr_db was absent from the recorded episode schema. V1 remains diagnostic/exploratory evidence only."
+  safety_development_seed_range: [3000, 3019]
+  safety_development_use: "Development only; used solely to test the planner safety envelope before V2 confirmation."
+
 confirmatory:
-  seed_start: 1000
+  seed_start: 4000
   seeds: 50
   bootstrap_samples: 100000
-  bootstrap_rng_seed: 20260907
+  bootstrap_rng_seed: 20260912
   planners: [P0, P1, P2, P3, P4]
   primary_comparisons:
     - [P1, P2]
@@ -27,6 +33,7 @@ confirmatory:
     - min_realized_ttc_s
     - no_candidate_rate
   multiplicity_family: "Within each confirmatory planner comparison across the five primary communication metrics. Robotics/safety outcomes are separate gate/diagnostic families."
+  hard_gate: "Zero collision episodes and zero episodes with no-candidate steps across every scenario/planner before communication inference is accepted."
 
 simulation:
   dt_s: 0.1
@@ -37,6 +44,7 @@ simulation:
   connectivity_weight: 1.0
   p3_mc_samples: 32
   collision_distance_m: 2.0
+  safety_envelope: "Nominal lateral/speed lattice plus straight-line maximum-braking candidates; identical for P0-P4."
 
 link:
   upstream_reference_context: "PanagiotaGr/ISCAI_pc_fmcw"

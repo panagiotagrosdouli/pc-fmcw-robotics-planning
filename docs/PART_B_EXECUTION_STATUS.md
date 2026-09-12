@@ -1,63 +1,42 @@
 # Part B Execution Status
 
-## Current status
+## Current status: V1 audited; V2 safety-remediation protocol launched
 
-The repository already implements the proposed Predictive Connectivity-Aware Receding-Horizon Motion Planning study and has prior verified 20-seed baseline evidence. The new `part-b-final-v1` protocol is now frozen for a larger confirmatory run, but that final large-seed run has **not yet been executed** from the current commit.
+GitHub Actions run `34709571593` completed all five V1 shards (seeds 1000–1049), aggregation, seed-level analysis, diagnostics, and the directional-vs-distance-only mechanism ablation. V1 remains permanently classified as exploratory/diagnostic because (i) `min_snr_db` was not captured by the executed episode schema and (ii) the intended robotics safety gate failed in two scenario families.
 
-## What is already supported by checked-in evidence
+The repository now contains a remediation that is deliberately separated from the V1 confirmatory data.
 
-The existing verified 20-seed baseline reports a statistically supported P2-versus-P1 improvement in modeled connectivity under the controlled simulation, while collision rate is identical across planners in that baseline. P3-versus-P2 and P4-versus-P2 differences were small and not Holm-significant in that prior run. These are historical verified baseline results, not the new final-v1 confirmatory release.
+## V1 evidence retained
 
-## What changed in the current completion pass
+The captured 50-seed model-based communication outcomes strongly favor P2 over P1: mean outage effect about -0.01738, mean SNR +1.596 dB, modeled BER -0.00834, and modeled goodput +8.337 Mbit/s. These are controlled simulation effects only. V1 cannot support a safe-autonomous-motion claim.
 
-1. Added an explicit Part B completion/publication gate document.
-2. Added directional paired win/tie/loss fractions to the research statistical analysis alongside bootstrap CIs, Wilcoxon, Holm, Cohen dz and rank-biserial effect size.
-3. Added regression coverage for the new directional fractions.
-4. Frozen `configs/experiments/part_b_final.yaml` with a fresh 50-seed confirmatory range, 100,000 paired-bootstrap samples, predeclared comparisons, metrics, robustness dimensions and claim boundary.
+The 20-seed mechanism ablation also showed that the P2-P1 effect is concentrated in the modeled directional geometry term rather than the distance-only variant. This is a mechanism result inside the analytical simulator, not physical optical validation.
 
-## Final-v1 confirmatory run
+## Root-cause finding and remediation
 
-Frozen seed range: `1000..1049`.
+The nominal candidate lattice previously allowed only speed offsets `(-2, 0, +2) m/s`. In closing/following scenarios that can be insufficient to represent physically available emergency deceleration, so the hard dynamic-target filter can exhaust the lattice and the receding-horizon controller can continue into a realized collision.
 
-Primary comparisons:
+The candidate generator now appends straight-line maximum-braking trajectories at every planning horizon. This is a shared safety-envelope action available identically to P0-P4; it is not communication-specific and therefore does not preferentially encode the desired P2 result. Existing road, static-obstacle, speed, and dynamic-target hard filters still decide whether each braking trajectory is feasible.
 
-- P2 vs P1
-- P3 vs P2
-- P4 vs P2
+## Anti-overfitting execution design
 
-Primary communication outcomes:
+The remediation is tested first on development-only seeds `3000..3019`. These seeds may be used to accept or reject the safety-envelope change, but their communication outcomes are not confirmatory evidence.
 
-- modeled outage
-- mean modeled SNR
-- minimum modeled SNR
-- modeled BER
-- modeled goodput
+Only if the development safety gate passes does CI unlock a fresh V2 confirmatory range `4000..4049`. V2 therefore does not reuse V1 seeds after observing V1 failures. The directional mechanism ablation is also rerun on a fresh range `5000..5019` after the development gate.
 
-Safety/mobility gate outcomes:
+## V2 hard gates
 
-- progress
-- path length
-- target clearance
-- static-obstacle clearance
-- collision indicator
-- realized TTC
-- no-candidate rate
+Before confirmatory communication inference is accepted, CI requires:
 
-## Important execution limitation
+- zero collision episodes across every scenario and planner;
+- zero episodes containing a no-candidate step;
+- exact capture of all five predeclared communication endpoints, including `min_snr_db`;
+- exactly 50 fresh confirmatory seeds, 4000 through 4049;
+- seed-level inference after averaging repeated scenario effects within each independent seed;
+- Holm correction within each planner comparison across the five communication endpoints.
 
-No numerical result may be quoted for `part-b-final-v1` until the frozen 50-seed run and its robustness/ablation matrix have completed and the artifact bundle has been inspected. Existing 20-seed numbers remain historical baseline evidence only.
+If the development safety study fails, the V2 confirmatory shards are skipped. If the fresh confirmatory safety gate fails, the statistical analysis is not accepted as confirmatory robotics evidence.
 
-## Completion gate
+## Claim boundary
 
-Part B is publication-ready only after all of the following exist from one frozen commit:
-
-- final 50-seed P0-P4 raw episode rows;
-- exact paired cardinality audit;
-- paired statistics with CIs/tests/effect sizes/win fractions;
-- scenario-level safety/feasibility diagnostics;
-- robustness and ablation aggregates;
-- safety-connectivity trade-off figures;
-- provenance manifest and environment lock;
-- final tables/figures generated from artifacts;
-- artifact-derived manuscript/report;
-- final ten-point audit requested in the research brief.
+Until V2 passes all gates, Paper 1 may report V1 only as exploratory/model-based communication evidence and may report the directional-geometry mechanism result with its explicit simulation boundary. No measured optical-performance claim or real-world autonomous-driving validation is supported.

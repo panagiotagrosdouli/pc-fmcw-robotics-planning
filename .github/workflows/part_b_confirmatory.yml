@@ -1,9 +1,13 @@
+# Development safety remediation first; confirmatory seeds remain quarantined until it passes.
 name: Part B frozen confirmatory
 
 on:
   pull_request:
     paths:
       - 'configs/experiments/part_b_final.yaml'
+      - 'src/iscai/planning/trajectory.py'
+      - 'src/iscai/planning/feasibility.py'
+      - 'scripts/run_pc_fmcw_safety_development.py'
       - 'scripts/run_pc_fmcw_robotics_benchmark.py'
       - 'scripts/analyze_pc_fmcw_benchmark.py'
       - 'scripts/analyze_pc_fmcw_confirmatory_seedlevel.py'
@@ -14,35 +18,41 @@ on:
   workflow_dispatch:
 
 jobs:
+  safety-development:
+    name: development-only safety gate (seeds 3000-3019)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11', cache: pip}
+      - name: Install dependencies
+        run: python -m pip install numpy scipy pandas scikit-learn
+      - name: Run development-only safety study
+        run: python scripts/run_pc_fmcw_safety_development.py --seed-start 3000 --seeds 20 --output-dir results/pc_fmcw_safety_development
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: pc-fmcw-safety-development, path: results/pc_fmcw_safety_development/, retention-days: 90}
+
   frozen-confirmatory-shard:
     name: confirmatory seeds ${{ matrix.seed_start }}-${{ matrix.seed_end }}
+    needs: safety-development
+    if: ${{ needs.safety-development.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
         include:
-          - seed_start: 1000
-            seed_end: 1009
-            seeds: 10
-          - seed_start: 1010
-            seed_end: 1019
-            seeds: 10
-          - seed_start: 1020
-            seed_end: 1029
-            seeds: 10
-          - seed_start: 1030
-            seed_end: 1039
-            seeds: 10
-          - seed_start: 1040
-            seed_end: 1049
-            seeds: 10
+          - {seed_start: 4000, seed_end: 4009, seeds: 10}
+          - {seed_start: 4010, seed_end: 4019, seeds: 10}
+          - {seed_start: 4020, seed_end: 4029, seeds: 10}
+          - {seed_start: 4030, seed_end: 4039, seeds: 10}
+          - {seed_start: 4040, seed_end: 4049, seeds: 10}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: pip
+        with: {python-version: '3.11', cache: pip}
       - name: Install dependencies
         run: python -m pip install numpy scipy matplotlib pandas pyyaml scikit-learn h5py huggingface_hub
       - name: Record shard provenance
@@ -53,13 +63,11 @@ jobs:
       - name: Run 10-seed P0-P4 shard
         run: |
           python scripts/run_pc_fmcw_robotics_benchmark.py \
-            --seed-start ${{ matrix.seed_start }} \
-            --seeds ${{ matrix.seeds }} \
+            --seed-start ${{ matrix.seed_start }} --seeds ${{ matrix.seeds }} \
             --dt 0.1 --history 8 --horizon 20 \
             --observation-sigma-m 0.20 --prediction-sigma-m 0.75 \
             --connectivity-weight 1.0 --mc-samples 32 \
-            --collision-distance-m 2.0 \
-            --output-dir results/part_b_shard
+            --collision-distance-m 2.0 --output-dir results/part_b_shard
       - uses: actions/upload-artifact@v4
         with:
           name: part-b-shard-${{ matrix.seed_start }}-${{ matrix.seed_end }}
@@ -67,43 +75,47 @@ jobs:
           retention-days: 90
 
   frozen-confirmatory-aggregate:
-    name: aggregate 50-seed confirmatory evidence
+    name: aggregate fresh 50-seed confirmatory evidence
     needs: frozen-confirmatory-shard
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: pip
+        with: {python-version: '3.11', cache: pip}
       - name: Install analysis dependencies
         run: python -m pip install numpy scipy matplotlib pandas pyyaml scikit-learn
       - uses: actions/download-artifact@v4
-        with:
-          pattern: part-b-shard-*
-          path: results/shards
-      - name: Aggregate episodes and provenance
+        with: {pattern: 'part-b-shard-*', path: results/shards}
+      - name: Aggregate episodes and verify fresh frozen seeds
         run: |
           mkdir -p results/part_b_final
           python - <<'PY'
           from pathlib import Path
           import pandas as pd
           files = sorted(Path('results/shards').glob('*/episodes.csv'))
-          if len(files) != 5:
-              raise SystemExit(f'Expected 5 shard episode files, found {len(files)}')
-          frames = [pd.read_csv(p) for p in files]
-          out = pd.concat(frames, ignore_index=True)
-          out.to_csv('results/part_b_final/episodes.csv', index=False)
+          if len(files) != 5: raise SystemExit(f'Expected 5 shard files, found {len(files)}')
+          out = pd.concat([pd.read_csv(p) for p in files], ignore_index=True)
           seeds = sorted(out['seed'].unique().tolist())
-          if seeds != list(range(1000, 1050)):
-              raise SystemExit(f'Frozen seed set mismatch: {seeds}')
+          if seeds != list(range(4000,4050)): raise SystemExit(f'Fresh frozen seed set mismatch: {seeds}')
+          out.to_csv('results/part_b_final/episodes.csv', index=False)
           print(f'Aggregated {len(out)} rows across {len(seeds)} seeds')
           PY
           git rev-parse HEAD > results/part_b_final/commit_sha.txt
           python --version > results/part_b_final/python_version.txt
           python -m pip freeze > results/part_b_final/pip_freeze.txt
           cp configs/experiments/part_b_final.yaml results/part_b_final/protocol.yaml
+      - name: Hard safety gate
+        run: |
+          python - <<'PY'
+          import pandas as pd
+          df=pd.read_csv('results/part_b_final/episodes.csv')
+          collisions=int(df['collision_indicator'].sum())
+          no_candidate=int((df['no_candidate_steps']>0).sum())
+          print(f'collisions={collisions}; episodes_with_no_candidate={no_candidate}')
+          if collisions or no_candidate:
+              raise SystemExit('HARD SAFETY GATE FAILED')
+          PY
       - name: Run legacy scenario-level diagnostics
         run: python scripts/analyze_pc_fmcw_benchmark.py --input results/part_b_final/episodes.csv --output-dir results/part_b_final --bootstrap-samples 10000
       - name: Run predeclared seed-level confirmatory inference
@@ -111,28 +123,22 @@ jobs:
       - name: Run safety and feasibility diagnostics
         run: python scripts/diagnose_pc_fmcw_benchmark.py --input results/part_b_final/episodes.csv --output-dir results/part_b_final/diagnostics
       - uses: actions/upload-artifact@v4
-        with:
-          name: part-b-final-v1-confirmatory-sharded
-          path: results/part_b_final/
-          retention-days: 90
+        with: {name: part-b-final-v2-confirmatory-sharded, path: results/part_b_final/, retention-days: 90}
 
   optical-geometry-mechanism:
+    needs: safety-development
+    if: ${{ needs.safety-development.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: pip
+        with: {python-version: '3.11', cache: pip}
       - name: Install dependencies
         run: python -m pip install numpy scipy pandas scikit-learn
       - name: Run paired directional-vs-distance-only mechanism ablation
         run: |
-          python scripts/run_pc_fmcw_geometry_ablation.py --seed-start 2000 --seeds 20 --mc-samples 32 --output-dir results/pc_fmcw_geometry_ablation
+          python scripts/run_pc_fmcw_geometry_ablation.py --seed-start 5000 --seeds 20 --mc-samples 32 --output-dir results/pc_fmcw_geometry_ablation
           python scripts/analyze_pc_fmcw_geometry_ablation.py --input results/pc_fmcw_geometry_ablation/episodes.csv --output-dir results/pc_fmcw_geometry_ablation --bootstrap 10000
       - uses: actions/upload-artifact@v4
-        with:
-          name: pc-fmcw-geometry-ablation
-          path: results/pc_fmcw_geometry_ablation/
-          retention-days: 90
+        with: {name: pc-fmcw-geometry-ablation-v2, path: results/pc_fmcw_geometry_ablation/, retention-days: 90}
