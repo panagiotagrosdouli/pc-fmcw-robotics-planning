@@ -24,20 +24,30 @@ The original uncertainty hypothesis expected near-nominal split-conformal covera
 
 **H2-R:** empirical support distance and grouped distribution shift reveal when nominal marginal uncertainty guarantees are unreliable; support should therefore be exposed to the planner rather than hidden inside a single confidence interval.
 
-The decision hypothesis remains prospective until the measured replay result is complete:
+The completed route-constrained replay resolves the decision hypothesis:
 
-**H3:** support-aware predictive decisions reduce measured high-delay exposure relative to reactive persistence at a measurable mobility cost without relying on unmeasured counterfactual ground truth.
+**H3-R:** predictive P2 reduces mean measured delay relative to reactive P1 on the primary held-out replay, while support-aware P3 trades additional mobility deviation for significantly lower unsupported decision exposure rather than additional QoS gain.
+
+Across 9 held-out runs, P2-P1 mean measured delay is **-0.792 ms** with 95% paired bootstrap CI **[-1.723, -0.138] ms** and paired Wilcoxon **p=0.0469**. The delay-threshold violation-fraction change is -0.00279 with p=0.0625, so a statistically significant reduction in violation fraction is **not** claimed from this split alone.
+
+P3 does not improve measured delay over P2: P3-P2 is +0.073 ms (p=0.742), and the threshold-violation fraction changes by +0.00034 (p=0.50). However, P3 reduces the selected unsupported fraction relative to P2 by **0.01836 absolute** with 95% bootstrap CI **[-0.03214, -0.00603]** and paired Wilcoxon **p=0.03125**, while adding mobility deviation of +0.01052 (p=0.0078). This is therefore an inference-validity/support trade-off, not a QoS-superiority result.
 
 ## Primary endpoints
 1. Run-level predictive MAE relative to persistence at each horizon.
-2. Run-level measured delay-violation fraction selected by P0/P1/P2/P3 in route-constrained held-out replay.
+2. Run-level mean measured delay and measured delay-violation fraction selected by P0/P1/P2/P3 in route-constrained held-out replay.
 3. Fraction of selected decisions outside configured empirical support.
 
 ## Secondary endpoints
-RMSE, interval coverage/width, support-stratified error, measured delay, selected-horizon/mobility deviation, SINR diagnostics, decision compute time and failure cases.
+RMSE, interval coverage/width, support-stratified error, selected-horizon/mobility deviation, changed-decision fraction, SINR diagnostics, decision compute time and failure cases.
+
+## Computational result
+The replay implementation measured approximately **8.63 ms mean** and **8.85 ms p95** decision computation on the hosted CI runner. This supports only an implementation-level computational-practicality statement. It is not end-to-end embedded or vehicle real-time validation.
 
 ## Relationship to PC-FMCW
 The existing PC-FMCW branch remains the technology-specific model-based optical experiment. The measured CICV5G branch tests the general decision-layer principle under real communication traces. No 5G measurement is relabeled as PC-FMCW, and no real-data result is presented as optical-channel validation.
 
+## Final claim boundary
+Measured communication samples are real 5G V2N2V field data. Planning remains offline and route-constrained; future measured QoS is revealed only as an outcome after action selection. The results do not validate arbitrary off-route counterfactuals, PC-FMCW optical hardware, vehicle safety, or real-road closed-loop autonomous-driving operation.
+
 ## Falsification discipline
-If the replay shows that P2 or P3 do not improve measured outcomes over P1, that is the reported result. If P3 adds only conservatism without QoS benefit, uncertainty-aware planning will not be claimed as superior. If strict support gating prevents meaningful alternatives, the conclusion will be that this dataset is insufficient for that claim rather than manufacturing unsupported trajectories.
+The final interpretation retains the negative results: generic learned predictors do not beat persistence at one-step prediction, nominal conformal coverage is not uniformly reliable under grouped shift, and P3 is not superior to P2 on QoS. Those failures are part of the contribution because they motivate and delimit the measurement-support-aware formulation.
