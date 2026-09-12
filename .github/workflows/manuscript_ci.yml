@@ -22,7 +22,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends texlive-latex-base texlive-latex-extra texlive-fonts-recommended texlive-publishers
           python -m pip install --upgrade pip
-          python -m pip install pandas matplotlib
+          python -m pip install pandas matplotlib jinja2
       - name: Regenerate Paper 2 publication assets when snapshot exists
         run: |
           if [ -f manuscripts/paper2_real_v2x/results_archive/predictor_metrics.csv ]; then
