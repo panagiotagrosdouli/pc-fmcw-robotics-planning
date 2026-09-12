@@ -1,0 +1,194 @@
+name: Part B V3 safety-selected confirmatory
+
+on:
+  pull_request:
+    paths:
+      - 'src/iscai/planning/trajectory.py'
+      - 'src/iscai/simulation/pc_fmcw_benchmark.py'
+      - 'scripts/run_pc_fmcw_robotics_benchmark.py'
+      - 'scripts/run_pc_fmcw_geometry_ablation.py'
+      - 'configs/experiments/part_b_final_v3.yaml'
+      - '.github/workflows/part_b_v3.yml'
+  workflow_dispatch:
+
+jobs:
+  development-margin-sweep:
+    name: V3 development margin ${{ matrix.margin }} m
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        margin: ['0.0','0.5','1.0','1.5','2.0','2.5','3.0']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11', cache: pip}
+      - name: Install dependencies
+        run: python -m pip install numpy scipy pandas scikit-learn
+      - name: Run development-only structural safety study
+        run: |
+          python scripts/run_pc_fmcw_robotics_benchmark.py \
+            --seed-start 6000 --seeds 20 \
+            --dt 0.1 --history 8 --horizon 20 \
+            --observation-sigma-m 0.20 --prediction-sigma-m 0.75 \
+            --connectivity-weight 1.0 --mc-samples 32 \
+            --collision-distance-m 2.0 \
+            --planning-safety-margin-m ${{ matrix.margin }} \
+            --output-dir results/v3_margin_${{ matrix.margin }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v3-development-margin-${{ matrix.margin }}
+          path: results/v3_margin_${{ matrix.margin }}/
+          retention-days: 90
+
+  select-development-margin:
+    name: select minimum V3 development margin passing hard gate
+    needs: development-margin-sweep
+    if: ${{ always() && needs.development-margin-sweep.result == 'success' }}
+    runs-on: ubuntu-latest
+    outputs:
+      selected_margin: ${{ steps.select.outputs.margin }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with: {pattern: 'v3-development-margin-*', path: results/v3_sweep}
+      - id: select
+        name: Apply predeclared minimum-passing-margin rule
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import os, pandas as pd
+          candidates=[]
+          rows=[]
+          for p in sorted(Path('results/v3_sweep').glob('v3-development-margin-*/episodes.csv')):
+              df=pd.read_csv(p)
+              margin=float(df['planning_safety_margin_m'].iloc[0])
+              collisions=int(df['collision_indicator'].sum())
+              no_candidate=int((df['no_candidate_steps']>0).sum())
+              rows.append((margin,collisions,no_candidate))
+              if collisions==0 and no_candidate==0:
+                  candidates.append(margin)
+          print('margin,collisions,episodes_with_no_candidate')
+          for row in sorted(rows): print(*row, sep=',')
+          if not candidates:
+              raise SystemExit('No predeclared development margin passed the hard gate')
+          selected=min(candidates)
+          print(f'SELECTED DEVELOPMENT MARGIN={selected:.1f} m')
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:
+              f.write(f'margin={selected:.1f}\n')
+          PY
+
+  confirmatory-shard:
+    name: V3 confirmatory seeds ${{ matrix.seed_start }}-${{ matrix.seed_end }}
+    needs: select-development-margin
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {seed_start: 7000, seed_end: 7009, seeds: 10}
+          - {seed_start: 7010, seed_end: 7019, seeds: 10}
+          - {seed_start: 7020, seed_end: 7029, seeds: 10}
+          - {seed_start: 7030, seed_end: 7039, seeds: 10}
+          - {seed_start: 7040, seed_end: 7049, seeds: 10}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11', cache: pip}
+      - name: Install dependencies
+        run: python -m pip install numpy scipy matplotlib pandas pyyaml scikit-learn h5py huggingface_hub
+      - name: Run fresh V3 shard
+        run: |
+          python scripts/run_pc_fmcw_robotics_benchmark.py \
+            --seed-start ${{ matrix.seed_start }} --seeds ${{ matrix.seeds }} \
+            --dt 0.1 --history 8 --horizon 20 \
+            --observation-sigma-m 0.20 --prediction-sigma-m 0.75 \
+            --connectivity-weight 1.0 --mc-samples 32 \
+            --collision-distance-m 2.0 \
+            --planning-safety-margin-m ${{ needs.select-development-margin.outputs.selected_margin }} \
+            --output-dir results/part_b_v3_shard
+          git rev-parse HEAD > results/part_b_v3_shard/commit_sha.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: part-b-v3-shard-${{ matrix.seed_start }}-${{ matrix.seed_end }}
+          path: results/part_b_v3_shard/
+          retention-days: 90
+
+  confirmatory-aggregate:
+    name: V3 aggregate fresh 50-seed evidence
+    needs: [select-development-margin, confirmatory-shard]
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11', cache: pip}
+      - name: Install analysis dependencies
+        run: python -m pip install numpy scipy matplotlib pandas pyyaml scikit-learn
+      - uses: actions/download-artifact@v4
+        with: {pattern: 'part-b-v3-shard-*', path: results/shards}
+      - name: Aggregate and verify quarantined V3 protocol
+        run: |
+          mkdir -p results/part_b_final_v3
+          python - <<'PY'
+          from pathlib import Path
+          import pandas as pd
+          files=sorted(Path('results/shards').glob('*/episodes.csv'))
+          if len(files)!=5: raise SystemExit(f'Expected 5 shard files, found {len(files)}')
+          df=pd.concat([pd.read_csv(p) for p in files],ignore_index=True)
+          seeds=sorted(df.seed.unique().tolist())
+          if seeds!=list(range(7000,7050)): raise SystemExit(f'V3 seed mismatch: {seeds}')
+          margins=sorted(df.planning_safety_margin_m.unique().tolist())
+          if len(margins)!=1: raise SystemExit(f'V3 safety margin mismatch: {margins}')
+          df.to_csv('results/part_b_final_v3/episodes.csv',index=False)
+          print(f'rows={len(df)} seeds={len(seeds)} selected_margin={margins[0]}')
+          PY
+          git rev-parse HEAD > results/part_b_final_v3/commit_sha.txt
+          python --version > results/part_b_final_v3/python_version.txt
+          python -m pip freeze > results/part_b_final_v3/pip_freeze.txt
+          cp configs/experiments/part_b_final_v3.yaml results/part_b_final_v3/protocol.yaml
+      - name: Hard safety gate before communication inference
+        run: |
+          python - <<'PY'
+          import pandas as pd
+          df=pd.read_csv('results/part_b_final_v3/episodes.csv')
+          collisions=int(df.collision_indicator.sum())
+          no_candidate=int((df.no_candidate_steps>0).sum())
+          print(f'collisions={collisions}; episodes_with_no_candidate={no_candidate}')
+          if collisions or no_candidate: raise SystemExit('V3 HARD SAFETY GATE FAILED')
+          required={'mean_outage_probability','mean_snr_db','min_snr_db','mean_ber_model','mean_goodput_bps_model'}
+          missing=required-set(df.columns)
+          if missing: raise SystemExit(f'Missing frozen communication endpoints: {sorted(missing)}')
+          PY
+      - name: Seed-level confirmatory inference
+        run: python scripts/analyze_pc_fmcw_confirmatory_seedlevel.py --input results/part_b_final_v3/episodes.csv --output-dir results/part_b_final_v3 --bootstrap-samples 100000
+      - name: Safety diagnostics
+        run: python scripts/diagnose_pc_fmcw_benchmark.py --input results/part_b_final_v3/episodes.csv --output-dir results/part_b_final_v3/diagnostics
+      - uses: actions/upload-artifact@v4
+        with: {name: part-b-final-v3-confirmatory, path: results/part_b_final_v3/, retention-days: 90}
+
+  geometry-mechanism:
+    name: V3 fresh directional geometry mechanism
+    needs: select-development-margin
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11', cache: pip}
+      - name: Install dependencies
+        run: python -m pip install numpy scipy pandas scikit-learn
+      - name: Run fresh V3 geometry study
+        run: |
+          python scripts/run_pc_fmcw_geometry_ablation.py \
+            --seed-start 8000 --seeds 20 --mc-samples 32 \
+            --planning-safety-margin-m ${{ needs.select-development-margin.outputs.selected_margin }} \
+            --output-dir results/pc_fmcw_geometry_ablation_v3
+          python scripts/analyze_pc_fmcw_geometry_ablation.py \
+            --input results/pc_fmcw_geometry_ablation_v3/episodes.csv \
+            --output-dir results/pc_fmcw_geometry_ablation_v3 --bootstrap 10000
+      - uses: actions/upload-artifact@v4
+        with: {name: pc-fmcw-geometry-ablation-v3, path: results/pc_fmcw_geometry_ablation_v3/, retention-days: 90}
