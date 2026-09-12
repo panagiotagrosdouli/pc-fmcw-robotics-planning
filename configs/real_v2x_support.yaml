@@ -1,0 +1,24 @@
+dataset:
+  name: CICV5G
+  source: https://github.com/zxr805/CICV5G
+  subset: W2S
+  license: CC-BY-4.0
+split:
+  strategy: grouped_by_run
+  train_fraction: 0.60
+  calibration_fraction: 0.20
+prediction:
+  targets: [delay_ms, sinr_db]
+  models: [persistence, spatial_knn, extra_trees, random_forest]
+uncertainty:
+  method: split_conformal_absolute_residual
+  alpha: 0.10
+support:
+  radius_m: 15.0
+  min_neighbors: 5
+planning:
+  delay_threshold_ms: 50.0
+  modes: [P0, P1, P2, P3]
+claim_boundary: >-
+  Real V2N2V measurements train/evaluate QoS prediction; autonomous candidate
+  trajectories and planner decisions remain offline/counterfactual, not vehicle trials.
