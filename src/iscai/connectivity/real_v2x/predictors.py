@@ -41,15 +41,59 @@ class PersistencePredictor:
 class SpatialKNNPredictor:
     def __init__(self, target="delay_ms", n_neighbors=20, weights="distance"):
         self.target = target
-        self.model = KNeighborsRegressor(n_neighbors=n_neighbors, weights=weights)
+        self.n_neighbors = int(n_neighbors)
+        self.weights = weights
+        self.model = KNeighborsRegressor(n_neighbors=self.n_neighbors, weights=weights)
         self._origin = None
     def _xy(self, df):
         xy = df[["utm_x_m", "utm_y_m"]].to_numpy(float)
         if self._origin is None: self._origin = xy.mean(axis=0)
         return xy - self._origin
     def fit(self, df):
+        k = min(self.n_neighbors, len(df))
+        if k < 1: raise ValueError("empty training data")
+        if k != self.n_neighbors:
+            self.model = KNeighborsRegressor(n_neighbors=k, weights=self.weights)
         self.model.fit(self._xy(df), df[self.target].to_numpy(float)); return self
     def predict(self, df): return self.model.predict(self._xy(df))
+
+
+class ConditionedSpatialKNNPredictor:
+    """Spatial QoS map conditioned on known communication/motion context.
+
+    Separate maps are fitted for network band, travel direction and nominal speed.
+    Queries with an unseen/sparse condition fall back to the global spatial map.
+    This prevents physically different n8/n78 and direction/speed runs from being
+    averaged into a single map merely because they share coordinates.
+    """
+    def __init__(self, target="delay_ms", n_neighbors=20, min_group_samples=100,
+                 condition_cols=("network", "direction", "nominal_speed_kmh")):
+        self.target=target; self.n_neighbors=int(n_neighbors); self.min_group_samples=int(min_group_samples); self.condition_cols=tuple(condition_cols)
+        self.global_model=SpatialKNNPredictor(target,n_neighbors); self.models={}
+    def _key(self,row):
+        vals=[]
+        for c in self.condition_cols:
+            v=row[c]
+            vals.append(None if pd.isna(v) else v)
+        return tuple(vals)
+    def fit(self,df):
+        self.global_model.fit(df); self.models={}
+        for key,g in df.groupby(list(self.condition_cols),dropna=False):
+            if not isinstance(key,tuple): key=(key,)
+            key=tuple(None if pd.isna(v) else v for v in key)
+            if len(g)>=self.min_group_samples:
+                self.models[key]=SpatialKNNPredictor(self.target,self.n_neighbors).fit(g)
+        return self
+    def predict(self,df):
+        out=np.empty(len(df),float)
+        # Preserve original row order while dispatching each context to its map.
+        for key,idxs in df.groupby(list(self.condition_cols),dropna=False,sort=False).groups.items():
+            if not isinstance(key,tuple): key=(key,)
+            key=tuple(None if pd.isna(v) else v for v in key)
+            pos=np.asarray([df.index.get_loc(i) for i in idxs],int)
+            model=self.models.get(key,self.global_model)
+            out[pos]=model.predict(df.loc[idxs])
+        return out
 
 
 class TreeQoSPredictor:
