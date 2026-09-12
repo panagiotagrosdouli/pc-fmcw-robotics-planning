@@ -11,6 +11,7 @@ on:
       - 'scripts/analyze_real_v2x_multisplit.py'
       - 'scripts/run_real_v2x_replay_planning.py'
       - 'scripts/analyze_real_v2x_replay_planning.py'
+      - 'scripts/analyze_real_v2x_replay_multisplit.py'
       - 'tests/test_real_v2x.py'
       - '.github/workflows/real_v2x_research.yml'
   workflow_dispatch:
@@ -37,7 +38,7 @@ jobs:
         run: PYTHONPATH=src python scripts/run_real_v2x_horizon_study.py --data data/raw/cicv5g --output results/real_v2x_horizon
       - name: Analyze causal horizon-adaptive fusion study
         run: python scripts/analyze_real_v2x_horizon_study.py --input results/real_v2x_horizon --bootstrap 1000
-      - name: Run grouped multi-split robustness
+      - name: Run grouped multi-split prediction robustness
         run: |
           for seed in 0 1 2 3 4; do
             PYTHONPATH=src python scripts/run_real_v2x_horizon_study.py \
@@ -46,10 +47,24 @@ jobs:
               --seed ${seed}
           done
           python scripts/analyze_real_v2x_multisplit.py --root results/real_v2x_multisplit
-      - name: Run route-constrained measured-support replay planner
-        run: PYTHONPATH=src python scripts/run_real_v2x_replay_planning.py --data data/raw/cicv5g --output results/real_v2x_replay
-      - name: Analyze replay planner with paired run-level statistics
+      - name: Run primary route-constrained measured-support replay planner
+        run: PYTHONPATH=src python scripts/run_real_v2x_replay_planning.py --data data/raw/cicv5g --output results/real_v2x_replay --seed 0
+      - name: Analyze primary replay with multiplicity-corrected run-level statistics
         run: python scripts/analyze_real_v2x_replay_planning.py --input results/real_v2x_replay --bootstrap 2000
+      - name: Run grouped multi-split measured-support replay
+        run: |
+          for seed in 0 1 2 3 4; do
+            PYTHONPATH=src python scripts/run_real_v2x_replay_planning.py \
+              --data data/raw/cicv5g \
+              --output results/real_v2x_replay_multisplit/seed_${seed} \
+              --seed ${seed}
+            python scripts/analyze_real_v2x_replay_planning.py \
+              --input results/real_v2x_replay_multisplit/seed_${seed} \
+              --bootstrap 1000
+          done
+          python scripts/analyze_real_v2x_replay_multisplit.py \
+            --root results/real_v2x_replay_multisplit \
+            --bootstrap 5000
       - uses: actions/upload-artifact@v4
         with:
           name: real-v2x-research-study
@@ -58,3 +73,4 @@ jobs:
             results/real_v2x_horizon/
             results/real_v2x_multisplit/
             results/real_v2x_replay/
+            results/real_v2x_replay_multisplit/
