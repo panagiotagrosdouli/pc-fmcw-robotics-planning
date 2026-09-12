@@ -12,14 +12,20 @@ def make_features(df: pd.DataFrame) -> pd.DataFrame:
     x = df.copy()
     x["heading_sin"] = np.sin(x["heading_rad"].astype(float))
     x["heading_cos"] = np.cos(x["heading_rad"].astype(float))
-    if "run_id" in x:
-        x["sinr_lag1"] = x.groupby("run_id")["sinr_db"].shift(1)
-        x["delay_lag1"] = x.groupby("run_id")["delay_ms"].shift(1)
-    else:
-        x["sinr_lag1"] = x["sinr_db"].shift(1)
-        x["delay_lag1"] = x["delay_ms"].shift(1)
-    x["sinr_lag1"] = x["sinr_lag1"].fillna(x["sinr_db"])
-    x["delay_lag1"] = x["delay_lag1"].fillna(x["delay_ms"])
+    # For measured one-step evaluation, derive lag features causally from the prior
+    # sample. For counterfactual candidate trajectories, callers may explicitly
+    # supply lag context; never overwrite it with future measured QoS.
+    if "sinr_lag1" not in x or "delay_lag1" not in x:
+        if "run_id" in x:
+            sinr_lag = x.groupby("run_id")["sinr_db"].shift(1)
+            delay_lag = x.groupby("run_id")["delay_ms"].shift(1)
+        else:
+            sinr_lag = x["sinr_db"].shift(1)
+            delay_lag = x["delay_ms"].shift(1)
+        if "sinr_lag1" not in x:
+            x["sinr_lag1"] = sinr_lag.fillna(x["sinr_db"])
+        if "delay_lag1" not in x:
+            x["delay_lag1"] = delay_lag.fillna(x["delay_ms"])
     return x
 
 
