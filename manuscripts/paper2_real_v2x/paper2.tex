@@ -43,7 +43,7 @@ The gap pursued here is the validity of \emph{counterfactual planner queries to 
 
 \section{Data and Leakage-Controlled Design}
 \subsection{CICV5G measurements}
-CICV5G provides real 5G V2N2V delay measurements with synchronized network and vehicle context, including variables such as RSRP, SINR, cell identity, position, heading, velocity, and timestamps \cite{zhang2026}. The repository acquisition subset used here contains 38 runs and 43,045 samples. These measurements support the decision-layer study only; they do not validate any PC-FMCW optical propagation model.
+CICV5G provides real 5G V2N2V delay measurements with synchronized network and vehicle context, including variables such as RSRP, SINR, cell identity, position, heading, velocity, and timestamps \cite{zhang2026}. The archived study subset contains 38 runs and 43,045 samples. In the primary split, 22 complete runs (22,441 samples) are used for training, 7 runs (8,846 samples) for calibration, and 9 runs (11,758 samples) for test evaluation. These measurements support the decision-layer study only; they do not validate any PC-FMCW optical propagation model.
 
 \subsection{Grouped split}
 Let the complete set of acquisition runs be
@@ -140,25 +140,25 @@ Within a fixed held-out split, planner comparisons are paired by acquisition run
 
 \section{Results}
 \subsection{One-step prediction}
-On the primary grouped split, persistence achieves approximately 7.419 ms delay MAE and 11.365 ms RMSE. Conditioned spatial kNN, Random Forest, and Extra Trees obtain approximately 12.344, 9.291, and 8.950 ms MAE, respectively. Thus, naive learned spatial/tree predictors do not outperform persistence at one-step prediction.
+On the archived primary grouped split, persistence achieves 5.576 ms delay MAE and 20.914 ms RMSE. Spatial kNN, Random Forest, and Extra Trees obtain 10.862, 7.150, and 6.659 ms MAE, respectively. Thus, naive learned spatial/tree predictors do not outperform persistence at one-step prediction.
 
 \subsection{Horizon-dependent predictive value}
 Across five grouped split assignments, calibration-gated horizon-adaptive prediction improves delay MAE over persistence in all five assignments at 20, 50, and 100 steps. Mean improvements are approximately 1.463, 2.510, and 2.621 ms, respectively. Improvements at 1, 5, and 10 steps are small or inconsistent. The supported conclusion is therefore horizon-qualified rather than a generic ``ML beats persistence'' claim.
 
 \subsection{Support-conditioned diagnostics}
-On the primary split, delay MAE is approximately 6.98 ms for queries within 1 m of a training measurement, 8.51 ms at 1--5 m, and 10.47 ms at 5--15 m. Empirical interval coverage decreases from approximately 0.888 to 0.841 and 0.761 across the same bins. Forensic analysis shows that this relationship is context dependent rather than universally monotonic, so support is interpreted as an empirical risk indicator rather than a deterministic error law.
+On the archived primary split, delay MAE is 5.332 ms for queries within 1 m of a training measurement, 7.120 ms at 1--5 m, and 9.579 ms at 5--15 m. Empirical interval coverage is 0.888, 0.864, and 0.761 across the same bins. Forensic analysis shows that this relationship is context dependent rather than universally monotonic, so support is interpreted as an empirical risk indicator rather than a deterministic error law.
 
 \subsection{Predictive planning versus reactive planning}
-In the primary held-out replay, P1 obtains approximately 11.766 ms mean measured delay and a 0.01657 threshold-violation fraction. P2 reduces these to approximately 10.974 ms and 0.01378, while changing approximately 12.0\% of decisions and incurring approximately 0.0602 mobility deviation.
+In the archived primary held-out replay, P1 obtains 23.318 ms mean measured delay and a 0.02179 threshold-violation fraction. P2 reduces these to 22.526 ms and 0.01900, while changing 2.51\% of decisions and incurring 0.01254 mobility deviation.
 
 The paired P2--P1 mean-delay effect is approximately $-0.792$ ms with bootstrap 95\% CI $[-1.723,-0.138]$ ms. The raw paired Wilcoxon $p$-value is 0.046875, but the Holm-adjusted value across the 12-test family is approximately 0.28125; therefore this is exploratory, not multiplicity-corrected confirmatory evidence.
 
 Across five grouped split assignments, P2--P1 measured-delay effects are approximately $-0.792$, $-1.253$, $-0.069$, $-0.263$, and $-0.130$ ms. All five favor P2; their descriptive mean is approximately $-0.501$ ms. The $>50$ ms violation-fraction effect is also negative in all five assignments, with descriptive mean approximately $-0.002239$. These split assignments are dependent and are not used as an independent $n=5$ hypothesis test.
 
 \subsection{P3 controls support exposure}
-In the primary split, P3 reduces unsupported decision exposure from approximately 0.1056 under P2 to 0.0873, while mean measured delay changes from approximately 10.974 to 11.047 ms and mobility deviation rises from approximately 0.0602 to 0.0707.
+In the archived primary split, P3 reduces unsupported decision exposure from 0.15634 under P2 to 0.13798, while mean measured delay changes from 22.526 to 22.598 ms and mobility deviation rises from 0.01254 to 0.02305.
 
-Across five grouped split assignments, P3--P2 unsupported-selection effects are approximately $-0.0184$, $-0.0153$, $-0.0190$, $-0.0562$, and $-0.0309$, all favoring P3, with descriptive mean approximately $-0.0280$. By contrast, P3--P2 measured-delay effects have mixed sign, with mean near zero. The evidence supports P3 as a support-validity controller, not as a reliably stronger QoS optimizer.
+Across five grouped split assignments, P3--P2 unsupported-selection effects are approximately $-0.0184$, $-0.0153$, $-0.0190$, $-0.0562$, and $-0.0309$, all favoring P3, with descriptive mean approximately $-0.0280$. By contrast, P3--P2 measured-delay effects have mixed sign, with mean near zero. The evidence supports P3 as a support-validity controller, not as a reliably stronger QoS optimizer. The vectorized replay implementation records approximately 83.1 $\mu$s per candidate for batched QoS/support evaluation and about 9.85 $\mu$s mean decision-scoring time in the archived CI artifact; these are implementation-level timings, not embedded or end-to-end real-time guarantees.
 
 \section{Discussion}
 The value of communication prediction should be evaluated at the decision horizon rather than inferred from one-step prediction accuracy. Persistence is a strong short-horizon baseline because vehicular QoS is temporally correlated. A learned representation can therefore be unnecessary at the next sample while still containing information that matters seconds ahead.
@@ -167,6 +167,9 @@ The second finding is that predictive quality and inference validity are differe
 
 \section{Limitations}
 This evaluation is offline route-constrained replay, not closed-loop vehicle deployment. Candidate states are restricted to states actually traversed in the measured route. The 50-ms threshold is an experimental operating point, not a universal standard. Residual conformal intervals provide empirical uncertainty diagnostics but are not calibrated event probabilities and can degrade under grouped distribution shift. The five grouped split assignments reuse drives and therefore provide descriptive robustness, not five independent experiments. Finally, the CICV5G evidence concerns measured 5G/V2N2V communication and must not be interpreted as validation of the separate PC-FMCW optical model.
+
+\section{Data and Code Availability}
+The CICV5G dataset is publicly archived with the dataset publication \cite{zhang2026} and Zenodo DOI 10.5281/zenodo.17475688. The repository records the acquisition subset, grouped split protocol, predictors, support model, replay implementation, and analysis scripts needed to regenerate the reported study subject to the dataset license and access conditions.
 
 \section{Conclusion}
 Field-measured communication prediction can become decision-relevant at planning horizons even when persistence dominates one-step prediction. In route-constrained measured replay, predictive P2 shows a consistent directional reduction in measured delay relative to reactive P1 across grouped split assignments, while P3 consistently reduces unsupported decision exposure without a stable additional QoS gain. The broader methodological lesson is that a connectivity predictor should be evaluated not only by accuracy but also by causal horizon, empirical support, and the validity of the counterfactual states on which a planner acts.
