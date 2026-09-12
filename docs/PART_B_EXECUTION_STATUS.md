@@ -1,55 +1,42 @@
 # Part B Execution Status
 
-## Current status: final-v1 executed, but NOT manuscript-confirmatory
+## Current status: V1 audited; V2 safety-remediation protocol launched
 
-GitHub Actions run `34709571593` completed all five 10-seed shards (seeds 1000–1049), the 50-seed aggregate job, and the 20-seed directional-vs-distance-only optical-geometry mechanism ablation. The artifacts are reproducible and scientifically useful, but `part-b-final-v1` must **not** be presented as a passed autonomous-motion confirmatory experiment.
+GitHub Actions run `34709571593` completed all five V1 shards (seeds 1000–1049), aggregation, seed-level analysis, diagnostics, and the directional-vs-distance-only mechanism ablation. V1 remains permanently classified as exploratory/diagnostic because (i) `min_snr_db` was not captured by the executed episode schema and (ii) the intended robotics safety gate failed in two scenario families.
 
-Two post-run audit findings prevent that interpretation.
+The repository now contains a remediation that is deliberately separated from the V1 confirmatory data.
 
-## 1. Frozen endpoint capture mismatch
+## V1 evidence retained
 
-`configs/experiments/part_b_final.yaml` predeclared five primary communication endpoints: `mean_outage_probability`, `mean_snr_db`, `min_snr_db`, `mean_ber_model`, and `mean_goodput_bps_model`.
+The captured 50-seed model-based communication outcomes strongly favor P2 over P1: mean outage effect about -0.01738, mean SNR +1.596 dB, modeled BER -0.00834, and modeled goodput +8.337 Mbit/s. These are controlled simulation effects only. V1 cannot support a safe-autonomous-motion claim.
 
-The executed benchmark episode writer did not record `min_snr_db`. An interim analyzer substituted `path_length_m` for the missing endpoint. That substitution is invalid because path length is a robotics metric and was not part of the frozen five-endpoint communication multiplicity family. The code has now been corrected so future executions record `min_snr_db`, and the seed-level analyzer again matches the frozen protocol exactly. The already-produced final-v1 artifact remains an audited exploratory artifact: its four captured communication endpoints can be reported descriptively, but the substituted five-endpoint family is not final confirmatory evidence.
+The 20-seed mechanism ablation also showed that the P2-P1 effect is concentrated in the modeled directional geometry term rather than the distance-only variant. This is a mechanism result inside the analytical simulator, not physical optical validation.
 
-## 2. Safety gate failed
+## Root-cause finding and remediation
 
-The aggregate diagnostics show collision rate 1.0 for every planner in `following_lateral_offset` and `overtake`, yielding overall collision rate 0.4 for every planner. This is a failure of the intended robotics safety gate. The failure is shared across P0–P4 and therefore does not explain the relative communication effect, but it prevents claims of safe autonomous motion under the current benchmark configuration.
+The nominal candidate lattice previously allowed only speed offsets `(-2, 0, +2) m/s`. In closing/following scenarios that can be insufficient to represent physically available emergency deceleration, so the hard dynamic-target filter can exhaust the lattice and the receding-horizon controller can continue into a realized collision.
 
-Several scenarios also contain substantial zero-feasible-candidate periods. Per the frozen protocol, no-candidate counts remain diagnostics rather than confirmatory communication endpoints; nevertheless, they show that the present dynamic-safety formulation/scenario combination requires remediation before the robotics system can be described as safely validated.
+The candidate generator now appends straight-line maximum-braking trajectories at every planning horizon. This is a shared safety-envelope action available identically to P0-P4; it is not communication-specific and therefore does not preferentially encode the desired P2 result. Existing road, static-obstacle, speed, and dynamic-target hard filters still decide whether each braking trajectory is feasible.
 
-## Evidence that remains useful from final-v1
+## Anti-overfitting execution design
 
-With 50 independent simulation seeds and repeated scenarios averaged within each seed, the captured model-based communication outcomes strongly favor P2 over P1:
+The remediation is tested first on development-only seeds `3000..3019`. These seeds may be used to accept or reject the safety-envelope change, but their communication outcomes are not confirmatory evidence.
 
-| Endpoint | Mean P2−P1 effect | Bootstrap 95% CI |
-|---|---:|---:|
-| Mean outage probability | -0.01738 | [-0.01860, -0.01617] |
-| Mean SNR | +1.596 dB | [+1.479, +1.713] |
-| Modeled BER | -0.00834 | [-0.00888, -0.00779] |
-| Modeled goodput | +8.337 Mbit/s | [+7.793, +8.883] |
+Only if the development safety gate passes does CI unlock a fresh V2 confirmatory range `4000..4049`. V2 therefore does not reuse V1 seeds after observing V1 failures. The directional mechanism ablation is also rerun on a fresh range `5000..5019` after the development gate.
 
-These are **controlled model-based communication effects**. They are not measured optical performance and, because the safety gate failed, they are not evidence of successful safe autonomous driving.
+## V2 hard gates
 
-The final-v1 artifact also shows smaller modeled communication changes for P3 versus P2 and the expected oracle-connectivity comparison P4 versus P2. Those effects remain secondary until the robotics benchmark is repaired and re-frozen.
+Before confirmatory communication inference is accepted, CI requires:
 
-## Optical-geometry mechanism ablation
+- zero collision episodes across every scenario and planner;
+- zero episodes containing a no-candidate step;
+- exact capture of all five predeclared communication endpoints, including `min_snr_db`;
+- exactly 50 fresh confirmatory seeds, 4000 through 4049;
+- seed-level inference after averaging repeated scenario effects within each independent seed;
+- Holm correction within each planner comparison across the five communication endpoints.
 
-The separate 20-seed mechanism ablation completed successfully. For P2−P1 under the directional model, the mean effects were approximately -0.01657 outage, +1.544 dB SNR, -0.00825 modeled BER, and +8.254 Mbit/s modeled goodput.
-
-Under the distance-only variant, the same P2−P1 benefit disappears: outage changes by only about +2.9e-5, SNR changes by -0.310 dB, modeled BER is effectively unchanged, and modeled goodput change is zero. The directional-minus-distance-only interaction is approximately -0.01660 outage, +1.854 dB SNR, -0.00825 BER, and +8.254 Mbit/s goodput, with the bootstrap intervals for these interaction endpoints excluding zero.
-
-This supports the narrow mechanism statement that the simulated P2 advantage is tied to the **modeled directional geometry term** rather than generic distance-only planning. It is not physical optical validation.
-
-## Required remediation before a new confirmatory run
-
-1. Preserve the corrected `min_snr_db` endpoint capture and exact frozen communication metric family.
-2. Preserve final-v1 as a failed safety-gate run; never overwrite or relabel it as successful.
-3. Diagnose why shared dynamic-safety filtering permits realized collisions in `following_lateral_offset` and `overtake` under prediction error.
-4. Introduce a scientifically motivated prediction-error-aware safety treatment, evaluate/tune it only in a separate development seed set, then freeze it.
-5. Add an executable CI gate that fails a confirmatory run if any final confirmatory episode has `collision_indicator != 0`.
-6. Use a fresh confirmatory seed range after safety remediation, rather than reusing seeds 1000–1049 for post-tuning confirmation.
+If the development safety study fails, the V2 confirmatory shards are skipped. If the fresh confirmatory safety gate fails, the statistical analysis is not accepted as confirmatory robotics evidence.
 
 ## Claim boundary
 
-Until a remediated run passes the safety gate, Paper 1 may report the final-v1 communication effect as exploratory/model-based evidence and may report the directional-geometry mechanism ablation with its explicit simulation boundary. It must not claim a successful safety-constrained autonomous-motion validation from final-v1.
+Until V2 passes all gates, Paper 1 may report V1 only as exploratory/model-based communication evidence and may report the directional-geometry mechanism result with its explicit simulation boundary. No measured optical-performance claim or real-world autonomous-driving validation is supported.
