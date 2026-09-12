@@ -26,8 +26,6 @@ def predictor(variant: str):
     if variant == "directional":
         geometry = OpticalGeometryAssumptions()
     elif variant == "distance_only":
-        # A very broad beam drives the modeled angular loss effectively to zero while
-        # preserving the exact same distance law and all remaining link parameters.
         geometry = OpticalGeometryAssumptions(beam_sigma_rad=1e6)
     else:
         raise ValueError(variant)
@@ -40,11 +38,17 @@ def main():
     ap.add_argument("--seeds", type=int, default=20)
     ap.add_argument("--output-dir", default="results/pc_fmcw_geometry_ablation")
     ap.add_argument("--mc-samples", type=int, default=32)
+    ap.add_argument("--planning-safety-margin-m", type=float, default=0.0)
     args = ap.parse_args()
     if args.seeds < 1:
         raise SystemExit("--seeds must be >= 1")
+    if args.planning_safety_margin_m < 0:
+        raise SystemExit("--planning-safety-margin-m must be >= 0")
 
-    settings = BenchmarkSettings(p3_mc_samples=args.mc_samples)
+    settings = BenchmarkSettings(
+        p3_mc_samples=args.mc_samples,
+        planning_safety_margin_m=args.planning_safety_margin_m,
+    )
     seeds = range(args.seed_start, args.seed_start + args.seeds)
     rows = []
     provenance = {}
