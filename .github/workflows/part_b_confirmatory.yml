@@ -6,6 +6,7 @@ on:
       - 'configs/experiments/part_b_final.yaml'
       - 'scripts/run_pc_fmcw_robotics_benchmark.py'
       - 'scripts/analyze_pc_fmcw_benchmark.py'
+      - 'scripts/analyze_pc_fmcw_confirmatory_seedlevel.py'
       - 'scripts/diagnose_pc_fmcw_benchmark.py'
       - 'scripts/run_pc_fmcw_geometry_ablation.py'
       - 'scripts/analyze_pc_fmcw_geometry_ablation.py'
@@ -48,9 +49,15 @@ jobs:
             --mc-samples 32 \
             --collision-distance-m 2.0 \
             --output-dir results/part_b_final
-      - name: Run confirmatory paired analysis
+      - name: Run legacy scenario-level paired diagnostics
         run: |
           python scripts/analyze_pc_fmcw_benchmark.py \
+            --input results/part_b_final/episodes.csv \
+            --output-dir results/part_b_final \
+            --bootstrap-samples 10000
+      - name: Run predeclared seed-level confirmatory inference
+        run: |
+          python scripts/analyze_pc_fmcw_confirmatory_seedlevel.py \
             --input results/part_b_final/episodes.csv \
             --output-dir results/part_b_final \
             --bootstrap-samples 100000
@@ -59,11 +66,6 @@ jobs:
           python scripts/diagnose_pc_fmcw_benchmark.py \
             --input results/part_b_final/episodes.csv \
             --output-dir results/part_b_final/diagnostics
-      - name: Build artifact-derived manuscript report
-        run: |
-          python scripts/build_part_b_confirmatory_report.py \
-            --input-dir results/part_b_final \
-            --output results/part_b_final/CONFIRMATORY_REPORT.md
       - uses: actions/upload-artifact@v4
         with:
           name: part-b-final-v1-confirmatory
