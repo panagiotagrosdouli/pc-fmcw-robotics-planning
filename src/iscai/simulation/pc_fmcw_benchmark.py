@@ -82,14 +82,8 @@ def _realized_ttc(ego,target_state,collision_distance_m=2.0):
 
 
 def _candidate_feasibility_counts(ego, obstacles, target_prediction, params, target_clearance):
-    """Compatibility fallback for injected planners that do not expose diagnostics."""
     candidates = generate_candidates(ego, params=params)
-    _, counts = filter_with_diagnostics(
-        candidates,
-        target_xy=np.asarray(target_prediction, dtype=float)[:, :2],
-        obstacles=obstacles,
-        target_clearance=target_clearance,
-    )
+    _, counts = filter_with_diagnostics(candidates,target_xy=np.asarray(target_prediction,dtype=float)[:,:2],obstacles=obstacles,target_clearance=target_clearance)
     return counts
 
 
@@ -117,11 +111,10 @@ def _simulate_episode(scenario,planner_name,seed,settings,link_predictor):
             if first_collision_step<0:first_collision_step=k+1
         if len(scenario.obstacles):
             obs_xy=np.asarray([o[:2] for o in scenario.obstacles],float);obstacle_clearance.append(float(np.min(np.linalg.norm(obs_xy-ego[:2],axis=1))))
-    return {"scenario":scenario.name,"planner":planner_name,"seed":seed,"steps":steps,"duration_s":steps*settings.dt,"mean_snr_db":float(np.mean(snr)),"mean_outage_probability":float(np.mean(outage)),"mean_ber_model":float(np.mean(ber)),"mean_goodput_bps_model":float(np.mean(goodput)),"path_length_m":path_length,"progress_m":float(ego[0]-scenario.ego_state[0]),"min_target_distance_m":float(np.min(target_distance)),"min_realized_ttc_s":float(np.min(realized_ttc)),"min_static_obstacle_clearance_m":float(np.min(obstacle_clearance)) if obstacle_clearance else np.inf,"collision_indicator":int(collision),"collision_steps":collision_steps,"first_collision_step":first_collision_step,"first_collision_time_s":float(first_collision_step*settings.dt) if first_collision_step>=0 else np.inf,"no_candidate_steps":no_candidate,"zero_candidate_after_static_steps":zero_after_static,"zero_candidate_after_dynamic_steps":zero_after_dynamic,"candidate_evaluations":candidate_counts["generated"],"candidate_road_rejections":candidate_counts["road"],"candidate_speed_rejections":candidate_counts["speed"],"candidate_static_rejections":candidate_counts["static"],"candidate_dynamic_rejections":candidate_counts["dynamic"],"candidate_feasible":candidate_counts["feasible"],"prediction_ade_m":float(np.mean(prediction_ade)),"prediction_fde_m":float(np.mean(prediction_fde)),"measured_optical_link":False}
+    return {"scenario":scenario.name,"planner":planner_name,"seed":seed,"steps":steps,"duration_s":steps*settings.dt,"mean_snr_db":float(np.mean(snr)),"min_snr_db":float(np.min(snr)),"mean_outage_probability":float(np.mean(outage)),"mean_ber_model":float(np.mean(ber)),"mean_goodput_bps_model":float(np.mean(goodput)),"path_length_m":path_length,"progress_m":float(ego[0]-scenario.ego_state[0]),"min_target_distance_m":float(np.min(target_distance)),"min_realized_ttc_s":float(np.min(realized_ttc)),"min_static_obstacle_clearance_m":float(np.min(obstacle_clearance)) if obstacle_clearance else np.inf,"collision_indicator":int(collision),"collision_steps":collision_steps,"first_collision_step":first_collision_step,"first_collision_time_s":float(first_collision_step*settings.dt) if first_collision_step>=0 else np.inf,"no_candidate_steps":no_candidate,"zero_candidate_after_static_steps":zero_after_static,"zero_candidate_after_dynamic_steps":zero_after_dynamic,"candidate_evaluations":candidate_counts["generated"],"candidate_road_rejections":candidate_counts["road"],"candidate_speed_rejections":candidate_counts["speed"],"candidate_static_rejections":candidate_counts["static"],"candidate_dynamic_rejections":candidate_counts["dynamic"],"candidate_feasible":candidate_counts["feasible"],"prediction_ade_m":float(np.mean(prediction_ade)),"prediction_fde_m":float(np.mean(prediction_fde)),"measured_optical_link":False}
 
 
 def run_simulated_episode(planner_name,scenario,seed=0,settings=BenchmarkSettings(),link=None,link_predictor=None):
-    """Run one reproducible simulated episode; ``link`` is the stable public injection hook."""
     if planner_name not in PLANNERS:raise ValueError(f"unknown planner: {planner_name}")
     if link is not None and link_predictor is not None:raise ValueError("provide only one of link or link_predictor")
     predictor=link if link is not None else link_predictor
