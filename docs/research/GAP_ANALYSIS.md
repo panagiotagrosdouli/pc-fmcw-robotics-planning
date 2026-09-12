@@ -1,26 +1,48 @@
-# Research gap analysis — real-measurement support-aware QoS planning
+# Research gap analysis — measured-support-aware predictive QoS planning
 
 ## What is not novel
-Communication-aware motion planning is established at least since Ghaffarkhah & Mostofi (2011). Online radio mapping, resilient connectivity planning, formal QoS-constrained motion, joint communication-motion co-design, and QoS-aware AV route selection have also been demonstrated. A 2026 INFOCOM workshop paper already converts estimated radio maps into QoS-risk maps and proactively avoids low-quality regions. Therefore this project must not claim novelty for "predicting communication quality along trajectories" or "avoiding connectivity blackspots" alone.
+Communication-aware motion planning is established at least since Ghaffarkhah & Mostofi (2011). Online radio mapping, resilient connectivity planning, formal QoS-constrained motion, joint communication-motion co-design, QoS-aware AV route selection, real-data predictive QoS, and uncertainty-aware radio-map planning have all been demonstrated. Gordon et al. (INFOCOM NetRobiCS 2026) already convert estimated radio maps into service-specific QoS-risk maps and proactively avoid low-quality regions. Recent GP/tube-MPC work also couples radio-map uncertainty to robust motion. Therefore this project must not claim novelty for "predicting communication quality along trajectories", "avoiding connectivity blackspots", or "adding uncertainty to communication-aware planning" alone.
 
 ## Selected gap
-The strongest lightweight gap is the **scientific validity of using real measured vehicular QoS for counterfactual autonomous planning**. Real datasets only measure the actually driven path, while a planner scores paths that were not driven. A data-driven predictor can therefore appear effective while extrapolating outside measurement support or leaking temporally adjacent samples across train/test.
+The strongest lightweight gap found in the reviewed literature is the **scientific validity of using field-measured vehicular QoS for counterfactual motion decisions under finite empirical support and distribution shift**.
 
-We target a combined contribution:
+Real vehicular datasets measure the path that was actually driven. A planner normally scores paths that were not driven. Without an explicit validity layer, a data-driven radio/QoS map may produce confident-looking values in locations or operating contexts with weak empirical support. A second problem is leakage: random sample splits can place temporally and spatially adjacent measurements from the same drive on both sides of the train/test boundary.
 
-1. leakage-safe, run-grouped prediction of measured 5G V2N2V delay;
-2. calibrated split-conformal uncertainty on held-out runs;
-3. explicit spatial-support / extrapolation diagnostics for every queried candidate state;
-4. a planner policy that can penalize or reject communication predictions outside measured support;
-5. reactive vs predictive vs uncertainty/support-aware comparison under a common safety layer.
+The research therefore targets a combined protocol rather than a new prediction primitive:
 
-The novelty claim is the **combination and audit protocol**, not any one primitive.
+1. whole-run train/calibration/test splitting to prevent drive-level leakage;
+2. transparent causal baselines, especially current-value persistence;
+3. prediction at multiple decision horizons rather than only one-step interpolation;
+4. explicit spatial measurement-support diagnostics for every queried state;
+5. uncertainty evaluation under grouped distribution shift instead of assuming nominal conformal coverage transfers automatically;
+6. a support-aware decision layer that penalizes communication predictions outside empirical support;
+7. route-constrained measured replay so future measured QoS is used only as an outcome, avoiding fabricated labels at arbitrary counterfactual positions.
+
+The defensible contribution is this **measurement-support / leakage / horizon / decision-value audit as a coherent real-data planning protocol**. We have not established a universal first-ever claim; the wording should be "we found no close prior work in the reviewed literature that combines these elements for field-measured vehicular QoS planning."
+
+## Evidence-driven pivot from the initial hypothesis
+The initial hypothesis expected a lightweight spatial or tree predictor to beat a reactive persistence baseline. The actual CICV5G experiments did not support that simple story. On the primary disjoint-run split, persistence achieved 5.58 ms one-step delay MAE, while spatial KNN, Extra Trees, and Random Forest were worse. SINR was even more temporally persistent.
+
+This negative result changes the research question. The question is no longer "can generic ML predict QoS better than reactive information?" Instead it is:
+
+> At what forecast horizons and under what empirical-support conditions does learned spatial/context information add decision value beyond a strong causal persistence baseline?
+
+A calibration-only context-adaptive fusion of persistence and spatial information gives modest improvements at longer horizons. Across five grouped split seeds, every seed improved over persistence at approximately 1.1 s, 2.8 s, and 5.5 s horizons. This is more defensible than claiming universal ML superiority.
+
+## Empirical support finding
+Prediction quality worsens as held-out points move farther from training measurements. In the primary split, delay MAE increased from about 5.33 ms within 1 m of training support to about 9.58 ms in the 5–15 m stratum. Interval coverage also fell from about 0.888 to about 0.761 over those strata. This makes empirical support a measurable reliability variable rather than a cosmetic diagnostic.
+
+## Uncertainty finding
+A nominal 90% split-conformal interval does not maintain 90% coverage consistently across grouped splits. Mean held-out coverage across the five robustness splits is closer to the mid-0.8 range, and some splits are materially lower. This is consistent with the known limitation that ordinary split conformal coverage relies on exchangeability and need not survive distribution shift. The project therefore must not call these intervals universally calibrated probabilities.
 
 ## Why CICV5G first
-CICV5G is public and contains field V2N2V records, synchronized vehicle position/heading/velocity plus SINR, RSRP and end-to-end delay, including a W2S strong-to-weak coverage subset. The data descriptor explicitly identifies delay modeling and delay-aware planning/control as downstream uses. This makes it a strong first dataset because the dependent variable is directly relevant to networked vehicle planning/control.
+CICV5G is public and contains field V2N2V records with synchronized UTM position, heading, velocity, SINR, RSRP and end-to-end delay over repeated runs, frequencies and nominal speeds. The public measurements are directly downloadable and suitable for grouped holdout studies. The data are real; the autonomous decisions remain offline.
+
+## Primary research question
+Can a lightweight predictive connectivity planner extract useful future QoS information from field measurements **without trusting predictions outside their empirical support**, and does that information improve route-constrained offline decisions relative to a strong reactive persistence baseline?
 
 ## Falsification conditions
-The primary hypothesis fails if grouped held-out prediction does not improve over persistence sufficiently to alter planning decisions, or if supported counterfactual regions are too sparse to compare trajectories. The uncertainty hypothesis fails if held-out conformal intervals do not achieve near-nominal coverage or if risk-aware decisions do not improve tail QoS at acceptable mobility cost.
+The decision-value hypothesis fails if P2/P3 do not improve measured held-out QoS outcomes relative to P1 at comparable mobility cost. The uncertainty-aware hypothesis fails if P3 adds no benefit beyond P2 or merely increases conservatism. The empirical-support hypothesis fails if support distance/density does not correlate with reliability or does not affect decision validity. Negative outcomes must remain in the paper rather than being removed.
 
 ## Claim boundary
-Field communication measurements are real. QoS models are learned. Candidate autonomous trajectories and counterfactual planner decisions remain offline/model-based unless an actual controlled vehicle experiment is later conducted. CICV5G is 5G V2N2V data and does not validate PC-FMCW optical propagation.
+Field communication measurements are real. QoS forecasts are learned. Route-constrained replay decisions are offline. The experiment is not closed-loop real-vehicle validation and does not provide ground truth for arbitrary unmeasured trajectories. CICV5G is 5G V2N2V data and does not validate PC-FMCW optical propagation. The existing PC-FMCW branch remains a separate technology-specific model-based experiment; the common object being tested is the decision-layer methodology.
