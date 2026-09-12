@@ -1,0 +1,132 @@
+\documentclass[conference]{IEEEtran}
+\usepackage{amsmath,amssymb,booktabs,graphicx,url}
+\usepackage[hidelinks]{hyperref}
+\title{Predictive Connectivity-Aware Motion Planning for PC-FMCW Integrated Sensing, Communication, and Illumination}
+\author{\IEEEauthorblockN{Panagiota Grosdouli}
+\IEEEauthorblockA{Independent Research Manuscript\\
+Repository: \texttt{pc-fmcw-robotics-planning}}}
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Phase-coded frequency-modulated continuous-wave (PC-FMCW) laser headlamps can integrate sensing, communication, and illumination, but the upstream optical architecture stops before autonomous motion selection. This paper develops a model-based perception-to-action layer that uses tracked target motion to predict future relative geometry, evaluates candidate ego trajectories through a PC-FMCW-informed analytical connectivity model, applies common hard safety filters, and selects motion in receding horizon. The planner ladder P0--P4 isolates mobility-only, reactive, predictive, risk-aware predictive, and simulator-oracle communication information. Historical V1 experiments provide strong exploratory evidence that predictive P2 avoids the modeled link degradation observed under reactive P1, and a directional-versus-distance-only ablation indicates that the effect is tied to modeled directional geometry rather than generic distance minimization. V1 nevertheless failed the robotics safety gate. A subsequent V2 development-only study with shared straight maximum-braking candidates removed most collisions but still failed the predeclared hard gate because no-candidate episodes remained and P1/P2 retained overtake collisions. Fresh V2 confirmatory seeds were therefore automatically skipped. The current V3 protocol adds communication-agnostic braking-plus-lateral-evasion candidates and selects a planning-only prediction-error margin on new development seeds before allowing a completely fresh confirmatory run. Final confirmatory numerical claims remain intentionally gated until V3 passes.
+\end{abstract}
+
+\begin{IEEEkeywords}
+PC-FMCW, ISAC, ISCAI, autonomous driving, communication-aware motion planning, receding horizon, optical wireless communication
+\end{IEEEkeywords}
+
+\section{Introduction}
+Liu et al. proposed a PC-FMCW laser-headlamp architecture integrating sensing, communication, and illumination \cite{liu2026}. The reported system embeds phase-coded communication in an FMCW optical waveform and demonstrates gigabit-per-second communication together with centimeter-scale ranging and tracking performance in simulation. The upstream architecture, however, does not close the loop from sensing/tracking to autonomous ego-motion selection.
+
+Communication-aware motion planning itself is not new \cite{ghaffarkhah2011}. The contribution pursued here is narrower: a technology-specific bridge from PC-FMCW-informed perception to predictive motion decisions under a common safety envelope. The research question is whether prediction of future modeled PC-FMCW link quality can influence motion beneficially before a reactive planner responds to degradation that has already occurred.
+
+\section{System Model}
+Let the ego state at time $t$ be $x_t$ and the tracked target state be $z_t$. A predictor produces a future target distribution or point forecast over horizon $H$,
+\begin{equation}
+p(z_{t+1:t+H}\mid o_{\le t}).
+\end{equation}
+A candidate ego trajectory is
+\begin{equation}
+\tau_i=\{x_t,x_{i,t+1},\ldots,x_{i,t+H}\}.
+\end{equation}
+For candidate step $k$, predicted communication quality is evaluated from future relative geometry,
+\begin{equation}
+\hat q_{i,k}=f_{\mathrm{link}}(x_{i,k},\hat z_k),
+\end{equation}
+where $f_{\mathrm{link}}$ is the repository's analytical PC-FMCW-informed surrogate model.
+
+The model includes parameters reported by the source paper---notably carrier frequency approximately 193.4 THz, chirp bandwidth 10 GHz, chirp period 10 $\mu$s, and data rate 1 Gbit/s---as well as additional robotics-side assumptions such as reference SNR, path-loss exponent, beam-width/angular sensitivity, outage threshold, and softness. The latter are modeling assumptions rather than measured optical calibration.
+
+\section{Planner Ladder}
+All planners share identical vehicle dynamics, road/static-obstacle constraints, and dynamic-target safety filters.
+
+\paragraph{P0: mobility only}
+\begin{equation}
+\tau^\star_{P0}=\arg\min_{\tau_i\in\mathcal{F}_t}J_{\mathrm{mob}}(\tau_i).
+\end{equation}
+
+\paragraph{P1: reactive communication-aware}
+P1 scores motion using the current communication state without a future link forecast.
+
+\paragraph{P2: predictive communication-aware}
+\begin{equation}
+\tau^\star_{P2}=\arg\min_{\tau_i\in\mathcal{F}_t}
+\left[J_{\mathrm{mob}}(\tau_i)+\lambda J_{\mathrm{comm}}(\tau_i)\right],
+\end{equation}
+where $J_{\mathrm{comm}}$ aggregates predicted future outage/SNR/BER/goodput-derived utility as implemented.
+
+\paragraph{P3: risk-sensitive predictive}
+P3 augments the predictive objective with stochastic or uncertainty-sensitive scoring using the same feasible candidate set.
+
+\paragraph{P4: simulator oracle}
+P4 uses simulator future truth for connectivity only and provides an upper-reference bound. It does not receive oracle safety information.
+
+The executed receding-horizon action is the first control of the selected feasible candidate.
+
+\section{Safety Envelope and Protocol Integrity}
+The historical V1 experiment revealed a shared safety failure: collisions occurred in \texttt{following\_lateral\_offset} and \texttt{overtake}, and the candidate lattice experienced substantial no-feasible-candidate periods. V1 also cannot serve as the final frozen confirmatory record because the executed artifact did not originally contain the predeclared \texttt{min\_snr\_db} endpoint.
+
+V2 introduced straight maximum-physical-braking candidates identically for P0--P4 and reserved seeds 3000--3019 for development only. This intervention substantially improved safety but the development gate still failed. In \texttt{lane\_choice}, every planner retained 25 no-candidate steps because the straight braking trajectory remained inside the static-obstacle exclusion envelope. In \texttt{overtake}, P1 retained collision rate 1.0 and P2 0.05, showing that feasibility against the constant-velocity mean prediction was not sufficient to guarantee the 2.0 m realized collision threshold. Because the V2 gate failed, confirmatory seeds 4000--4049 and fresh geometry seeds 5000--5019 were automatically skipped.
+
+V3 preserves that negative result and starts from new development seeds 6000--6019. Its structural safety envelope combines maximum physical braking with every predeclared lateral offset, allowing braking plus lateral evasion without changing acceleration limits. Separately, V3 distinguishes the physical collision distance $d_{\mathrm{col}}=2.0$ m from a planning-only prediction margin $m_s$:
+\begin{equation}
+d_{\mathrm{plan}} = d_{\mathrm{col}} + m_s.
+\end{equation}
+The predeclared development candidates are $m_s\in\{0,0.5,1.0,1.5,2.0,2.5,3.0\}$ m. The frozen selection rule is to choose the minimum candidate margin achieving zero collision episodes and zero episodes with no-candidate steps across every scenario and planner. If no margin passes, confirmation remains blocked. The physical collision definition is never relaxed.
+
+Only after that selector passes may fresh V3 confirmatory seeds 7000--7049 and fresh geometry seeds 8000--8019 run. The exact five communication endpoints and seed-level bootstrap/Wilcoxon/Holm analysis remain unchanged.
+
+\section{Historical V1 Evidence: Exploratory Only}
+The completed V1 50-seed run provides strong model-based exploratory communication effects but cannot support safe-autonomous-motion claims because of the safety failure and endpoint-schema mismatch.
+
+For P2 versus P1, the captured effects are approximately:
+\begin{itemize}
+\item mean outage change: $-0.01738$;
+\item mean SNR change: $+1.596$ dB;
+\item modeled BER change: $-0.00834$;
+\item modeled goodput change: $+8.337$ Mbit/s.
+\end{itemize}
+These effects indicate that predictive connectivity scoring avoids the degradation observed under the reactive P1 planner in the tested analytical scenarios. They are retained as exploratory/diagnostic evidence only.
+
+\section{Directional-Geometry Mechanism Ablation}
+A historical paired directional-versus-distance-only ablation indicates that the P2--P1 benefit is concentrated in the directional model. In the directional case, P2--P1 effects are approximately $-0.01657$ outage, $+1.544$ dB mean SNR, $-0.00825$ modeled BER, and $+8.254$ Mbit/s modeled goodput. The distance-only variant shows negligible outage change and a small SNR decrease. The directional-minus-distance-only interaction is therefore large and consistently signed.
+
+This is mechanism evidence inside the analytical simulator. It is not physical validation of an optical headlamp channel. Because V3 changes the feasible trajectory family, the mechanism ablation must be repeated on fresh seeds after the V3 safety formulation is selected.
+
+\section{Parameter Provenance and Interpretation}
+The source paper reports a carrier frequency of approximately 193.4 THz, corresponding to a wavelength near 1550 nm, while the headlamp context is also described using ``blue laser'' terminology. The repository does not silently resolve this inconsistency. The reported frequency is treated as a source-paper simulation parameter only. No claims about visible-blue photometry, eye safety, detector responsivity, or atmospheric propagation are inferred from it.
+
+\section{Related Work and Novelty Boundary}
+Communication-aware motion planning predates this work \cite{ghaffarkhah2011}. QoS-aware autonomous-vehicle trajectory planning and modern radio-map-aware planning also exist \cite{ullah2025,gordon2026}. The contribution is therefore not generic communication-aware navigation. The defensible novelty is a PC-FMCW-specific perception-to-action integration that couples target tracking and future relative geometry to a directional analytical communication model and evaluates predictive-versus-reactive motion under explicit safety and mechanism audits.
+
+\section{Pending Confirmatory Analysis}
+The final Paper 1 Results section remains intentionally gated. It will be populated only after:
+\begin{enumerate}
+\item the V3 development-only selector passes its predeclared zero-collision/zero-no-candidate rule;
+\item the selected planning margin and structural safety envelope remain unchanged;
+\item fresh seeds 7000--7049 complete;
+\item the fresh hard safety gate passes;
+\item all five frozen communication endpoints are present;
+\item seed-level bootstrap/Wilcoxon/Holm inference completes; and
+\item the fresh seeds 8000--8019 directional-versus-distance-only ablation completes.
+\end{enumerate}
+Until then, neither V1 nor failed V2 development evidence is presented as confirmatory robotics evidence.
+
+\section{Limitations}
+The optical/connectivity branch is model-based and is not calibrated against measured PC-FMCW optical communication hardware. V1 and V2 did not establish the final safety-gated autonomous result. The candidate set, target-motion model, and analytical link model limit external validity. P4 is a simulator oracle, not a realizable controller. Any final claim must remain within the tested scenarios and frozen protocol.
+
+\section{Conclusion}
+This work extends a PC-FMCW ISCAI concept into a predictive autonomous motion layer. Historical V1 evidence strongly suggests that future link prediction can prevent the modeled communication degradation produced by a reactive planner, and mechanism ablation ties that effect to directional geometry. Yet the safety audits demonstrate why a communication benefit cannot be promoted to an autonomous-driving claim without a separate motion-safety gate. V2 correctly failed that gate; V3 now uses a fresh development-selection protocol and completely fresh confirmation range. The paper therefore separates promising model-based mechanism evidence from final confirmatory robotics claims rather than conflating them.
+
+\begin{thebibliography}{4}
+\bibitem{liu2026}
+S. Liu, T. Sun, X. Shu, J. Song, and Y. Dong, ``Phase-Coded FMCW Laser Headlamp for Integrated Sensing, Communication, and Illumination,'' \emph{IEEE Photonics Technology Letters}, vol. 38, no. 14, pp. 1032--1035, 2026, doi: 10.1109/LPT.2025.3649597.
+\bibitem{ghaffarkhah2011}
+A. Ghaffarkhah and Y. Mostofi, ``Communication-Aware Motion Planning in Mobile Networks,'' \emph{IEEE Trans. Autom. Control}, vol. 56, no. 10, pp. 2478--2485, 2011, doi: 10.1109/TAC.2011.2164033.
+\bibitem{gordon2026}
+D. Gordon, M. B. Khan, T. Zugno, Y. Wu, M. Boban, X. An, and F. Dressler, ``Communication-aware Robot Motion Planning via Online Estimation of Radio Maps,'' in \emph{Proc. IEEE INFOCOM}, 2026, doi: 10.1109/INFOCOM59046.2026.11571354.
+\bibitem{ullah2025}
+I. Ullah, H. El Sayed, A. A. Dowhuszko, M. A. Khan, and J. H{\"a}m{\"a}l{\"a}inen, ``Trajectory Planning of Autonomous Vehicles to Ensure Target QoS Requirements in 6G Mobile Networks,'' \emph{IEEE Access}, vol. 13, pp. 37361--37369, 2025, doi: 10.1109/ACCESS.2025.3543204.
+\end{thebibliography}
+\end{document}
