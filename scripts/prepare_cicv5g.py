@@ -3,10 +3,11 @@
 
 The downloader discovers the current upstream W2S text files from the GitHub tree,
 then downloads the raw files and records SHA256 hashes. Raw measurements are not
-committed to this repository.
+committed to this repository. When GITHUB_TOKEN/GH_TOKEN is available (for example in
+GitHub Actions), it is used only to avoid anonymous GitHub API rate limits.
 """
 from __future__ import annotations
-import argparse, hashlib, json, urllib.parse, urllib.request
+import argparse, hashlib, json, os, urllib.parse, urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -14,8 +15,16 @@ REPO = "zxr805/CICV5G"
 TREE_API = f"https://api.github.com/repos/{REPO}/git/trees/main?recursive=1"
 RAW_BASE = f"https://raw.githubusercontent.com/{REPO}/main/"
 
+def github_headers() -> dict[str, str]:
+    headers = {"User-Agent": "pc-fmcw-real-v2x-research", "Accept": "application/vnd.github+json"}
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+        headers["X-GitHub-Api-Version"] = "2022-11-28"
+    return headers
+
 def discover_upstream() -> list[str]:
-    req = urllib.request.Request(TREE_API, headers={"User-Agent": "pc-fmcw-real-v2x-research"})
+    req = urllib.request.Request(TREE_API, headers=github_headers())
     with urllib.request.urlopen(req, timeout=30) as r:
         payload = json.load(r)
     paths = [x["path"] for x in payload.get("tree", []) if x.get("type") == "blob" and x["path"].startswith("data/W2S/") and x["path"].endswith(".txt")]
