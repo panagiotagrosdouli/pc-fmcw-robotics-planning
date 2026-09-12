@@ -1,0 +1,184 @@
+\documentclass[conference]{IEEEtran}
+\usepackage{amsmath,amssymb,booktabs,multirow,graphicx,url,xcolor}
+\usepackage[hidelinks]{hyperref}
+\usepackage{siunitx}
+\title{When Can an Autonomous Vehicle Trust a Connectivity Map?\\
+Measurement-Support-Aware Predictive Planning with Field-Measured Vehicular QoS}
+\author{\IEEEauthorblockN{Panagiota Grosdouli}
+\IEEEauthorblockA{Independent Research Manuscript\\
+Repository: \texttt{pc-fmcw-robotics-planning}}}
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Predictive communication-aware motion planning requires a vehicle to reason about link quality at future states that have not yet been selected. With field measurements, this creates a validity problem: a planner may prefer a counterfactual state precisely where its learned connectivity estimate has weak empirical support. We study when future vehicular quality-of-service (QoS) prediction provides decision-relevant information and how a planner should account for the measurement support of those predictions. Using the CICV5G field-measurement dataset, we construct a leakage-resistant pipeline in which complete acquisition runs are separated across training, calibration, and test partitions. Lightweight causal predictors estimate future communication delay at multiple planning horizons, while an empirical spatial-support model quantifies how well candidate states are represented by training measurements. We evaluate reactive, predictive, and support-aware planners using route-constrained measured replay: candidate future states correspond to positions actually traversed later in the same held-out run, while their measured future delay remains hidden until after selection. Naive learned spatial and tree predictors do not outperform persistence at one-step prediction, whereas calibration-gated spatial/context information becomes useful at longer planning horizons. Across five grouped split assignments, predictive planning reduces measured delay and delay-threshold violations relative to the reactive baseline in all five assignments. Measurement-support awareness consistently reduces unsupported decision exposure but does not yield a stable additional QoS gain. These results support a narrow conclusion: predictive communication information can influence motion beneficially at decision-relevant horizons, while empirical support should be audited separately from predicted QoS before counterfactual estimates are trusted.
+\end{abstract}
+
+\begin{IEEEkeywords}
+communication-aware planning, V2X, QoS prediction, autonomous vehicles, uncertainty, conformal prediction, measurement support, counterfactual evaluation
+\end{IEEEkeywords}
+
+\section{Introduction}
+Autonomous vehicles increasingly depend on wireless communication for cooperative perception, cloud-assisted services, infrastructure interaction, and distributed decision making. Motion and communication are therefore coupled: where a vehicle moves affects the communication conditions it experiences, while predicted communication conditions can influence where it should move. Communication-aware motion planning itself is established prior art \cite{ghaffarkhah2011}. More recent work includes online radio-map estimation for motion planning \cite{gordon2026} and autonomous-vehicle trajectory planning under QoS objectives \cite{ullah2025}. The narrower question addressed here is methodological: \emph{when a planner evaluates future motion using a predictor learned from field measurements, when should it trust predicted QoS at counterfactual candidate states?}
+
+A field-measured connectivity map is not a physical oracle. Predictions inherit the spatial, temporal, route, network, and contextual support of the measurements used to train the predictor. A candidate can therefore appear communication-optimal while lying in a weakly represented region. Randomly splitting individual samples from a drive can also create optimistic results because temporally and spatially adjacent measurements from the same acquisition run leak across training and evaluation.
+
+We separate three questions: (i) whether future QoS contains incremental predictive information beyond the current state at a planning-relevant horizon, (ii) whether using that prediction changes decisions in a way that improves subsequently measured communication outcomes, and (iii) whether the selected counterfactual states are empirically supported by the training measurements.
+
+We use CICV5G \cite{zhang2026}, a field-measured 5G vehicular dataset. The present repository study uses 38 acquisition runs comprising 43,045 samples. Complete runs, rather than rows, are assigned to training, calibration, and test partitions. Prediction uncertainty is estimated from held-out calibration residuals, and spatial support is computed only from training coordinates. The planning evaluation is deliberately conservative: instead of inventing QoS ground truth at arbitrary off-route positions, candidate choices are restricted to future states that were actually measured later in the held-out run.
+
+The contributions are:
+\begin{enumerate}
+\item a whole-run leakage-resistant field-measurement pipeline for predictive vehicular QoS planning;
+\item a horizon-dependent prediction study showing that persistence is difficult to beat at short horizons while spatial/context information becomes useful at longer horizons;
+\item an explicit empirical measurement-support audit kept conceptually separate from predictive uncertainty;
+\item a route-constrained measured-replay protocol that hides future measured QoS until after planner selection; and
+\item a planner comparison that separates predictive communication utility (P2) from inference-validity control (P3).
+\end{enumerate}
+
+\section{Related Work and Research Gap}
+Ghaffarkhah and Mostofi established communication-aware motion planning more than a decade ago \cite{ghaffarkhah2011}. Gordon et al. study online estimation of radio maps and proactive communication-aware robot motion planning \cite{gordon2026}. Ullah et al. optimize autonomous-vehicle trajectories according to network spectral-efficiency/QoS maps \cite{ullah2025}. Consequently, this paper does not claim novelty for adding a communication cost to motion, avoiding blackspots, constructing radio maps, or using predicted connectivity in planning.
+
+The gap pursued here is the validity of \emph{counterfactual planner queries to a predictor trained on field measurements}. We combine whole-run anti-leakage evaluation, horizon-dependent causal prediction, explicit training-measurement support auditing, and measured-support route replay. The objective is not another generic connectivity-aware planner but a disciplined way to determine when field-measured predictions contain decision-relevant information and when the planner is querying them outside their empirical support.
+
+\section{Data and Leakage-Controlled Design}
+\subsection{CICV5G measurements}
+CICV5G provides real 5G V2N2V delay measurements with synchronized network and vehicle context, including variables such as RSRP, SINR, cell identity, position, heading, velocity, and timestamps \cite{zhang2026}. The repository acquisition subset used here contains 38 runs and 43,045 samples. These measurements support the decision-layer study only; they do not validate any PC-FMCW optical propagation model.
+
+\subsection{Grouped split}
+Let the complete set of acquisition runs be
+\begin{equation}
+\mathcal{R}=\mathcal{R}_{\mathrm{tr}}\dot\cup
+\mathcal{R}_{\mathrm{cal}}\dot\cup
+\mathcal{R}_{\mathrm{te}}.
+\end{equation}
+All samples from one run remain in a single partition. Predictors and spatial support are fitted using $\mathcal{R}_{\mathrm{tr}}$, model/fusion selection and residual calibration use $\mathcal{R}_{\mathrm{cal}}$, and final evaluation uses $\mathcal{R}_{\mathrm{te}}$.
+
+Repeated grouped split assignments are used only as robustness/sensitivity analysis. Because the same finite set of drives is reused across assignments, the assignments are not treated as independent experimental replicates.
+
+\section{Future-QoS Prediction}
+For a run $r$, decision time $t$, and horizon $h$, let the measured delay target be
+\begin{equation}
+y^{(h)}_{r,t}=y_{r,t+h}.
+\end{equation}
+The persistence predictor is
+\begin{equation}
+\hat y^{\mathrm{pers}}_{r,t+h|t}=y_{r,t}.
+\end{equation}
+A learned spatial/context predictor $f_h$ produces
+\begin{equation}
+\hat y^{\mathrm{learn}}_{r,t+h|t}
+=f_h(x^{\mathrm{cand}}_{r,t+h},c_{r,t}),
+\end{equation}
+where $c_{r,t}$ contains only causally available information.
+
+A calibration-gated horizon-adaptive predictor combines the two:
+\begin{equation}
+\hat y^{\mathrm{fuse}}
+=(1-\alpha_h)\hat y^{\mathrm{pers}}
++\alpha_h\hat y^{\mathrm{learn}},
+\qquad \alpha_h\in[0,1],
+\end{equation}
+with $\alpha_h$ selected only from calibration data.
+
+Residual split-conformal intervals are formed from absolute calibration residuals. They are treated as empirical uncertainty diagnostics, not as calibrated probabilities of outage or threshold violation.
+
+\section{Empirical Measurement Support}
+Let $\mathcal{X}_{\mathrm{tr}}$ be the training-position set. For candidate position $x$,
+\begin{equation}
+d_{\min}(x)=\min_{x_i\in\mathcal{X}_{\mathrm{tr}}}\|x-x_i\|_2,
+\end{equation}
+and for radius $\rho$,
+\begin{equation}
+n_\rho(x)=\sum_{x_i\in\mathcal{X}_{\mathrm{tr}}}
+\mathbf{1}\{\|x-x_i\|_2\le \rho\}.
+\end{equation}
+A frozen support rule marks a query unsupported when
+\begin{equation}
+u(x)=\mathbf{1}\{d_{\min}(x)>d_{\max}\;\lor\;n_\rho(x)<n_{\min}\}.
+\end{equation}
+These thresholds are empirical validity controls, not physical propagation constants.
+
+\section{Route-Constrained Measured Replay}
+Arbitrary counterfactual trajectories generally lack measured QoS ground truth. We therefore restrict candidate choices to future states actually recorded later in the same held-out run. At each decision point, the planners receive only causally available information and model outputs derived from train/calibration data. Future measured delay attached to each candidate remains hidden. After selection, the corresponding recorded measurement is revealed solely for evaluation. This is offline measured replay, not real closed-loop autonomous-driving validation.
+
+\section{Planner Definitions}
+Let $J_{\mathrm{mob}}(a)$ denote mobility cost and $\hat y(a)$ predicted future delay.
+
+\paragraph{P0: Mobility/reference}
+\begin{equation}
+a^\star_{P0}=\arg\min_{a\in\mathcal{A}}J_{\mathrm{mob}}(a).
+\end{equation}
+
+\paragraph{P1: Reactive/current QoS}
+\begin{equation}
+a^\star_{P1}
+=\arg\min_{a\in\mathcal{A}}
+\left[J_{\mathrm{mob}}(a)+\lambda_c\hat y^{\mathrm{pers}}(a)\right].
+\end{equation}
+
+\paragraph{P2: Predictive communication}
+\begin{equation}
+a^\star_{P2}
+=\arg\min_{a\in\mathcal{A}}
+\left[J_{\mathrm{mob}}(a)+\lambda_c\hat y^{\mathrm{fuse}}(a)\right].
+\end{equation}
+
+\paragraph{P3: Prediction plus empirical-support control}
+\begin{equation}
+a^\star_{P3}
+=\arg\min_{a\in\mathcal{A}}
+\left[J_{\mathrm{mob}}(a)+\lambda_c\hat y^{\mathrm{fuse}}(a)
++\lambda_su(a)\right].
+\end{equation}
+P2 tests predictive communication utility. P3 tests inference-validity control; it is not assumed to improve QoS further.
+
+\section{Evaluation and Statistics}
+Prediction metrics include delay MAE/RMSE, empirical interval coverage, and support-stratified error. Planning metrics include selected future measured delay, fraction of decisions above the experimental 50-ms delay threshold, changed-decision fraction, unsupported-selection fraction, mobility deviation, and implementation-level computational timing.
+
+Within a fixed held-out split, planner comparisons are paired by acquisition run. Bootstrap confidence intervals and paired Wilcoxon signed-rank tests are reported, with Holm correction across the predeclared planner/metric family. Raw $p$-values are retained as exploratory diagnostics but are not interpreted as confirmatory if they fail multiplicity correction.
+
+\section{Results}
+\subsection{One-step prediction}
+On the primary grouped split, persistence achieves approximately 7.419 ms delay MAE and 11.365 ms RMSE. Conditioned spatial kNN, Random Forest, and Extra Trees obtain approximately 12.344, 9.291, and 8.950 ms MAE, respectively. Thus, naive learned spatial/tree predictors do not outperform persistence at one-step prediction.
+
+\subsection{Horizon-dependent predictive value}
+Across five grouped split assignments, calibration-gated horizon-adaptive prediction improves delay MAE over persistence in all five assignments at 20, 50, and 100 steps. Mean improvements are approximately 1.463, 2.510, and 2.621 ms, respectively. Improvements at 1, 5, and 10 steps are small or inconsistent. The supported conclusion is therefore horizon-qualified rather than a generic ``ML beats persistence'' claim.
+
+\subsection{Support-conditioned diagnostics}
+On the primary split, delay MAE is approximately 6.98 ms for queries within 1 m of a training measurement, 8.51 ms at 1--5 m, and 10.47 ms at 5--15 m. Empirical interval coverage decreases from approximately 0.888 to 0.841 and 0.761 across the same bins. Forensic analysis shows that this relationship is context dependent rather than universally monotonic, so support is interpreted as an empirical risk indicator rather than a deterministic error law.
+
+\subsection{Predictive planning versus reactive planning}
+In the primary held-out replay, P1 obtains approximately 11.766 ms mean measured delay and a 0.01657 threshold-violation fraction. P2 reduces these to approximately 10.974 ms and 0.01378, while changing approximately 12.0\% of decisions and incurring approximately 0.0602 mobility deviation.
+
+The paired P2--P1 mean-delay effect is approximately $-0.792$ ms with bootstrap 95\% CI $[-1.723,-0.138]$ ms. The raw paired Wilcoxon $p$-value is 0.046875, but the Holm-adjusted value across the 12-test family is approximately 0.28125; therefore this is exploratory, not multiplicity-corrected confirmatory evidence.
+
+Across five grouped split assignments, P2--P1 measured-delay effects are approximately $-0.792$, $-1.253$, $-0.069$, $-0.263$, and $-0.130$ ms. All five favor P2; their descriptive mean is approximately $-0.501$ ms. The $>50$ ms violation-fraction effect is also negative in all five assignments, with descriptive mean approximately $-0.002239$. These split assignments are dependent and are not used as an independent $n=5$ hypothesis test.
+
+\subsection{P3 controls support exposure}
+In the primary split, P3 reduces unsupported decision exposure from approximately 0.1056 under P2 to 0.0873, while mean measured delay changes from approximately 10.974 to 11.047 ms and mobility deviation rises from approximately 0.0602 to 0.0707.
+
+Across five grouped split assignments, P3--P2 unsupported-selection effects are approximately $-0.0184$, $-0.0153$, $-0.0190$, $-0.0562$, and $-0.0309$, all favoring P3, with descriptive mean approximately $-0.0280$. By contrast, P3--P2 measured-delay effects have mixed sign, with mean near zero. The evidence supports P3 as a support-validity controller, not as a reliably stronger QoS optimizer.
+
+\section{Discussion}
+The value of communication prediction should be evaluated at the decision horizon rather than inferred from one-step prediction accuracy. Persistence is a strong short-horizon baseline because vehicular QoS is temporally correlated. A learned representation can therefore be unnecessary at the next sample while still containing information that matters seconds ahead.
+
+The second finding is that predictive quality and inference validity are different planning quantities. P2 exploits future QoS estimates and exhibits a consistent directional benefit over the reactive baseline across grouped split assignments. P3 asks whether the locations preferred by that predictor are empirically represented by the training measurements. Its consistent reduction in unsupported selections, combined with mixed QoS effects and increased mobility deviation, makes support awareness a validity/risk trade-off rather than a free communication gain.
+
+\section{Limitations}
+This evaluation is offline route-constrained replay, not closed-loop vehicle deployment. Candidate states are restricted to states actually traversed in the measured route. The 50-ms threshold is an experimental operating point, not a universal standard. Residual conformal intervals provide empirical uncertainty diagnostics but are not calibrated event probabilities and can degrade under grouped distribution shift. The five grouped split assignments reuse drives and therefore provide descriptive robustness, not five independent experiments. Finally, the CICV5G evidence concerns measured 5G/V2N2V communication and must not be interpreted as validation of the separate PC-FMCW optical model.
+
+\section{Conclusion}
+Field-measured communication prediction can become decision-relevant at planning horizons even when persistence dominates one-step prediction. In route-constrained measured replay, predictive P2 shows a consistent directional reduction in measured delay relative to reactive P1 across grouped split assignments, while P3 consistently reduces unsupported decision exposure without a stable additional QoS gain. The broader methodological lesson is that a connectivity predictor should be evaluated not only by accuracy but also by causal horizon, empirical support, and the validity of the counterfactual states on which a planner acts.
+
+\begin{thebibliography}{4}
+\bibitem{ghaffarkhah2011}
+A. Ghaffarkhah and Y. Mostofi, ``Communication-Aware Motion Planning in Mobile Networks,'' \emph{IEEE Trans. Autom. Control}, vol. 56, no. 10, pp. 2478--2485, 2011, doi: 10.1109/TAC.2011.2164033.
+\bibitem{gordon2026}
+D. Gordon, M. B. Khan, T. Zugno, Y. Wu, M. Boban, X. An, and F. Dressler, ``Communication-aware Robot Motion Planning via Online Estimation of Radio Maps,'' in \emph{Proc. IEEE INFOCOM}, 2026, doi: 10.1109/INFOCOM59046.2026.11571354.
+\bibitem{ullah2025}
+I. Ullah, H. El Sayed, A. A. Dowhuszko, M. A. Khan, and J. H{\"a}m{\"a}l{\"a}inen, ``Trajectory Planning of Autonomous Vehicles to Ensure Target QoS Requirements in 6G Mobile Networks,'' \emph{IEEE Access}, vol. 13, pp. 37361--37369, 2025, doi: 10.1109/ACCESS.2025.3543204.
+\bibitem{zhang2026}
+X. Zhang, L. Xiong, P. Zhang, \emph{et al.}, ``5G communication delay dataset for cloud-based vehicle planning and control,'' \emph{Scientific Data}, vol. 13, Art. no. 878, 2026, doi: 10.1038/s41597-026-07239-7.
+\end{thebibliography}
+\end{document}
