@@ -6,6 +6,8 @@ on:
       - 'scripts/prepare_cicv5g.py'
       - 'scripts/run_real_v2x_support_study.py'
       - 'scripts/analyze_real_v2x_support_study.py'
+      - 'scripts/run_real_v2x_horizon_study.py'
+      - 'scripts/analyze_real_v2x_horizon_study.py'
       - 'tests/test_real_v2x.py'
       - '.github/workflows/real_v2x_research.yml'
   workflow_dispatch:
@@ -28,7 +30,13 @@ jobs:
         run: PYTHONPATH=src python scripts/run_real_v2x_support_study.py --data data/raw/cicv5g --output results/real_v2x_support
       - name: Analyze measured-data study
         run: python scripts/analyze_real_v2x_support_study.py --input results/real_v2x_support --bootstrap 1000
+      - name: Run causal horizon-adaptive fusion study
+        run: PYTHONPATH=src python scripts/run_real_v2x_horizon_study.py --data data/raw/cicv5g --output results/real_v2x_horizon
+      - name: Analyze causal horizon-adaptive fusion study
+        run: python scripts/analyze_real_v2x_horizon_study.py --input results/real_v2x_horizon --bootstrap 1000
       - uses: actions/upload-artifact@v4
         with:
-          name: real-v2x-support-study
-          path: results/real_v2x_support/
+          name: real-v2x-research-study
+          path: |
+            results/real_v2x_support/
+            results/real_v2x_horizon/
