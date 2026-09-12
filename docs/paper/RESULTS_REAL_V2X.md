@@ -53,7 +53,7 @@ P3 did not improve QoS over P2: P3-P2 measured-delay difference was +0.073 ms (p
 The measured replay therefore supports two separate conclusions: predictive P2 has modest decision value relative to a strong reactive baseline, while support-aware P3 primarily changes **inference validity/exposure**, not communication performance.
 
 ## Computational behavior
-The first unvectorized replay implementation required about 8.63 ms mean decision computation (p95 about 8.85 ms) on a hosted CI runner. That timing motivated a vectorized batched predictor/support implementation. Final timing should be taken from the validated vectorized workflow artifact. In either case, hosted-CI timing is implementation evidence only and is not a certified embedded real-time guarantee.
+The fully validated replay implementation required approximately 8.63 ms mean QoS-query-and-decision computation, with p95 approximately 8.85 ms, on the hosted GitHub Actions runner. This is implementation-level timing evidence only. It does not include a full embedded autonomy stack, has not been benchmarked on target vehicle hardware, and is therefore not presented as a certified end-to-end real-time guarantee.
 
 ## Negative results retained
 The following negative results are part of the contribution rather than omitted:
