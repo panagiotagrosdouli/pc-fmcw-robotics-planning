@@ -1,0 +1,76 @@
+protocol_version: part-b-final-v3
+study: predictive_connectivity_aware_receding_horizon_planning
+claim_boundary: "Controlled PC-FMCW-informed analytical simulation; not measured optical performance and not real-world autonomous-driving validation."
+
+protocol_history:
+  invalidated_v1_seed_range: [1000, 1049]
+  v1_reason: "Safety gate failed in two scenario families and min_snr_db was absent from the recorded episode schema."
+  invalidated_v2_development_seed_range: [3000, 3019]
+  v2_reason: "Straight maximum-braking candidates removed most collisions but failed the zero-no-candidate gate and retained overtake collisions for P1/P2. Fresh confirmatory seeds 4000-4049 and geometry seeds 5000-5019 were correctly quarantined/skipped."
+  v2_artifact_sha256: "4af3c8ad819271e655734d25afea5067650150541fafdce8bc2e7224e1491396"
+
+safety_development:
+  seed_range: [6000, 6019]
+  use: "Development only. Communication outcomes are not confirmatory evidence."
+  structural_change: "Emergency family combines maximum physical braking with every predeclared lateral offset; identical for P0-P4."
+  physical_collision_distance_m: 2.0
+  candidate_planning_safety_margins_m: [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
+  selection_rule: "Choose the minimum candidate margin with zero collision episodes and zero episodes containing no-candidate steps across every scenario/planner. If none passes, V3 confirmation must not run."
+  interpretation: "The selected margin expands predicted-target clearance only; it does not change the physical collision definition."
+
+confirmatory:
+  seed_start: 7000
+  seeds: 50
+  bootstrap_samples: 100000
+  bootstrap_rng_seed: 20260912
+  planners: [P0, P1, P2, P3, P4]
+  primary_comparisons:
+    - [P1, P2]
+    - [P2, P3]
+    - [P2, P4]
+  primary_communication_metrics:
+    - mean_outage_probability
+    - mean_snr_db
+    - min_snr_db
+    - mean_ber_model
+    - mean_goodput_bps_model
+  multiplicity_family: "Within each planner comparison across exactly five primary communication endpoints; seed is the independent inferential unit after averaging repeated scenario conditions."
+  hard_gate: "Before communication inference is accepted: zero collision episodes, zero episodes with no-candidate steps, exact fresh seeds 7000-7049, one development-selected safety margin, and all five frozen communication endpoints present."
+
+geometry_mechanism:
+  seed_range: [8000, 8019]
+  variants: [directional, distance_only]
+  safety_margin: "Use exactly the margin selected by the development-only rule."
+  claim_boundary: "Analytical mechanism evidence only; not measured optical validation."
+
+simulation:
+  dt_s: 0.1
+  history_steps: 8
+  horizon_steps: 20
+  observation_sigma_m: 0.20
+  prediction_sigma_m: 0.75
+  connectivity_weight: 1.0
+  p3_mc_samples: 32
+  collision_distance_m: 2.0
+  safety_envelope: "Nominal lateral/speed lattice plus maximum-braking lateral-evasion family using the same lateral offsets; identical for P0-P4."
+
+link:
+  upstream_reference_context: "PanagiotaGr/ISCAI_pc_fmcw"
+  carrier_frequency_hz: 193.4e12
+  chirp_bandwidth_hz: 10.0e9
+  chirp_duration_s: 10.0e-6
+  data_rate_bps: 1.0e9
+  reference_snr_db: 20.0
+  reference_distance_m: 10.0
+  pathloss_exponent: 2.0
+  beam_sigma_rad: 0.12
+  outage_threshold_db: 8.0
+  outage_softness_db: 2.0
+  geometry_model: "declared analytical simulation assumption; not a measured optical calibration"
+
+reporting:
+  retain_negative_results: true
+  oracle_connectivity_only: true
+  separate_safety_claims: true
+  no_candidate_is_hard_gate: true
+  packet_or_optical_measurement_claims: false
