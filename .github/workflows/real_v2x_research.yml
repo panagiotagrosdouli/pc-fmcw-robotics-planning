@@ -15,6 +15,7 @@ on:
       - '.github/workflows/real_v2x_research.yml'
   workflow_dispatch:
 
+# Keep this workflow as the reproducibility gate for the complete measured-data study.
 jobs:
   measured-data-smoke:
     runs-on: ubuntu-latest
