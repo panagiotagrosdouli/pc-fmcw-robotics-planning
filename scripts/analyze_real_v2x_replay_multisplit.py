@@ -1,21 +1,18 @@
 #!/usr/bin/env python3
 """Aggregate route-constrained real-V2X replay across grouped split seeds.
 
-Each seed contributes run-level planner metrics from a fully disjoint train/cal/test split.
-The aggregation first computes within-seed planner deltas and then summarizes those seed-level
-effects. This avoids pretending that repeated timestamps or overlapping runs are independent.
+The split seeds reuse the same finite collection of measured drives under different
+train/calibration/test assignments. They are therefore *not* independent statistical
+replicates. This script intentionally performs descriptive robustness analysis only:
+within-split run-level planner effects are computed first, then their direction/range is
+summarized across split assignments. No Wilcoxon test or confidence interval is reported
+across split seeds.
 """
 from __future__ import annotations
 import argparse
 from pathlib import Path
-import sys
 import numpy as np
 import pandas as pd
-from scipy.stats import wilcoxon
-
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
-from iscai.evaluation.statistics import holm_adjust
 
 METRICS = (
     "violation_fraction",
@@ -24,13 +21,6 @@ METRICS = (
     "unsupported_fraction",
 )
 COMPARISONS = (("P2", "P1"), ("P3", "P2"), ("P3", "P1"))
-
-
-def bootstrap_mean(x, n=10000, seed=2026):
-    x = np.asarray(x, float)
-    rng = np.random.default_rng(seed)
-    draws = rng.choice(x, size=(n, len(x)), replace=True).mean(axis=1)
-    return float(np.mean(x)), float(np.quantile(draws, .025)), float(np.quantile(draws, .975))
 
 
 def seed_effects(seed_dir: Path, seed: int):
@@ -54,7 +44,8 @@ def seed_effects(seed_dir: Path, seed: int):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--root", default="results/real_v2x_replay_multisplit")
-    ap.add_argument("--bootstrap", type=int, default=10000)
+    # Kept for backward-compatible workflow calls; no inferential bootstrap is performed.
+    ap.add_argument("--bootstrap", type=int, default=0)
     args = ap.parse_args()
     root = Path(args.root)
 
@@ -75,26 +66,28 @@ def main():
     summary = []
     for (metric, comparison), g in per_seed.groupby(["metric", "comparison"], sort=True):
         x = g.seed_mean_delta.dropna().to_numpy(float)
-        mean, lo, hi = bootstrap_mean(x, args.bootstrap)
-        try:
-            p = float(wilcoxon(x).pvalue) if np.any(x != 0) else 1.0
-        except ValueError:
-            p = 1.0
+        if not len(x):
+            continue
+        # Negative is the desired direction for delay, threshold violations and
+        # unsupported exposure. Mobility deviation is a cost, so positive means
+        # more mobility cost rather than "favorable" performance.
+        negative_fraction = float(np.mean(x < 0))
+        positive_fraction = float(np.mean(x > 0))
         summary.append({
             "metric": metric,
             "comparison": comparison,
-            "n_split_seeds": len(x),
-            "mean_seed_effect": mean,
-            "ci95_lo": lo,
-            "ci95_hi": hi,
-            "fraction_split_seeds_favorable": float(np.mean(x < 0)) if metric != "mean_mobility_deviation" else float(np.mean(x > 0)),
-            "wilcoxon_p": p,
-            "min_seed_effect": float(np.min(x)),
-            "max_seed_effect": float(np.max(x)),
+            "n_split_assignments": len(x),
+            "mean_split_effect": float(np.mean(x)),
+            "median_split_effect": float(np.median(x)),
+            "min_split_effect": float(np.min(x)),
+            "max_split_effect": float(np.max(x)),
+            "fraction_splits_negative": negative_fraction,
+            "fraction_splits_positive": positive_fraction,
+            "all_splits_same_nonzero_direction": bool(np.all(x < 0) or np.all(x > 0)),
+            "inference_status": "descriptive sensitivity only; split assignments reuse measured drives",
         })
 
     out = pd.DataFrame(summary)
-    out["holm_p"] = holm_adjust(out["wilcoxon_p"].to_numpy(float))
     out.to_csv(root / "multisplit_summary.csv", index=False)
     print(out.to_string(index=False))
 
