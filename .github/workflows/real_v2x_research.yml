@@ -8,6 +8,7 @@ on:
       - 'scripts/analyze_real_v2x_support_study.py'
       - 'scripts/run_real_v2x_horizon_study.py'
       - 'scripts/analyze_real_v2x_horizon_study.py'
+      - 'scripts/analyze_real_v2x_multisplit.py'
       - 'tests/test_real_v2x.py'
       - '.github/workflows/real_v2x_research.yml'
   workflow_dispatch:
@@ -34,9 +35,19 @@ jobs:
         run: PYTHONPATH=src python scripts/run_real_v2x_horizon_study.py --data data/raw/cicv5g --output results/real_v2x_horizon
       - name: Analyze causal horizon-adaptive fusion study
         run: python scripts/analyze_real_v2x_horizon_study.py --input results/real_v2x_horizon --bootstrap 1000
+      - name: Run grouped multi-split robustness
+        run: |
+          for seed in 0 1 2 3 4; do
+            PYTHONPATH=src python scripts/run_real_v2x_horizon_study.py \
+              --data data/raw/cicv5g \
+              --output results/real_v2x_multisplit/seed_${seed} \
+              --seed ${seed}
+          done
+          python scripts/analyze_real_v2x_multisplit.py --root results/real_v2x_multisplit
       - uses: actions/upload-artifact@v4
         with:
           name: real-v2x-research-study
           path: |
             results/real_v2x_support/
             results/real_v2x_horizon/
+            results/real_v2x_multisplit/
