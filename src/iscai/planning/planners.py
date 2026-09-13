@@ -29,6 +29,17 @@ def _target_xy(target_prediction):
     return target[:, :2]
 
 
+def _minimum_time_aligned_target_distance(candidate, target_xy):
+    """Return minimum time-aligned distance to the predicted moving target."""
+    if target_xy is None:
+        return float("inf")
+    target_xy = np.asarray(target_xy, dtype=float)
+    n = min(len(candidate.states), len(target_xy))
+    if n == 0:
+        return float("inf")
+    return float(np.min(np.linalg.norm(candidate.states[:n, :2] - target_xy[:n, :2], axis=1)))
+
+
 class _BasePlanner:
     def __init__(self, link_predictor=None, connectivity_weight=1.0, vehicle_params=None,
                  target_clearance=2.0):
@@ -37,17 +48,52 @@ class _BasePlanner:
         self.vehicle_params = vehicle_params
         self.target_clearance = float(target_clearance)
         self.last_feasibility_counts = None
+        self.last_emergency_fallback_used = False
 
     def _candidates(self, ego_state, obstacles=None, safety_target_prediction=None):
+        """Return hard-feasible candidates or one common emergency fallback.
+
+        V4 preserves the hard dynamic-target filter for normal operation.  If
+        that filter empties the lattice, all planners use the same deterministic
+        mobility-only fallback: among maximum-braking candidates that remain
+        road/speed/static feasible, choose the one maximizing minimum
+        time-aligned distance to the predicted target.  Communication is never
+        consulted by this fallback.  The event is explicitly exposed through
+        ``last_emergency_fallback_used`` for development and confirmatory audit.
+        """
+        target_xy = _target_xy(safety_target_prediction)
         candidates = generate_candidates(ego_state, params=self.vehicle_params)
-        candidates, counts = filter_with_diagnostics(
+        feasible, counts = filter_with_diagnostics(
             candidates,
-            target_xy=_target_xy(safety_target_prediction),
+            target_xy=target_xy,
             obstacles=obstacles,
             target_clearance=self.target_clearance,
         )
         self.last_feasibility_counts = counts
-        return candidates
+        self.last_emergency_fallback_used = False
+        if feasible:
+            return feasible
+
+        # Rebuild because the first filtering pass marks rejected candidates
+        # infeasible.  The fallback may relax only the predicted dynamic-target
+        # constraint; road, speed and static-obstacle constraints remain hard.
+        emergency = [c for c in generate_candidates(ego_state, params=self.vehicle_params)
+                     if np.isclose(c.target_speed, 0.0)]
+        static_feasible, _ = filter_with_diagnostics(
+            emergency,
+            target_xy=None,
+            obstacles=obstacles,
+            target_clearance=self.target_clearance,
+        )
+        if not static_feasible:
+            return []
+        best = max(
+            static_feasible,
+            key=lambda c: (_minimum_time_aligned_target_distance(c, target_xy),
+                           -abs(float(c.lateral_offset)), -float(c.horizon)),
+        )
+        self.last_emergency_fallback_used = True
+        return [best]
 
 
 class MobilityOnlyPlanner(_BasePlanner):
