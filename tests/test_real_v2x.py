@@ -65,3 +65,23 @@ def test_conditioned_spatial_map_separates_known_network_contexts():
     train=pd.concat([a,b],ignore_index=True); m=ConditionedSpatialKNNPredictor("delay_ms",n_neighbors=3,min_group_samples=5).fit(train)
     q=train.iloc[[0,20]].copy(); pred=m.predict(q)
     assert pred[0] < 15 and pred[1] > 35
+
+def test_future_measured_delay_is_outcome_only_for_candidate_scoring():
+    """Mutating hidden future truth must not change P1/P2/P3 candidate ranking."""
+    from iscai.connectivity.real_v2x.planner import score_candidates, PlannerMode
+    class Predictor:
+        def predict(self,df): return np.asarray(df["mock_pred"],float)
+    class Support:
+        def evaluate(self,df):
+            flag=np.asarray(df["supported"],bool)
+            return {"supported":flag,"nearest_distance_m":np.zeros(len(df)),"local_count":np.ones(len(df),int)}
+    base_a=pd.DataFrame({"mock_pred":[10.0],"supported":[True],"delay_lag1":[20.0],"delay_ms":[1.0]})
+    base_b=pd.DataFrame({"mock_pred":[30.0],"supported":[True],"delay_lag1":[20.0],"delay_ms":[1000.0]})
+    mutated_a=base_a.copy(); mutated_b=base_b.copy()
+    mutated_a["delay_ms"]=99999.0; mutated_b["delay_ms"]=-99999.0
+    original=[{"name":"a","df":base_a,"mobility_cost":0.0},{"name":"b","df":base_b,"mobility_cost":0.1}]
+    mutated=[{"name":"a","df":mutated_a,"mobility_cost":0.0},{"name":"b","df":mutated_b,"mobility_cost":0.1}]
+    for mode in (PlannerMode.P1, PlannerMode.P2, PlannerMode.P3):
+        first=score_candidates(original,Predictor(),Support(),mode=mode)[0]["name"]
+        second=score_candidates(mutated,Predictor(),Support(),mode=mode)[0]["name"]
+        assert first==second
