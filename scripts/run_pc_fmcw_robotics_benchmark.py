@@ -18,7 +18,8 @@ def _validate_args(a):
  if not np.isfinite(a.connectivity_weight) or a.connectivity_weight<0:raise SystemExit('--connectivity-weight must be finite and >= 0')
  if a.mc_samples<1:raise SystemExit('--mc-samples must be >= 1')
  if not np.isfinite(a.collision_distance_m) or a.collision_distance_m<0:raise SystemExit('--collision-distance-m must be finite and >= 0')
- if not np.isfinite(a.planning_safety_margin_m) or a.planning_safety_margin_m<0:raise SystemExit('--planning-safety-margin-m must be finite and >= 0')
+ planning_safety_margin_m=getattr(a,'planning_safety_margin_m',0.0)
+ if not np.isfinite(planning_safety_margin_m) or planning_safety_margin_m<0:raise SystemExit('--planning-safety-margin-m must be finite and >= 0')
 
 def main():
  p=argparse.ArgumentParser();p.add_argument('--seed-start',type=int,default=0);p.add_argument('--seeds',type=int,default=10);p.add_argument('--output-dir',type=Path,default=Path('results/pc_fmcw_sim'));p.add_argument('--dt',type=float,default=.1);p.add_argument('--history',type=int,default=8);p.add_argument('--horizon',type=int,default=20);p.add_argument('--observation-sigma-m',type=float,default=.20);p.add_argument('--prediction-sigma-m',type=float,default=.75);p.add_argument('--connectivity-weight',type=float,default=1.0);p.add_argument('--mc-samples',type=int,default=32);p.add_argument('--collision-distance-m',type=float,default=2.0);p.add_argument('--planning-safety-margin-m',type=float,default=0.0);a=p.parse_args();_validate_args(a);out=ROOT/a.output_dir;out.mkdir(parents=True,exist_ok=True)
