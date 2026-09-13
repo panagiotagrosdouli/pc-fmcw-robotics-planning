@@ -1,6 +1,5 @@
 name: Part B V3 safety-selected confirmatory
 
-# Execution-only touch: triggers the frozen V3 protocol through pull_request without changing scientific parameters.
 on:
   pull_request:
     paths:
