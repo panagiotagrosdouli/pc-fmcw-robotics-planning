@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
-"""Development-only safety study for the PC-FMCW planner.
+"""Historical V2-era development-only safety helper for the PC-FMCW planner.
 
-This script deliberately uses seeds 3000--3019, disjoint from both the historical
-and confirmatory ranges.  It exists to test safety-envelope changes before any
-new confirmatory seed range is frozen.  Do not report its connectivity effects
-as confirmatory evidence.
+This helper deliberately uses seeds 3000--3019 and predates the active V3 protocol.
+It is retained for provenance/reproducibility of the V2 development stage only.
+
+IMPORTANT: this is NOT the active V3 safety-margin selector. The frozen V3 protocol
+uses development seeds 6000--6019 and the predeclared margin grid in
+`.github/workflows/part_b_v3.yml`, then reserves fresh seeds 7000--7049 for
+confirmation only after the development hard gate passes.
+
+Do not report this script's connectivity effects as confirmatory evidence and do not
+use its defaults to tune or replace the frozen V3 protocol.
 """
 from __future__ import annotations
 import argparse

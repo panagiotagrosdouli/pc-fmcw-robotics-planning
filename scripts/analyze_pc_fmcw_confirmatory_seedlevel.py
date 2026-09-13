@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Predeclared seed-level confirmatory analysis for Part-B final-v1.
+"""Frozen seed-level confirmatory analysis for the PC-FMCW Paper-1 protocol.
 
 Each simulation seed contains repeated scenario conditions. The independent inferential
 unit is therefore the seed, not the individual scenario row. For every planner comparison
 and endpoint this script computes paired episode differences, averages them over scenarios
 within each seed, and performs bootstrap/Wilcoxon inference over the resulting seed-level
-effects.
+effects. Holm correction is applied separately to the five frozen endpoints within each
+predeclared planner-comparison family.
 """
 from __future__ import annotations
 import argparse
@@ -17,7 +18,7 @@ from scipy.stats import wilcoxon
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT/'src'))
 from iscai.evaluation.statistics import holm_adjust
 COMPARISONS=(("P1","P2"),("P2","P3"),("P2","P4"))
-# Must match configs/experiments/part_b_final.yaml exactly. Do not substitute robotics metrics.
+# Frozen Paper-1 communication endpoints. Do not substitute robotics/safety metrics.
 METRICS=("mean_outage_probability","mean_snr_db","min_snr_db","mean_ber_model","mean_goodput_bps_model")
 
 def bootstrap_mean(x,samples=100000,seed=2026):
