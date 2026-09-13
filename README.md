@@ -1,112 +1,130 @@
 # PC-FMCW Robotics Planning
 
-Predictive connectivity-aware autonomous motion planning from a PC-FMCW integrated sensing/communication architecture, complemented by a field-measured vehicular-QoS validation branch.
+Predictive connectivity-aware autonomous motion planning from a PC-FMCW integrated sensing/communication architecture, complemented by a separate field-measured vehicular-QoS research branch.
 
 ![Project overview](docs/project_overview.jpg)
 
-## What this repository has become
+## Research program
 
-This repository started as a robotics extension of the PC-FMCW laser-headlamp ISCAI architecture. It now contains **two deliberately separated research tracks** that share one decision-layer question: when is future communication information useful enough, and trustworthy enough, to influence autonomous vehicle motion?
+This repository now contains two deliberately separated studies that share one decision-layer question: **when is future communication information useful enough, and trustworthy enough, to influence autonomous vehicle motion?**
 
-The two tracks are not treated as interchangeable evidence. The first is a **PC-FMCW-informed controlled simulation study**. The second uses **field-measured vehicular communication data** to test the general predictive-planning principle under real QoS variation. Real V2X measurements are never presented as PC-FMCW optical measurements or as validation of the PC-FMCW propagation model.
+1. **Paper 1 — PC-FMCW perception-to-action robotics:** a technology-specific, model-based extension downstream of PC-FMCW sensing/tracking.
+2. **Paper 2 — Measurement-support-aware V2X planning:** field-measured vehicular QoS with whole-drive anti-leakage evaluation, horizon-dependent prediction, empirical-support auditing, and route-constrained offline replay.
 
-The intended publication split is therefore:
+The evidence is not interchangeable. CICV5G 5G measurements are never presented as PC-FMCW optical measurements or as validation of the analytical optical surrogate.
 
-1. **Paper 1 — PC-FMCW perception-to-action robotics:** technology-specific predictive connectivity-aware motion planning built downstream of PC-FMCW sensing/tracking.
-2. **Paper 2 — Measurement-support-aware V2X planning:** real-data predictive QoS planning with explicit anti-leakage, empirical-support, uncertainty, and counterfactual-validity analysis.
-
-This split is intentional rather than salami slicing: the two studies have different primary research questions, evidence sources, validity threats, and main contributions.
+The canonical claim status is tracked in [`docs/research/EVIDENCE_LEDGER.md`](docs/research/EVIDENCE_LEDGER.md) and [`docs/research/CLAIM_AUDIT.md`](docs/research/CLAIM_AUDIT.md).
 
 ---
 
-# Paper 1 — PC-FMCW Predictive Connectivity-Aware Robotics
+# Paper 1 — Predictive Connectivity-Aware PC-FMCW Robotics
 
 ## Research question
 
-Can future PC-FMCW-informed communication quality be used by an autonomous vehicle planner to change ego motion proactively, before connectivity degradation occurs, while preserving common hard safety constraints?
+Can prediction of future modeled PC-FMCW link quality beneficially influence vehicle motion before a reactive planner responds to connectivity degradation, while preserving a common hard safety envelope?
 
-## Where the robotics contribution starts
-
-The upstream system is treated as frozen as far as possible. Conceptually:
+## Perception-to-action bridge
 
 ```text
-PC-FMCW waveform / communication / sensing
+PC-FMCW waveform / sensing / communication
         ↓
 Target detection and tracking
         ↓
 Target-state history
         ↓
-Target-motion prediction
+Future target prediction
         ↓
 Candidate ego trajectories
         ↓
-Hard safety filtering
+Common hard safety filtering
         ↓
-Trajectory-conditioned future optical-link prediction
+Trajectory-conditioned future link prediction
         ↓
 Mobility + connectivity + risk evaluation
         ↓
 Receding-horizon ego-motion decision
 ```
 
-The contribution is therefore the **perception-to-action decision layer**, not a claim to redesign the PC-FMCW waveform, DPSK coding, coherent receiver, or upstream tracking front end.
+The robotics contribution begins at the sensing/tracking-to-motion bridge. It does not redesign the upstream waveform, DPSK coding, coherent receiver, or tracking front end.
 
-See [`docs/PC_FMCW_ROBOTICS_BRIDGE.md`](docs/PC_FMCW_ROBOTICS_BRIDGE.md), [`docs/PAPER_METHODS.md`](docs/PAPER_METHODS.md), and [`docs/PC_FMCW_PARAMETER_AUDIT.md`](docs/PC_FMCW_PARAMETER_AUDIT.md).
+## Planner ladder
 
-## P0–P4 planner family
+- **P0 — Mobility only:** communication ignored in the objective.
+- **P1 — Reactive:** uses current/myopic communication information.
+- **P2 — Predictive:** evaluates future modeled link quality along candidate trajectories.
+- **P3 — Predictive risk-aware:** augments P2 with uncertainty/risk-sensitive scoring.
+- **P4 — Simulator oracle reference:** may use simulator future truth for connectivity only; it receives no privileged collision-avoidance information.
 
-- **P0 — Mobility-only:** connectivity is ignored in the objective; the common predicted target is still used for safety.
-- **P1 — Reactive connectivity-aware:** uses current/myopic communication information.
-- **P2 — Predictive connectivity-aware:** scores candidate trajectories using predicted future communication state.
-- **P3 — Predictive risk-aware:** augments P2 with uncertainty/risk propagation.
-- **P4 — Oracle connectivity reference:** simulator future truth may be used only for the connectivity forecast; it is not allowed to give P4 privileged collision-avoidance information.
-
-All variants share candidate generation, vehicle limits, road constraints, static-obstacle filtering, and time-aligned dynamic-target safety. This makes P2-vs-P1 and P3-vs-P2 meaningful comparisons rather than comparisons between different safety systems.
+All planners share vehicle limits, candidate-generation rules, road/static-obstacle constraints, and dynamic-target safety logic.
 
 ## PC-FMCW-informed link model
 
-The planner queries an analytical/surrogate connectivity model using future relative ego/target geometry. The model exposes communication quantities such as modeled SNR, BER, outage, and goodput. Distance loss and directional/angular beam loss are represented separately.
+The planner evaluates an analytical/surrogate link model from future relative ego/target geometry and derives modeled quantities such as SNR, BER, outage probability, and goodput. Distance loss and directional/angular loss are represented separately.
 
-This is explicitly a **PC-FMCW-informed analytical connectivity model**, not a calibrated physical optical channel. Parameters traceable to the upstream study are kept distinct from robotics-side modeling assumptions. In particular, the repository does not infer visible-light propagation calibration from the upstream carrier-frequency entry; provenance and interpretation are documented in the parameter audit.
+This model is **not experimentally calibrated optical hardware**. Robotics-side parameters such as reference SNR, path-loss exponent, angular width, outage threshold, softness, and uncertainty scale are model assumptions unless independent calibration evidence is supplied.
 
-## Optical mechanism ablation
+The upstream source reports a nominal carrier near 193.4 THz, corresponding approximately to 1550 nm, despite “blue laser” terminology. The repository preserves that provenance inconsistency rather than silently inferring visible-blue photometry, eye safety, detector responsivity, or atmospheric behavior from it. See [`docs/PC_FMCW_PARAMETER_AUDIT.md`](docs/PC_FMCW_PARAMETER_AUDIT.md).
 
-A dedicated mechanism experiment compares:
+## Safety-first experiment history
+
+### V1 — invalidated as confirmatory
+
+The first 50-seed confirmatory attempt used seeds `1000..1049`. It produced interesting communication diagnostics but **failed the robotics safety requirements**: collision/no-candidate behavior was substantial and the captured artifact also omitted the frozen `min_snr_db` endpoint. V1 communication outcomes are therefore historical exploratory evidence only.
+
+### V2 — development safety gate failed
+
+V2 added common straight maximum-braking candidates and used separate development data. The development gate still did not establish the required zero-collision / zero-no-candidate protocol, so V2 communication outcomes are not promoted as confirmatory evidence.
+
+### V3 — active frozen protocol
+
+V3 adds communication-agnostic braking-plus-lateral-evasion emergency candidates shared identically by P0–P4 and separates the physical collision definition from a planning-only prediction margin.
+
+Development seeds: `6000..6019`.
+
+Predeclared planning-margin candidates:
 
 ```text
-default directional model = distance loss + angular/beam loss
-vs.
-distance-only model       = distance loss with angular penalty removed
+0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0 m
 ```
 
-The planner, scenarios, and seeds are held fixed. The purpose is to test whether the predictive-planning effect depends on the directional optical geometry rather than merely reproducing generic distance-aware motion planning. This is a mechanism ablation, not physical optical validation.
+The selector chooses the **minimum** margin for which every development episode satisfies:
 
-## Confirmatory protocol
+- zero collision episodes;
+- zero episodes with `no_candidate_steps > 0`.
 
-The paper protocol freezes a 50-seed confirmatory set (`1000..1049`). Historical exploratory/20-seed results are not allowed to override the frozen confirmatory evidence.
+Communication performance is not used to select the margin.
 
-For global confirmatory inference, repeated scenarios from one simulation seed are not treated as independent samples. Paired planner effects are first aggregated within seed; inference is then performed over independent seed-level effects using deterministic bootstrap confidence intervals, paired Wilcoxon tests where appropriate, and Holm correction across the predeclared comparison family.
+If no development margin passes, V3 confirmation is scientifically blocked and the reserved confirmatory seeds must not be used for tuning.
 
-The main confirmatory comparisons are P2 vs P1, P3 vs P2, and the oracle gap where scientifically meaningful. Scenario-level analyses remain useful diagnostics but are not used to inflate the confirmatory sample size.
+If development passes, the selected margin is frozen and fresh confirmatory seeds `7000..7049` run. Communication inference is permitted only if the fresh confirmatory set itself passes the hard gate:
+
+- zero collision episodes across every scenario/planner;
+- zero episodes with no-candidate steps.
+
+The five frozen primary communication endpoints are:
+
+- `mean_outage_probability`
+- `mean_snr_db`
+- `min_snr_db`
+- `mean_ber_model`
+- `mean_goodput_bps_model`
+
+For P2−P1, P3−P2, and P4−P2, scenario deltas are first averaged within seed. The independent inferential unit is the simulation seed. The confirmatory analysis reports seed-level effect sizes, deterministic paired-bootstrap confidence intervals, paired Wilcoxon tests where valid, and Holm correction across the five frozen endpoints within each comparison.
+
+## Directional-geometry mechanism ablation
+
+Fresh seeds `8000..8019` compare:
+
+```text
+directional surrogate = distance loss + angular/beam loss
+distance-only surrogate = angular penalty effectively removed
+```
+
+The main mechanism question is whether the P2-vs-P1 benefit materially depends on modeled directional geometry. This is a **model-mechanism ablation**, not physical optical validation.
 
 ## Paper-1 claim boundary
 
-What this branch can support, subject to the frozen results:
-
-- a closed-loop robotics extension downstream of PC-FMCW sensing/tracking;
-- predictive trajectory-conditioned communication evaluation;
-- safety-constrained receding-horizon motion selection;
-- analysis of prediction, risk, and oracle references under common safety information;
-- directional-vs-distance-only mechanism analysis;
-- controlled simulation evidence with reproducible paired statistics.
-
-What it must **not** claim:
-
-- measured PC-FMCW optical-channel validation;
-- real-road autonomous-driving validation;
-- that communication-aware planning itself is new;
-- that optical/FSO/ISAC trajectory optimization itself is new;
-- physical calibration that is not supported by upstream measurements.
+Paper 1 may support a technology-specific model-based perception-to-action contribution if the V3 safety gate and frozen inference complete successfully. It must not claim measured optical validation, real-road autonomous-driving validation, generic communication-aware-planning novelty, generic optical/FSO trajectory-planning novelty, or unmeasured physical calibration.
 
 ---
 
@@ -114,135 +132,142 @@ What it must **not** claim:
 
 ## Research question
 
-When can an autonomous planner trust a learned future-connectivity estimate from field measurements while evaluating motion decisions that were not necessarily observed in the original drive?
+When can an autonomous planner trust predicted connectivity from field measurements when evaluating counterfactual future motion?
 
-This question arose from a fundamental counterfactual problem. A drive dataset records QoS along the trajectory that was actually driven. A planner asks what would happen under alternative future motion. Those are not automatically equivalent. The repository therefore treats **measurement support and counterfactual validity as first-class experimental variables** rather than silently assigning measured truth to unobserved locations.
+A logged drive contains QoS only along the path actually traversed. The project therefore treats anti-leakage, empirical measurement support, and outcome validity as first-class variables rather than assuming arbitrary off-route ground truth.
 
-## Real dataset
+## Dataset
 
-The implemented real-data branch uses CICV5G field measurements. The downloaded research snapshot contains:
+The primary real dataset is CICV5G. The automated study uses:
 
 - **38 measured runs/drives**;
-- **43,045 synchronized samples** used by the repository pipeline;
-- vehicle/trajectory context and measured communication variables used for QoS prediction and replay.
+- **43,045 synchronized samples**;
+- measured delay and wireless/vehicle context including position, heading, velocity, SINR, RSRP, and network/context metadata.
 
-Raw measurements are not fabricated or committed as synthetic replacements. Dataset provenance, acquisition, preprocessing, split manifests, and generated experiment artifacts are kept separate from the PC-FMCW simulation branch.
+The primary protocol uses whole-run train/calibration/test separation. Random row splitting is not an acceptable substitute.
 
-## Anti-leakage design
+## One-step prediction: negative result retained
 
-Wireless/vehicular time series are highly autocorrelated. Random row-level splitting can therefore produce misleadingly strong prediction results. The real-data pipeline uses grouped/whole-drive separation and explicitly evaluates prediction under held-out runs.
+On the primary grouped split, delay prediction is approximately:
 
-The project uses multiple grouped train/calibration/test assignments as **sensitivity analysis**. Because those assignments reuse the same finite collection of drives, the five split assignments are not treated as five independent experimental populations.
+| Model | MAE |
+|---|---:|
+| Persistence/current QoS | **7.419 ms** |
+| Conditioned spatial kNN | 12.344 ms |
+| Random Forest | 9.291 ms |
+| ExtraTrees | 8.950 ms |
 
-## Lightweight QoS prediction
+Thus the tested learned spatial/tree predictors do **not** beat persistence at one step. The research question is therefore horizon-dependent decision value, not generic ML superiority.
 
-The project intentionally benchmarks transparent lightweight predictors rather than assuming that a large neural model is necessary. Baselines include persistence and simple spatial/data-driven predictors. A key empirical observation is that **current-value persistence is a strong short-horizon baseline**; naive machine-learning models do not automatically beat it.
+## Horizon-dependent predictive value
 
-The scientifically relevant question is therefore not simply whether QoS can be predicted, but whether prediction provides useful information at the **decision horizon** where an autonomous vehicle can alter its trajectory.
+A calibration-only horizon-adaptive persistence/spatial fusion becomes useful at longer horizons. Across five grouped split assignments, all five assignments improve over persistence at:
 
-Planning-horizon experiments show that predictive value becomes more meaningful at longer future horizons than at the immediate next sample. The repository keeps predictor evaluation separate from planner evaluation so that a good regression score is not automatically interpreted as decision benefit.
+- 20 steps (~1.1 s): mean improvement ~1.463 ms;
+- 50 steps (~2.8 s): ~2.510 ms;
+- 100 steps (~5.5 s): ~2.621 ms.
+
+The same 38 drives are reused across split assignments. These are **descriptive sensitivity analyses**, not five independent replications.
 
 ## Empirical measurement support
 
-For every candidate query the pipeline can audit whether the requested state lies in a region supported by training measurements. Diagnostics include quantities such as nearest-training-measurement distance, local support/density, and unsupported/OOD indicators where justified.
+Support is estimated from training coordinates only. Primary support-stratified delay MAE / empirical interval coverage is approximately:
 
-This lets the planner distinguish:
+| Nearest training support | Delay MAE | Coverage |
+|---|---:|---:|
+| <=1 m | 6.98 ms | 0.888 |
+| 1–5 m | 8.51 ms | 0.841 |
+| 5–15 m | 10.47 ms | 0.761 |
 
-```text
-prediction in well-supported measured region
-from
-prediction requiring substantial extrapolation
-```
+The relationship is context dependent rather than universally monotone within every drive. Low empirical support is treated as a reliability-risk indicator, not a universal distance-to-error law.
 
-The analysis found that support-related error is context dependent rather than a universal monotonic law: degradation is concentrated in particular low-support contexts/segments. The paper therefore does not claim that prediction error must always increase monotonically with distance from training data.
+Residual split-conformal intervals are reported through empirical coverage. They are not described as calibrated event probabilities under grouped distribution shift.
 
 ## Route-constrained measured replay
 
-To avoid fabricated counterfactual ground truth, the strongest real-data planner experiment uses a route-constrained measured-support replay. P0/P1/P2/P3 choose among admissible future decisions derived from measured route support, while future measured QoS is revealed only after the planner's decision for outcome evaluation.
+Candidate future states correspond to states actually traversed later on the same held-out measured route. Future measured delay is hidden from P0–P3 and revealed only after candidate selection for outcome evaluation.
 
-This preserves the causal information boundary: a deployable planner cannot inspect future test measurements before choosing.
+This avoids fabricating measured QoS at arbitrary unobserved positions. It remains **offline measured-route replay**, not closed-loop real-vehicle validation.
 
-## Main measured-V2X finding
+Measured-data planners:
 
-Across five grouped split assignments, the P2-minus-P1 difference in mean measured delay was:
+- **P0:** mobility/reference baseline;
+- **P1:** reactive/current-QoS baseline;
+- **P2:** predictive mean-QoS utility;
+- **P3:** predictive QoS with uncertainty/support-aware validity control.
+
+P4 is not used because exact arbitrary counterfactual measured ground truth is unavailable.
+
+## Primary replay
+
+For the primary nine-run held-out split:
+
+| Planner | Mean delay | >50 ms violation | Changed fraction | Unsupported fraction | Mobility deviation |
+|---|---:|---:|---:|---:|---:|
+| P0 | ~11.7659 ms | ~0.01657 | 0 | ~0.10834 | 0 |
+| P1 | ~11.7659 ms | ~0.01657 | 0 | ~0.10834 | 0 |
+| P2 | ~10.9737 ms | ~0.01378 | ~0.12043 | ~0.10561 | ~0.06022 |
+| P3 | ~11.0468 ms | ~0.01412 | ~0.13750 | ~0.08725 | ~0.07074 |
+
+P2-P1 mean measured-delay delta is about `-0.792 ms`. Its raw paired Wilcoxon p-value is `0.046875`, but after the declared Holm correction across the 12 replay comparison/metric tests the adjusted p-value is about `0.28125`. It is therefore **exploratory effect-size evidence, not confirmatory significance**.
+
+P3-P2 does not show stable QoS superiority. Its consistent role is reducing unsupported decision exposure, at additional mobility deviation. The primary unsupported-exposure raw p-value also does not survive Holm correction.
+
+## Multi-split replay robustness
+
+P2-P1 measured-delay deltas across five grouped split assignments are approximately:
 
 ```text
--0.792 ms
--1.253 ms
--0.069 ms
--0.263 ms
--0.130 ms
+-0.791924
+-1.253015
+-0.069188
+-0.262972
+-0.129775 ms
 ```
 
-The direction is therefore favorable to predictive P2 in **5/5 split assignments**. The corresponding >50-ms experimental violation fraction also moved in the favorable direction across all five assignments.
+All 5/5 are negative; descriptive mean is approximately `-0.501375 ms`.
 
-These five split effects are reported as robustness/sensitivity evidence, not as five statistically independent replications.
+P2-P1 >50 ms violation-fraction deltas are also negative in 5/5 assignments, descriptive mean approximately `-0.002239`.
 
-## What P3 actually contributes
+P3-P2 unsupported-fraction deltas are negative in 5/5 assignments, descriptive mean approximately `-0.027954`.
 
-The experiments do **not** support a blanket claim that P3 improves communication QoS over P2. Its delay effect changes across split assignments.
+P3-P2 measured-delay effects have mixed sign and mean near zero.
 
-What is consistent is a reduction in unsupported-selection exposure. The interpretation is therefore deliberately separated:
+Therefore the evidence-backed interpretation is:
 
 ```text
 P2 → predictive communication utility
-P3 → empirical-support / validity-risk control
+P3 → empirical-support / inference-validity control
 ```
 
-This negative/nuanced result is retained rather than forcing a monotonic `P3 > P2 > P1 > P0` story.
+No inferential test treats the five reused-drive split assignments as independent n=5 observations.
 
-## Statistical discipline
+## Computational scope
 
-The real-data analysis uses held-out run/drive units rather than treating thousands of correlated timestamps as thousands of independent experiments. Primary paired tests use bootstrap effect intervals and paired non-parametric testing where appropriate, with Holm multiplicity correction for the declared family.
-
-Multiple grouped split assignments are used to assess directional robustness and sensitivity to partition choice, not to manufacture a larger independent sample size.
+The vectorized replay implementation has shown microsecond-scale batched QoS/support evaluation and candidate scoring in hosted CI. This is an implementation-level practicality result only; it is not an embedded or end-to-end real-time vehicle claim.
 
 ## Paper-2 claim boundary
 
-What this branch can support:
-
-- lightweight future-QoS prediction from field-measured vehicular communication data;
-- anti-leakage whole-drive evaluation;
-- decision-horizon analysis rather than one-step-only prediction;
-- predictive-vs-reactive route-constrained planning under measured outcomes;
-- explicit empirical-support auditing for counterfactual queries;
-- support/risk-aware planning behavior;
-- reproducible real-data replay evidence.
-
-What it must **not** claim:
-
-- that CICV5G validates the PC-FMCW optical model;
-- arbitrary real-world QoS ground truth at unmeasured counterfactual locations;
-- real-road closed-loop autonomous-driving validation;
-- that generic radio-map or communication-aware planning is novel;
-- that P3 consistently improves QoS over P2;
-- independent replication from split assignments that reuse the same drives.
-
-Detailed paper-ready material is under [`docs/paper/`](docs/paper/), including contributions, methods, experimental setup, results, discussion, limitations, related work, and the dual-branch evidence matrix.
+Paper 2 may support field-measured, leakage-safe, horizon-dependent, support-aware predictive-planning methodology. It must not claim that CICV5G validates PC-FMCW optics, that route replay is real-road autonomy, that P3 consistently improves QoS, that split assignments are independent replication, or that generic communication-aware/radio-map planning is novel.
 
 ---
 
-# Why two papers rather than one oversized paper?
-
-The common decision layer is valuable, but the evidence answers two different scientific questions.
+# Why two papers?
 
 | | Paper 1 | Paper 2 |
 |---|---|---|
-| Primary domain | PC-FMCW / optical ISCAI robotics | Measured vehicular V2X / telecom-robotics |
-| Evidence | Controlled seeded simulation | Field-measured QoS + offline replay |
-| Main question | Can PC-FMCW-informed future connectivity improve ego-motion decisions? | When can measured-data connectivity prediction be trusted for planning? |
-| Main validity threat | Fidelity of analytical optical surrogate | Leakage and unsupported counterfactual extrapolation |
-| Key mechanism | Directional geometry + future target/link prediction | QoS horizon prediction + empirical measurement support |
-| Core comparison | P2 vs P1; P3 vs P2; mechanism/oracle analyses | Predictive P2 vs reactive P1; support-aware P3 vs P2 |
-| Claim level | Model-based PC-FMCW-informed robotics | Field-measured communication replay |
+| Domain | PC-FMCW / optical ISCAI robotics | Measured vehicular V2X |
+| Evidence | Controlled seeded model-based simulation | Field-measured QoS + offline route replay |
+| Main question | Does future PC-FMCW-informed connectivity improve motion decisions? | When are measured-data connectivity predictions valid enough for planning? |
+| Primary validity threat | Safety + fidelity of analytical optical surrogate | Leakage + unsupported counterfactual extrapolation |
+| Key mechanism | Future directional relative geometry | Horizon prediction + empirical support |
+| Primary comparison | P2 vs P1; P3 vs P2; P4/reference; geometry ablation | P2 vs P1; P3 support-validity tradeoff |
 
-The papers can cross-reference the shared planning architecture, but each must retain its own primary hypothesis, experimental evidence, limitations, and contribution statement.
+The papers may cross-reference the common planning abstraction, but their hypotheses, evidence, validity threats, and conclusions remain separate.
 
 ---
 
-# Repository-wide planning pipeline
-
-The common abstraction is:
+# Repository-wide pipeline
 
 ```text
 state / sensing history
@@ -255,7 +280,7 @@ common hard safety filter
         ↓
 future communication estimate
         ↓
-communication uncertainty / support assessment
+uncertainty / empirical-support assessment
         ↓
 trajectory scoring
         ↓
@@ -264,72 +289,62 @@ first-control execution
 replan
 ```
 
-The communication-estimation block changes between the two papers:
+Communication estimation differs by branch:
 
-- **PC-FMCW branch:** relative geometry → PC-FMCW-informed analytical optical QoS.
-- **Real-V2X branch:** causal measurement history/context → learned future QoS + empirical support.
-
-This separation allows us to study which conclusions are technology-specific and which belong to the autonomous decision layer itself.
-
-# What has been implemented
-
-The repository now includes the following research infrastructure:
-
-- closed-loop P0–P4 planner benchmark;
-- target prediction and trajectory-conditioned connectivity evaluation;
-- common dynamic/static safety filtering;
-- PC-FMCW-informed SNR/BER/outage/goodput modeling;
-- directional optical geometry modeling;
-- distance-only optical mechanism ablation;
-- frozen 50-seed confirmatory protocol;
-- seed-level confirmatory statistical analysis to avoid scenario pseudoreplication;
-- bootstrap confidence intervals, paired Wilcoxon testing, and Holm correction;
-- real CICV5G dataset acquisition/preprocessing pipeline;
-- whole-drive anti-leakage splits;
-- lightweight QoS predictor benchmarking;
-- planning-horizon sweeps;
-- uncertainty/calibration machinery;
-- empirical spatial-support diagnostics;
-- route-constrained measured-QoS replay;
-- P0/P1/P2/P3 real-data planner comparison;
-- five grouped split sensitivity assignments;
-- decision-time measurement;
-- negative-result and failure-mode reporting;
-- provenance manifests, deterministic seeds, tests, CI workflows, and machine-readable outputs;
-- literature/gap analysis and explicit claim audits;
-- paper-ready real-V2X methods/results/discussion/limitations documents;
-- cross-branch evidence and publication-positioning documents.
+- **PC-FMCW:** relative geometry → analytical PC-FMCW-informed QoS surrogate.
+- **Real V2X:** causal measurement history/context → learned future QoS + empirical support.
 
 # Reproduction
 
-## Core PC-FMCW benchmark
+## Environment and tests
 
 ```bash
 pip install -r requirements.txt
+pytest -q
+```
+
+Normal CI covers Python 3.11/3.12 smoke and integration paths plus transformer import.
+
+## PC-FMCW smoke benchmark
+
+```bash
 python scripts/run_pc_fmcw_robotics_benchmark.py --seeds 10
 ```
 
-The frozen paper protocol and exact large-seed execution instructions are documented in [`docs/PAPER_FREEZE.md`](docs/PAPER_FREEZE.md) and [`docs/PART_B_COMPLETION_PLAN.md`](docs/PART_B_COMPLETION_PLAN.md).
+The publication protocol is defined by the V3 workflow/config and must not be replaced by ad-hoc seed selection. See `.github/workflows/part_b_v3.yml`, `configs/experiments/part_b_final_v3.yaml`, and the Paper-1 manuscript/build documentation.
 
-## Real-V2X research branch
+## Real V2X
 
-See the real-data experiment configuration and scripts in the repository together with [`docs/paper/EXPERIMENTAL_SETUP_REAL_V2X.md`](docs/paper/EXPERIMENTAL_SETUP_REAL_V2X.md) and [`docs/paper/METHODS_REAL_V2X.md`](docs/paper/METHODS_REAL_V2X.md). Dataset provenance and split rules must be preserved when reproducing results; row-randomized train/test splitting is not an acceptable substitute.
+Key scripts include:
 
-# Research integrity and reporting rules
+```text
+scripts/prepare_cicv5g.py
+scripts/run_real_v2x_study.py
+scripts/run_real_v2x_horizon_study.py
+scripts/run_real_v2x_multisplit.py
+scripts/run_real_v2x_replay_planning.py
+scripts/analyze_real_v2x_replay.py
+scripts/analyze_real_v2x_replay_multisplit.py
+```
 
-Before turning any output into a manuscript claim, use [`docs/EXPERIMENT_REPORTING_CHECKLIST.md`](docs/EXPERIMENT_REPORTING_CHECKLIST.md) and the paper evidence/claim documents.
+Preserve dataset provenance and whole-run splitting when reproducing results.
 
-The repository follows four evidence labels:
+# Research-integrity rules
 
-- **UPSTREAM:** directly traceable to the original PC-FMCW study.
-- **MODELED:** generated by the PC-FMCW-informed analytical/simulation branch.
-- **MEASURED:** directly present in the real vehicular dataset.
+Evidence labels must not be silently mixed:
+
+- **UPSTREAM:** traceable to the source PC-FMCW study;
+- **MODELED:** produced by the analytical/simulation branch;
+- **MEASURED:** present directly in the vehicular dataset;
 - **LEARNED/DERIVED:** predicted or computed from measured/model inputs.
 
-These categories must not be silently mixed.
+A failed infrastructure/test job is repaired. A scientific negative result is retained. A protocol failure may be redesigned using development data only, followed by completely fresh confirmatory seeds/data. Reserved confirmatory evidence is never tuned after inspection merely to obtain significance.
 
 # Current status
 
-**Dual-paper research framework implemented and integrated on `main`.** The real-V2X branch has completed measured-data prediction, support-aware replay, multi-split robustness, and multiplicity-aware analysis. The PC-FMCW branch contains the frozen 50-seed confirmatory protocol and optical directional-mechanism ablation; final manuscript numerical claims must use the frozen confirmatory artifact once complete rather than historical exploratory numbers.
+- Normal `main` CI is green after the CLI backward-compatibility repair.
+- Real-V2X prediction, horizon, support, replay, multi-split sensitivity, and multiplicity-aware analyses are complete and audited.
+- V1 PC-FMCW confirmatory evidence is invalidated for final claims; V2 did not close the development safety gate.
+- The frozen V3 safety-selected protocol is the active Paper-1 experiment. Final Paper-1 communication claims remain gated until the development selector, fresh 7000–7049 hard safety gate, seed-level five-endpoint Holm analysis, and fresh 8000–8019 geometry ablation complete.
 
-The repository should now be read as a reproducible research program rather than a single planner demo: **Paper 1 studies PC-FMCW-informed perception-to-action planning; Paper 2 studies trustworthy predictive connectivity planning with field-measured vehicular QoS.**
+This repository should be read as a reproducible two-paper research program, not as a single planner demo.
