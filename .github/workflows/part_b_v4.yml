@@ -1,0 +1,138 @@
+name: Part B V4 structural safety protocol
+
+on:
+  pull_request:
+    paths:
+      - 'src/iscai/planning/planners.py'
+      - 'tests/test_v4_emergency_fallback.py'
+      - '.github/workflows/part_b_v4.yml'
+  workflow_dispatch:
+
+jobs:
+  development:
+    name: V4 fresh development seeds 9000-9019
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    outputs:
+      gate_passed: ${{ steps.gate.outputs.passed }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11', cache: pip}
+      - name: Install dependencies
+        run: python -m pip install numpy scipy pandas scikit-learn pytest
+      - name: Test structural fallback invariants
+        run: python -m pytest -q tests/test_v4_emergency_fallback.py
+      - name: Run fresh development study
+        run: |
+          python scripts/run_pc_fmcw_robotics_benchmark.py \
+            --seed-start 9000 --seeds 20 \
+            --dt 0.1 --history 8 --horizon 20 \
+            --observation-sigma-m 0.20 --prediction-sigma-m 0.75 \
+            --connectivity-weight 1.0 --mc-samples 32 \
+            --collision-distance-m 2.0 --planning-safety-margin-m 0.0 \
+            --output-dir results/part_b_v4_development
+          git rev-parse HEAD > results/part_b_v4_development/commit_sha.txt
+      - id: gate
+        name: Apply frozen V4 development safety gate
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os, pandas as pd
+          df=pd.read_csv('results/part_b_v4_development/episodes.csv')
+          collisions=int(df.collision_indicator.sum())
+          no_candidate=int((df.no_candidate_steps>0).sum())
+          print(f'collisions={collisions}; episodes_with_no_candidate={no_candidate}')
+          passed=(collisions==0 and no_candidate==0)
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f: f.write(f'passed={str(passed).lower()}\n')
+          if not passed: print('V4 DEVELOPMENT NEGATIVE: confirmatory seeds remain quarantined')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: part-b-v4-development, path: results/part_b_v4_development/, retention-days: 90}
+
+  confirmatory-shard:
+    name: V4 confirmatory ${{ matrix.seed_start }}-${{ matrix.seed_end }}
+    needs: development
+    if: ${{ needs.development.outputs.gate_passed == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {seed_start: 10000, seed_end: 10009, seeds: 10}
+          - {seed_start: 10010, seed_end: 10019, seeds: 10}
+          - {seed_start: 10020, seed_end: 10029, seeds: 10}
+          - {seed_start: 10030, seed_end: 10039, seeds: 10}
+          - {seed_start: 10040, seed_end: 10049, seeds: 10}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11', cache: pip}
+      - name: Install dependencies
+        run: python -m pip install numpy scipy matplotlib pandas pyyaml scikit-learn
+      - name: Run quarantined confirmatory shard
+        run: |
+          python scripts/run_pc_fmcw_robotics_benchmark.py \
+            --seed-start ${{ matrix.seed_start }} --seeds ${{ matrix.seeds }} \
+            --dt 0.1 --history 8 --horizon 20 \
+            --observation-sigma-m 0.20 --prediction-sigma-m 0.75 \
+            --connectivity-weight 1.0 --mc-samples 32 \
+            --collision-distance-m 2.0 --planning-safety-margin-m 0.0 \
+            --output-dir results/part_b_v4_shard
+          git rev-parse HEAD > results/part_b_v4_shard/commit_sha.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: part-b-v4-shard-${{ matrix.seed_start }}-${{ matrix.seed_end }}
+          path: results/part_b_v4_shard/
+          retention-days: 90
+
+  confirmatory-aggregate:
+    name: V4 aggregate frozen confirmatory evidence
+    needs: [development, confirmatory-shard]
+    if: ${{ needs.development.outputs.gate_passed == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11', cache: pip}
+      - name: Install analysis dependencies
+        run: python -m pip install numpy scipy matplotlib pandas pyyaml scikit-learn
+      - uses: actions/download-artifact@v4
+        with: {pattern: 'part-b-v4-shard-*', path: results/shards}
+      - name: Aggregate and verify quarantine
+        run: |
+          mkdir -p results/part_b_final_v4
+          python - <<'PY'
+          from pathlib import Path
+          import pandas as pd
+          files=sorted(Path('results/shards').glob('*/episodes.csv'))
+          if len(files)!=5: raise SystemExit(f'Expected 5 shards, found {len(files)}')
+          df=pd.concat([pd.read_csv(p) for p in files],ignore_index=True)
+          seeds=sorted(df.seed.unique().tolist())
+          if seeds!=list(range(10000,10050)): raise SystemExit(f'V4 seed mismatch: {seeds}')
+          df.to_csv('results/part_b_final_v4/episodes.csv',index=False)
+          PY
+          git rev-parse HEAD > results/part_b_final_v4/commit_sha.txt
+          python --version > results/part_b_final_v4/python_version.txt
+          python -m pip freeze > results/part_b_final_v4/pip_freeze.txt
+      - name: Hard safety gate before communication inference
+        run: |
+          python - <<'PY'
+          import pandas as pd
+          df=pd.read_csv('results/part_b_final_v4/episodes.csv')
+          collisions=int(df.collision_indicator.sum())
+          no_candidate=int((df.no_candidate_steps>0).sum())
+          print(f'collisions={collisions}; episodes_with_no_candidate={no_candidate}')
+          if collisions or no_candidate: raise SystemExit('V4 HARD SAFETY GATE FAILED; communication inference prohibited')
+          required={'mean_outage_probability','mean_snr_db','min_snr_db','mean_ber_model','mean_goodput_bps_model'}
+          missing=required-set(df.columns)
+          if missing: raise SystemExit(f'Missing frozen endpoints: {sorted(missing)}')
+          PY
+      - name: Seed-level confirmatory inference
+        run: python scripts/analyze_pc_fmcw_confirmatory_seedlevel.py --input results/part_b_final_v4/episodes.csv --output-dir results/part_b_final_v4 --bootstrap-samples 100000
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: part-b-final-v4-confirmatory, path: results/part_b_final_v4/, retention-days: 90}
