@@ -15,13 +15,30 @@ def _candidate(points):
 
 
 def test_p4_oracle_forecast_cannot_bypass_common_safety_prediction(monkeypatch):
+    """P4 may use truth for connectivity scoring, never for hard safety.
+
+    V5 legitimately falls back to a one-step emergency action when the nominal
+    lattice is rejected.  Make that emergency action unsafe under the common
+    safety prediction but safe under the oracle trajectory.  A correct P4 must
+    therefore still return no candidate.
+    """
     candidate = _candidate([[0, 0], [1, 0], [2, 0]])
+    emergency = _candidate([[0, 0], [0.5, 0]])
+    emergency.controls = np.array([[-4.0, 0.0]])
+    emergency.horizon = 0.1
     monkeypatch.setattr(planners_module, "generate_candidates", lambda *args, **kwargs: [candidate])
+    monkeypatch.setattr(
+        planners_module,
+        "generate_emergency_one_step_candidates",
+        lambda *args, **kwargs: [emergency],
+    )
 
     planner = OracleConnectivityPlanner(LinkPredictor(), target_clearance=0.5)
     ego = np.array([0.0, 0.0, 0.0, 5.0])
     oracle_target = np.array([[20.0, 20.0], [20.0, 20.0], [20.0, 20.0]])
-    common_safety_target = np.array([[0.0, 0.0], [1.0, 0.0], [2.0, 0.0]])
+    # Nominal candidate is unsafe at every aligned state; the V5 emergency next
+    # state [0.5, 0] is also unsafe against the first future common-safety state.
+    common_safety_target = np.array([[0.5, 0.0], [1.0, 0.0], [2.0, 0.0]])
 
     result = planner.plan(
         ego,
@@ -34,3 +51,4 @@ def test_p4_oracle_forecast_cannot_bypass_common_safety_prediction(monkeypatch):
     assert result.candidate is None
     assert np.isinf(result.score)
     assert result.forecast is None
+    assert planner.last_emergency_fallback_used is False
