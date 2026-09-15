@@ -43,6 +43,15 @@ def _controls_for_lateral_profile(state, lateral_offset, horizon, acceleration, 
     return controls
 
 
+def _emergency_steering_limit(state: np.ndarray, params: VehicleParams) -> float:
+    """Return steering magnitude satisfying both steering and lateral-acceleration limits."""
+    speed = abs(float(np.asarray(state, dtype=float)[3]))
+    if speed <= 1e-9:
+        return float(params.max_steering)
+    lateral_limit = np.arctan(params.max_lateral_accel * params.wheelbase / (speed**2))
+    return float(min(params.max_steering, abs(lateral_limit)))
+
+
 def generate_emergency_one_step_candidates(
     state: np.ndarray,
     steering_values=None,
@@ -50,20 +59,20 @@ def generate_emergency_one_step_candidates(
 ) -> list[CandidateTrajectory]:
     """Generate communication-independent emergency actions for one control interval.
 
-    These candidates deliberately contain exactly one bounded control action.
-    They are evaluated only against the immediately following road/static/dynamic
-    state and are replanned on the next simulation step.  This avoids treating a
-    long-horizon emergency rollout as a prerequisite for taking a safe action now.
+    Every candidate uses maximum physical braking and steering bounded by both the
+    steering-angle and lateral-acceleration limits. The action is evaluated only
+    over the next executed interval and the planner replans immediately after it.
     """
     params = params or VehicleParams()
     state = np.asarray(state, dtype=float)
+    steering_limit = _emergency_steering_limit(state, params)
     if steering_values is None:
-        steering_values = (-params.max_steering, -0.5 * params.max_steering,
-                           0.0, 0.5 * params.max_steering, params.max_steering)
+        steering_values = (-steering_limit, -0.5 * steering_limit,
+                           0.0, 0.5 * steering_limit, steering_limit)
     candidates = []
     for steering in steering_values:
-        control = np.array([[params.min_accel,
-                             np.clip(steering, -params.max_steering, params.max_steering)]], dtype=float)
+        bounded_steering = np.clip(steering, -steering_limit, steering_limit)
+        control = np.array([[params.min_accel, bounded_steering]], dtype=float)
         states = rollout(state, control, params)
         candidates.append(CandidateTrajectory(
             states=states,
