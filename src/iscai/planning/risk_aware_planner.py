@@ -29,6 +29,9 @@ class RiskAwarePredictivePlanner(_BasePlanner):
         candidates = self._candidates(ego_state, obstacles, safety_target)
         if not candidates:
             return PlanningResult(None, float("inf"), None)
+        if self.last_emergency_fallback_used:
+            candidate = candidates[0]
+            return PlanningResult(candidate, mobility_cost(candidate, reference_speed), None)
         best = None
         base_rng = np.random.default_rng(self.random_seed)
         candidate_seeds = base_rng.integers(0, np.iinfo(np.uint32).max, size=len(candidates), dtype=np.uint32)

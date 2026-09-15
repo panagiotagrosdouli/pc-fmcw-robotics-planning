@@ -1,0 +1,93 @@
+name: Part B V5 development safety gate
+
+on:
+  pull_request:
+    paths:
+      - 'src/iscai/planning/**'
+      - 'src/iscai/simulation/pc_fmcw_benchmark.py'
+      - 'scripts/run_pc_fmcw_robotics_benchmark.py'
+      - 'configs/experiments/part_b_final_v5.yaml'
+      - '.github/workflows/part_b_v5.yml'
+      - 'tests/test_v5_one_step_emergency.py'
+      - 'tests/test_oracle_fairness.py'
+  workflow_dispatch:
+
+jobs:
+  tests:
+    name: V5 prerequisite tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11', cache: pip}
+      - name: Install dependencies
+        run: python -m pip install numpy scipy matplotlib pandas pyyaml pytest scikit-learn h5py huggingface_hub
+      - name: Run full test suite
+        run: python -m pytest
+
+  development:
+    name: V5 fresh development seeds 11000-11019
+    needs: tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11', cache: pip}
+      - name: Install dependencies
+        run: python -m pip install numpy scipy matplotlib pandas pyyaml scikit-learn h5py huggingface_hub
+      - name: Run frozen V5 development-only benchmark
+        run: |
+          python scripts/run_pc_fmcw_robotics_benchmark.py \
+            --seed-start 11000 --seeds 20 \
+            --dt 0.1 --history 8 --horizon 20 \
+            --observation-sigma-m 0.20 --prediction-sigma-m 0.75 \
+            --connectivity-weight 1.0 --mc-samples 32 \
+            --collision-distance-m 2.0 \
+            --planning-safety-margin-m 0.0 \
+            --output-dir results/part_b_v5_development
+          git rev-parse HEAD > results/part_b_v5_development/commit_sha.txt
+          python --version > results/part_b_v5_development/python_version.txt
+          python -m pip freeze > results/part_b_v5_development/pip_freeze.txt
+          cp configs/experiments/part_b_final_v5.yaml results/part_b_v5_development/protocol.yaml
+      - name: Verify exact development pairing and hard safety gate
+        run: |
+          python - <<'PY'
+          import pandas as pd
+          from pathlib import Path
+          p=Path('results/part_b_v5_development/episodes.csv')
+          if not p.exists(): raise SystemExit('Missing episodes.csv')
+          df=pd.read_csv(p)
+          required={'seed','scenario','planner','collision_indicator','no_candidate_steps'}
+          missing=required-set(df.columns)
+          if missing: raise SystemExit(f'Missing required safety columns: {sorted(missing)}')
+          seeds=sorted(df.seed.unique().tolist())
+          if seeds != list(range(11000,11020)):
+              raise SystemExit(f'V5 development seed mismatch: {seeds}')
+          planners=['P0','P1','P2','P3','P4']
+          scenarios=['following_lateral_offset','lane_choice','overtake','intersection_turn','occluding_cut_in']
+          if sorted(df.planner.unique().tolist()) != sorted(planners):
+              raise SystemExit(f'Planner mismatch: {sorted(df.planner.unique())}')
+          if sorted(df.scenario.unique().tolist()) != sorted(scenarios):
+              raise SystemExit(f'Scenario mismatch: {sorted(df.scenario.unique())}')
+          expected={(s,sc,p) for s in range(11000,11020) for sc in scenarios for p in planners}
+          actual=set(zip(df.seed.astype(int),df.scenario.astype(str),df.planner.astype(str)))
+          if len(df)!=500 or actual!=expected:
+              raise SystemExit(f'Pairing/cardinality failure: rows={len(df)}, unique_keys={len(actual)}, expected=500')
+          collisions=int((df.collision_indicator>0).sum())
+          no_candidate=int((df.no_candidate_steps>0).sum())
+          print(f'V5 DEVELOPMENT HARD GATE: collision_episodes={collisions}; episodes_with_no_candidate={no_candidate}')
+          if collisions or no_candidate:
+              raise SystemExit('V5 DEVELOPMENT HARD SAFETY GATE FAILED — confirmation remains prohibited')
+          print('V5 DEVELOPMENT HARD SAFETY GATE PASSED')
+          PY
+      - name: Preserve development artifact regardless of gate result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: part-b-v5-development
+          path: results/part_b_v5_development/
+          retention-days: 90
+
+# Deliberately no confirmatory job. A fresh 50-seed confirmatory range may be
+# frozen only after this development hard gate passes and its artifact is audited.

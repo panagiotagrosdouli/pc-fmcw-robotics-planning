@@ -43,6 +43,47 @@ def _controls_for_lateral_profile(state, lateral_offset, horizon, acceleration, 
     return controls
 
 
+def _emergency_steering_limit(state: np.ndarray, params: VehicleParams) -> float:
+    """Return steering magnitude satisfying both steering and lateral-acceleration limits."""
+    speed = abs(float(np.asarray(state, dtype=float)[3]))
+    if speed <= 1e-9:
+        return float(params.max_steering)
+    lateral_limit = np.arctan(params.max_lateral_accel * params.wheelbase / (speed**2))
+    return float(min(params.max_steering, abs(lateral_limit)))
+
+
+def generate_emergency_one_step_candidates(
+    state: np.ndarray,
+    steering_values=None,
+    params: VehicleParams | None = None,
+) -> list[CandidateTrajectory]:
+    """Generate communication-independent emergency actions for one control interval.
+
+    Every candidate uses maximum physical braking and steering bounded by both the
+    steering-angle and lateral-acceleration limits. The action is evaluated only
+    over the next executed interval and the planner replans immediately after it.
+    """
+    params = params or VehicleParams()
+    state = np.asarray(state, dtype=float)
+    steering_limit = _emergency_steering_limit(state, params)
+    if steering_values is None:
+        steering_values = (-steering_limit, -0.5 * steering_limit,
+                           0.0, 0.5 * steering_limit, steering_limit)
+    candidates = []
+    for steering in steering_values:
+        bounded_steering = np.clip(steering, -steering_limit, steering_limit)
+        control = np.array([[params.min_accel, bounded_steering]], dtype=float)
+        states = rollout(state, control, params)
+        candidates.append(CandidateTrajectory(
+            states=states,
+            controls=control,
+            horizon=params.dt,
+            lateral_offset=0.0,
+            target_speed=max(0.0, state[3] + params.min_accel * params.dt),
+        ))
+    return candidates
+
+
 def generate_candidates(
     state: np.ndarray,
     lateral_offsets=(-1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5),
@@ -50,15 +91,11 @@ def generate_candidates(
     speed_offsets=(-2.0, 0.0, 2.0),
     params: VehicleParams | None = None,
 ) -> list[CandidateTrajectory]:
-    """Generate nominal and shared emergency-envelope trajectory candidates.
+    """Generate the nominal shared trajectory lattice.
 
-    The nominal lattice combines lateral quintics with speed targets. The
-    emergency family combines maximum physically permitted braking with the
-    same lateral offsets at every horizon. This permits braking-plus-evasion
-    instead of assuming that a straight stop is always geometrically feasible.
-    The emergency family is identical for P0--P4 and contains no communication
-    information. Road, speed, static-obstacle, and dynamic-target filters still
-    decide feasibility.
+    Emergency behavior is intentionally excluded from this long-horizon lattice.
+    If the lattice is empty after hard filtering, planners invoke a separate
+    one-step receding emergency action and replan at the next control interval.
     """
     params = params or VehicleParams()
     state = np.asarray(state, dtype=float)
@@ -72,15 +109,4 @@ def generate_candidates(
                 controls = _controls_for_lateral_profile(state, lateral_offset, horizon, acceleration, params)
                 states = rollout(state, controls, params)
                 candidates.append(CandidateTrajectory(states, controls, horizon, lateral_offset, target_speed))
-
-    # Shared emergency envelope: maximum braking plus each available lateral
-    # profile. This is a structural safety fix motivated by development-only
-    # failure analysis, not a communication-specific optimization.
-    for lateral_offset in lateral_offsets:
-        for horizon in horizons:
-            controls = _controls_for_lateral_profile(
-                state, lateral_offset, horizon, params.min_accel, params
-            )
-            states = rollout(state, controls, params)
-            candidates.append(CandidateTrajectory(states, controls, horizon, lateral_offset, 0.0))
     return candidates

@@ -1,11 +1,12 @@
 import numpy as np
 
 from iscai.planning.dynamics import VehicleParams
-from iscai.planning.trajectory import generate_candidates
+from iscai.planning.trajectory import generate_candidates, generate_emergency_one_step_candidates
 from iscai.simulation.pc_fmcw_benchmark import BenchmarkSettings
 
 
-def test_emergency_family_combines_braking_with_lateral_offsets():
+def test_v5_nominal_lattice_excludes_legacy_long_horizon_emergency_family():
+    """V5 supersedes the V3 invariant: emergency actions are no longer nominal trajectories."""
     params = VehicleParams(dt=0.1, min_accel=-4.0)
     state = np.array([0.0, 0.0, 0.0, 10.0])
     offsets = (-1.5, 0.0, 1.5)
@@ -16,11 +17,17 @@ def test_emergency_family_combines_braking_with_lateral_offsets():
         speed_offsets=(0.0,),
         params=params,
     )
-    emergency = [
+    legacy_emergency = [
         c for c in candidates
         if np.allclose(c.controls[:, 0], params.min_accel) and c.target_speed == 0.0
     ]
-    assert {c.lateral_offset for c in emergency} == set(offsets)
+    assert legacy_emergency == []
+
+    emergency = generate_emergency_one_step_candidates(state, params=params)
+    assert emergency
+    assert all(c.controls.shape == (1, 2) for c in emergency)
+    assert all(np.isclose(c.horizon, params.dt) for c in emergency)
+    assert all(np.isclose(c.controls[0, 0], params.min_accel) for c in emergency)
     assert all(np.all(c.states[:, 3] >= 0.0) for c in emergency)
 
 

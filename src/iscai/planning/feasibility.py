@@ -90,3 +90,41 @@ def filter_with_diagnostics(candidates, target_xy=None, obstacles=None,
             continue
         candidate.feasible = False
     return feasible, counts
+
+
+def filter_emergency_one_step_with_diagnostics(candidates, target_xy=None, obstacles=None,
+                                                lane_half_width=1.75, static_clearance=1.5,
+                                                target_clearance=2.0):
+    """Hard-filter one-step emergency actions over the actually executed next state.
+
+    Candidate rollouts include the current state at index 0. For emergency actions,
+    the first target prediction is the target at the next control interval, so it
+    must be compared with candidate.states[1], not candidate.states[0].
+    """
+    obstacles = np.empty((0, 3)) if obstacles is None else np.asarray(obstacles, dtype=float)
+    target = None if target_xy is None else np.asarray(target_xy, dtype=float)
+    if target is not None and (target.ndim != 2 or target.shape[1] < 2):
+        raise ValueError("target_xy must have shape (H, >=2)")
+    counts = {"generated": len(candidates), "road": 0, "speed": 0,
+              "static": 0, "dynamic": 0, "feasible": 0}
+    feasible = []
+    for candidate in candidates:
+        if len(candidate.states) < 2:
+            raise ValueError("one-step emergency candidate must contain current and next state")
+        executed = candidate.states[1:2]
+        if not check_road_bounds(executed, lane_half_width):
+            counts["road"] += 1
+        elif not check_speed(executed):
+            counts["speed"] += 1
+        elif not check_obstacles(executed, obstacles, static_clearance):
+            counts["static"] += 1
+        elif target is not None and len(target) and not check_dynamic_target(
+            executed, target[:1], target_clearance
+        ):
+            counts["dynamic"] += 1
+        else:
+            counts["feasible"] += 1
+            feasible.append(candidate)
+            continue
+        candidate.feasible = False
+    return feasible, counts
