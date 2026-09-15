@@ -1,0 +1,74 @@
+protocol_version: part-b-final-v5-development
+study: predictive_connectivity_aware_receding_horizon_planning
+claim_boundary: "Controlled PC-FMCW-informed analytical simulation; not measured optical performance and not real-world autonomous-driving validation."
+status: "DEVELOPMENT SAFETY PROTOCOL ONLY. No confirmatory communication inference is authorized by this file."
+
+protocol_history:
+  exposed_or_quarantined_seed_ranges:
+    - [0, 19]
+    - [1000, 1049]
+    - [3000, 3019]
+    - [4000, 4049]
+    - [5000, 5019]
+    - [6000, 6019]
+    - [7000, 7049]
+    - [8000, 8019]
+    - [9000, 9019]
+    - [10000, 10049]
+  v4_result: "FAILED development hard gate: 23 collision episodes and 100 episodes with at least one no-candidate step across 500 planner/scenario rows. Confirmatory seeds 10000-10049 were skipped/quarantined."
+  v4_failure_mechanism: "Emergency candidates remained long-horizon and V4 relaxed the dynamic-target constraint during fallback."
+
+safety_development:
+  seed_range: [11000, 11019]
+  seeds: 20
+  use: "Development safety evidence only. Communication outcomes MUST NOT be used as manuscript evidence."
+  planners: [P0, P1, P2, P3, P4]
+  scenarios: [following_lateral_offset, lane_choice, overtake, intersection_turn, occluding_cut_in]
+  expected_episode_rows: 500
+  hard_gate: "Zero collision episodes AND zero episodes containing any no-candidate step across every planner/scenario/seed row."
+  failure_rule: "If the hard gate fails, preserve artifacts and stop. Do not run or define V5 confirmatory inference from these results."
+  emergency_policy: "When the nominal lattice is empty, evaluate physically admissible maximum-braking one-step controls over exactly one simulator dt. Enforce road, speed/dynamics, static-obstacle, and common predicted dynamic-target constraints on the executed next state. Select a safe action using a deterministic communication-independent tie-break. If no safe action exists, record unresolved no-candidate failure."
+  emergency_communication_independence: true
+  oracle_connectivity_only: true
+  physical_collision_distance_m: 2.0
+  planning_safety_margin_m: 0.0
+
+simulation:
+  dt_s: 0.1
+  history_steps: 8
+  horizon_steps: 20
+  observation_sigma_m: 0.20
+  prediction_sigma_m: 0.75
+  connectivity_weight: 1.0
+  p3_mc_samples: 32
+  collision_distance_m: 2.0
+  nominal_candidate_family: "Predeclared lateral/speed/horizon lattice. V5 emergency controls are not embedded as long-horizon nominal trajectories."
+
+primary_communication_endpoints_reserved_for_future_freeze:
+  - mean_outage_probability
+  - mean_snr_db
+  - min_snr_db
+  - mean_ber_model
+  - mean_goodput_bps_model
+
+link:
+  upstream_reference_context: "PanagiotaGr/ISCAI_pc_fmcw"
+  carrier_frequency_hz: 193.4e12
+  chirp_bandwidth_hz: 10.0e9
+  chirp_duration_s: 10.0e-6
+  data_rate_bps: 1.0e9
+  reference_snr_db: 20.0
+  reference_distance_m: 10.0
+  pathloss_exponent: 2.0
+  beam_sigma_rad: 0.12
+  outage_threshold_db: 8.0
+  outage_softness_db: 2.0
+  geometry_model: "Declared analytical simulation assumption; not a measured optical calibration."
+
+reporting:
+  retain_negative_results: true
+  development_communication_results_are_confirmatory: false
+  separate_safety_claims: true
+  no_candidate_is_hard_gate: true
+  packet_or_optical_measurement_claims: false
+  provenance_required: [episodes_csv, summary_csv, manifest_json, protocol_yaml, commit_sha, python_version, pip_freeze]
