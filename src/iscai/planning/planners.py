@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from .costs import mobility_cost, connectivity_cost
-from .feasibility import filter_with_diagnostics
+from .feasibility import filter_with_diagnostics, filter_emergency_one_step_with_diagnostics
 from .trajectory import generate_candidates, generate_emergency_one_step_candidates
 
 
@@ -37,10 +37,12 @@ class _BasePlanner:
         self.vehicle_params = vehicle_params
         self.target_clearance = float(target_clearance)
         self.last_feasibility_counts = None
+        self.last_emergency_feasibility_counts = None
         self.last_emergency_fallback_used = False
 
     def _candidates(self, ego_state, obstacles=None, safety_target_prediction=None):
         self.last_emergency_fallback_used = False
+        self.last_emergency_feasibility_counts = None
         target_xy = _target_xy(safety_target_prediction)
         candidates = generate_candidates(ego_state, params=self.vehicle_params)
         candidates, counts = filter_with_diagnostics(
@@ -53,25 +55,25 @@ class _BasePlanner:
         if candidates:
             return candidates
 
-        # V5 structural remediation: if no long-horizon nominal trajectory is
-        # feasible, evaluate only the next physically bounded emergency action.
-        # All hard constraints remain active, including predicted-target
-        # clearance. The selected action is communication independent and the
-        # closed-loop simulator replans after this single control interval.
+        # V5 structural remediation: evaluate only the physically bounded next
+        # action when the nominal long-horizon lattice is empty. The dedicated
+        # emergency filter compares the executed next ego state to the first
+        # future target state; no hard constraint is relaxed.
         emergency = generate_emergency_one_step_candidates(
             ego_state, params=self.vehicle_params
         )
         emergency_target = None if target_xy is None else target_xy[:1]
-        emergency, emergency_counts = filter_with_diagnostics(
+        emergency, emergency_counts = filter_emergency_one_step_with_diagnostics(
             emergency,
             target_xy=emergency_target,
             obstacles=obstacles,
             target_clearance=self.target_clearance,
         )
+        self.last_emergency_feasibility_counts = emergency_counts
         if emergency:
             self.last_emergency_fallback_used = True
-            # Deterministic mobility-only tie break: maximum braking is common
-            # to all candidates; prefer minimum steering magnitude.
+            # Communication-independent deterministic tie break. Maximum braking
+            # is common to all candidates; prefer the smallest steering magnitude.
             emergency.sort(key=lambda c: abs(float(c.controls[0, 1])))
             return [emergency[0]]
         return []
