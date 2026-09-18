@@ -39,6 +39,7 @@ def main():
     ap.add_argument("--output-dir", default="results/pc_fmcw_geometry_ablation")
     ap.add_argument("--mc-samples", type=int, default=32)
     ap.add_argument("--planning-safety-margin-m", type=float, default=0.0)
+    ap.add_argument("--v4-static-viability", action="store_true")
     args = ap.parse_args()
     if args.seeds < 1:
         raise SystemExit("--seeds must be >= 1")
@@ -48,6 +49,7 @@ def main():
     settings = BenchmarkSettings(
         p3_mc_samples=args.mc_samples,
         planning_safety_margin_m=args.planning_safety_margin_m,
+        v4_static_viability=args.v4_static_viability,
     )
     seeds = range(args.seed_start, args.seed_start + args.seeds)
     rows = []

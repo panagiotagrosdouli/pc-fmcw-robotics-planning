@@ -59,3 +59,20 @@ def test_custom_collision_radius_is_used_by_every_planner(monkeypatch):
 def test_negative_collision_radius_is_rejected_at_settings_construction():
     with pytest.raises(ValueError, match="collision_distance_m must be non-negative"):
         benchmark.BenchmarkSettings(collision_distance_m=-0.1)
+
+
+def test_no_candidate_brakes_and_static_surface_violation_is_reported(monkeypatch):
+    monkeypatch.setattr(benchmark, "MobilityOnlyPlanner", lambda *args, **kwargs: _RecordingPlanner("P0", [], *args, **kwargs))
+    scenario = _scenario()
+    scenario.obstacles = [(0.3, 0.0, 0.1)]
+    row = benchmark.run_simulated_episode(
+        "P0", scenario, seed=0,
+        settings=benchmark.BenchmarkSettings(observation_sigma_m=0.0, v4_static_viability=True),
+        link=_DummyLink(),
+    )
+    assert row["no_candidate_steps"] == 2
+    assert row["first_no_candidate_step"] == 1
+    assert row["progress_m"] == pytest.approx(0.36)  # 2.0 then 1.6 m/s, dt=0.1
+    assert row["static_clearance_violation_indicator"] == 1
+    assert row["static_clearance_violation_steps"] == 2
+    assert row["min_static_obstacle_clearance_m"] == pytest.approx(-0.04)

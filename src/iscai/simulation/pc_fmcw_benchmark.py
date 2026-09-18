@@ -31,6 +31,7 @@ class BenchmarkSettings:
     p3_mc_samples: int=32
     collision_distance_m: float=2.0
     planning_safety_margin_m: float=0.0
+    v4_static_viability: bool=False
 
     def __post_init__(self):
         if not np.isfinite(self.dt) or self.dt <= 0.0: raise ValueError("dt must be positive and finite")
@@ -92,9 +93,11 @@ def _candidate_feasibility_counts(ego, obstacles, target_prediction, params, tar
 def _simulate_episode(scenario,planner_name,seed,settings,link_predictor):
     rng=np.random.default_rng(seed);params=VehicleParams(dt=settings.dt);ego=np.asarray(scenario.ego_state,float).copy();target=np.asarray(scenario.target_states,float)
     planning_target_clearance=settings.collision_distance_m+settings.planning_safety_margin_m
-    planner_common=dict(vehicle_params=params,target_clearance=planning_target_clearance)
+    planner_common=dict(vehicle_params=params,target_clearance=planning_target_clearance,
+                        require_static_stop_viability=settings.v4_static_viability,
+                        bounded_brake_steer=settings.v4_static_viability)
     planners={"P0":MobilityOnlyPlanner(link_predictor,connectivity_weight=0.0,**planner_common),"P1":ReactiveConnectivityPlanner(link_predictor,connectivity_weight=settings.connectivity_weight,**planner_common),"P2":PredictiveConnectivityPlanner(link_predictor,connectivity_weight=settings.connectivity_weight,**planner_common),"P3":RiskAwarePredictivePlanner(link_predictor,connectivity_weight=settings.connectivity_weight,mc_samples=settings.p3_mc_samples,**planner_common),"P4":OracleConnectivityPlanner(link_predictor,connectivity_weight=settings.connectivity_weight,**planner_common)}
-    observations=[];snr=[];outage=[];ber=[];goodput=[];target_distance=[];realized_ttc=[];obstacle_clearance=[];prediction_ade=[];prediction_fde=[];path_length=0.0;no_candidate=0;collision=False;collision_steps=0;first_collision_step=-1;candidate_counts={"generated":0,"road":0,"speed":0,"static":0,"dynamic":0,"feasible":0};zero_after_static=0;zero_after_dynamic=0;previous=ego[:2].copy();steps=max(0,len(target)-1)
+    observations=[];snr=[];outage=[];ber=[];goodput=[];target_distance=[];realized_ttc=[];obstacle_clearance=[];prediction_ade=[];prediction_fde=[];path_length=0.0;no_candidate=0;first_no_candidate_step=-1;collision=False;collision_steps=0;first_collision_step=-1;static_clearance_violation_steps=0;candidate_counts={"generated":0,"road":0,"speed":0,"static":0,"dynamic":0,"feasible":0};zero_after_static=0;zero_after_dynamic=0;previous=ego[:2].copy();steps=max(0,len(target)-1)
     for k in range(steps):
         observations.append(target[k,:2]+rng.normal(0.0,settings.observation_sigma_m,2));hist=observations[-settings.history_steps:];pred=_prediction(hist,settings.horizon_steps,settings.dt);truth=_truth_horizon(target,k+1,settings.horizon_steps);planner_target=pred
         n_prediction=min(len(pred),len(truth));prediction_error=np.linalg.norm(pred[:n_prediction,:2]-truth[:n_prediction,:2],axis=1);prediction_ade.append(float(np.mean(prediction_error)));prediction_fde.append(float(prediction_error[-1]))
@@ -106,15 +109,25 @@ def _simulate_episode(scenario,planner_name,seed,settings,link_predictor):
         for key,value in feasibility.items():candidate_counts[key]+=value
         if feasibility["generated"]-feasibility["road"]-feasibility["speed"]-feasibility["static"]==0:zero_after_static+=1
         if feasibility["feasible"]==0:zero_after_dynamic+=1
-        if result.candidate is None:no_candidate+=1
-        ego=step(ego,_first_control(result),params);path_length+=float(np.linalg.norm(ego[:2]-previous));previous=ego[:2].copy();truth_now=target[k+1]
+        if result.candidate is None:
+            no_candidate+=1
+            if first_no_candidate_step<0:first_no_candidate_step=k+1
+        # A missing candidate is still counted as a hard failure. Bounded
+        # braking prevents an infeasible step from silently becoming coasting.
+        control=(np.array([params.min_accel,0.0])
+                 if settings.v4_static_viability and result.candidate is None
+                 else _first_control(result))
+        ego=step(ego,control,params);path_length+=float(np.linalg.norm(ego[:2]-previous));previous=ego[:2].copy();truth_now=target[k+1]
         forecast=link_predictor.predict(np.repeat(ego[None,:],2,axis=0),np.repeat(truth_now[None,:],2,axis=0));snr.append(float(forecast.snr_db[0]));outage.append(float(forecast.outage_probability[0]));ber.append(float(forecast.ber[0]));goodput.append(float(forecast.goodput[0]));d=float(np.linalg.norm(ego[:2]-truth_now[:2]));target_distance.append(d);collision=collision or d<settings.collision_distance_m;realized_ttc.append(_realized_ttc(ego,truth_now,settings.collision_distance_m))
         if d<settings.collision_distance_m:
             collision_steps+=1
             if first_collision_step<0:first_collision_step=k+1
         if len(scenario.obstacles):
-            obs_xy=np.asarray([o[:2] for o in scenario.obstacles],float);obstacle_clearance.append(float(np.min(np.linalg.norm(obs_xy-ego[:2],axis=1))))
-    return {"scenario":scenario.name,"planner":planner_name,"seed":seed,"steps":steps,"duration_s":steps*settings.dt,"planning_safety_margin_m":settings.planning_safety_margin_m,"mean_snr_db":float(np.mean(snr)),"min_snr_db":float(np.min(snr)),"mean_outage_probability":float(np.mean(outage)),"mean_ber_model":float(np.mean(ber)),"mean_goodput_bps_model":float(np.mean(goodput)),"path_length_m":path_length,"progress_m":float(ego[0]-scenario.ego_state[0]),"min_target_distance_m":float(np.min(target_distance)),"min_realized_ttc_s":float(np.min(realized_ttc)),"min_static_obstacle_clearance_m":float(np.min(obstacle_clearance)) if obstacle_clearance else np.inf,"collision_indicator":int(collision),"collision_steps":collision_steps,"first_collision_step":first_collision_step,"first_collision_time_s":float(first_collision_step*settings.dt) if first_collision_step>=0 else np.inf,"no_candidate_steps":no_candidate,"zero_candidate_after_static_steps":zero_after_static,"zero_candidate_after_dynamic_steps":zero_after_dynamic,"candidate_evaluations":candidate_counts["generated"],"candidate_road_rejections":candidate_counts["road"],"candidate_speed_rejections":candidate_counts["speed"],"candidate_static_rejections":candidate_counts["static"],"candidate_dynamic_rejections":candidate_counts["dynamic"],"candidate_feasible":candidate_counts["feasible"],"prediction_ade_m":float(np.mean(prediction_ade)),"prediction_fde_m":float(np.mean(prediction_fde)),"measured_optical_link":False}
+            obs=np.asarray(scenario.obstacles,float);radii=obs[:,2] if obs.shape[1]>=3 else np.zeros(len(obs))
+            surface_clearance=float(np.min(np.linalg.norm(obs[:,:2]-ego[:2],axis=1)-radii))
+            obstacle_clearance.append(surface_clearance)
+            if surface_clearance<1.5:static_clearance_violation_steps+=1
+    return {"scenario":scenario.name,"planner":planner_name,"seed":seed,"steps":steps,"duration_s":steps*settings.dt,"planning_safety_margin_m":settings.planning_safety_margin_m,"mean_snr_db":float(np.mean(snr)),"min_snr_db":float(np.min(snr)),"mean_outage_probability":float(np.mean(outage)),"mean_ber_model":float(np.mean(ber)),"mean_goodput_bps_model":float(np.mean(goodput)),"path_length_m":path_length,"progress_m":float(ego[0]-scenario.ego_state[0]),"min_target_distance_m":float(np.min(target_distance)),"min_realized_ttc_s":float(np.min(realized_ttc)),"min_static_obstacle_clearance_m":float(np.min(obstacle_clearance)) if obstacle_clearance else np.inf,"static_clearance_violation_steps":static_clearance_violation_steps,"static_clearance_violation_indicator":int(static_clearance_violation_steps>0),"collision_indicator":int(collision),"collision_steps":collision_steps,"first_collision_step":first_collision_step,"first_collision_time_s":float(first_collision_step*settings.dt) if first_collision_step>=0 else np.inf,"no_candidate_steps":no_candidate,"first_no_candidate_step":first_no_candidate_step,"zero_candidate_after_static_steps":zero_after_static,"zero_candidate_after_dynamic_steps":zero_after_dynamic,"candidate_evaluations":candidate_counts["generated"],"candidate_road_rejections":candidate_counts["road"],"candidate_speed_rejections":candidate_counts["speed"],"candidate_static_rejections":candidate_counts["static"],"candidate_dynamic_rejections":candidate_counts["dynamic"],"candidate_feasible":candidate_counts["feasible"],"prediction_ade_m":float(np.mean(prediction_ade)),"prediction_fde_m":float(np.mean(prediction_fde)),"measured_optical_link":False}
 
 
 def run_simulated_episode(planner_name,scenario,seed=0,settings=BenchmarkSettings(),link=None,link_predictor=None):

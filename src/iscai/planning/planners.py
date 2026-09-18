@@ -31,20 +31,26 @@ def _target_xy(target_prediction):
 
 class _BasePlanner:
     def __init__(self, link_predictor=None, connectivity_weight=1.0, vehicle_params=None,
-                 target_clearance=2.0):
+                 target_clearance=2.0, require_static_stop_viability=False,
+                 bounded_brake_steer=False):
         self.link_predictor = link_predictor
         self.connectivity_weight = connectivity_weight
         self.vehicle_params = vehicle_params
         self.target_clearance = float(target_clearance)
+        self.require_static_stop_viability = bool(require_static_stop_viability)
+        self.bounded_brake_steer = bool(bounded_brake_steer)
         self.last_feasibility_counts = None
 
     def _candidates(self, ego_state, obstacles=None, safety_target_prediction=None):
-        candidates = generate_candidates(ego_state, params=self.vehicle_params)
+        candidates = generate_candidates(ego_state, params=self.vehicle_params,
+                                         bounded_brake_steer=self.bounded_brake_steer)
         candidates, counts = filter_with_diagnostics(
             candidates,
             target_xy=_target_xy(safety_target_prediction),
             obstacles=obstacles,
             target_clearance=self.target_clearance,
+            require_static_stop_viability=self.require_static_stop_viability,
+            vehicle_params=self.vehicle_params,
         )
         self.last_feasibility_counts = counts
         return candidates
