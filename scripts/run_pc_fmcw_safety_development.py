@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """Development-only safety study for the PC-FMCW planner.
 
-This legacy helper defaults to the V3 development seeds 6000--6019, disjoint
-from both the invalidated historical ranges and the quarantined V3 confirmatory
-range.  It exists to test safety-envelope changes before any confirmatory run.
-Do not report its connectivity effects as confirmatory evidence.  The complete
-V3 margin sweep is defined by ``.github/workflows/part_b_v3.yml``.
+This script deliberately uses seeds 3000--3019, disjoint from both the historical
+and confirmatory ranges.  It exists to test safety-envelope changes before any
+new confirmatory seed range is frozen.  Do not report its connectivity effects
+as confirmatory evidence.
 """
 from __future__ import annotations
 import argparse
@@ -20,7 +19,7 @@ from iscai.simulation.pc_fmcw_benchmark import BenchmarkSettings, run_benchmark
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--seed-start", type=int, default=6000)
+    p.add_argument("--seed-start", type=int, default=3000)
     p.add_argument("--seeds", type=int, default=20)
     p.add_argument("--output-dir", type=Path, default=Path("results/pc_fmcw_safety_development"))
     a = p.parse_args()
