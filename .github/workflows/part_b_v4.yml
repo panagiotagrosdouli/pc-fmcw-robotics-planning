@@ -8,7 +8,7 @@ jobs:
   development-margin-sweep:
     name: V4 development margin ${{ matrix.margin }} m
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
@@ -70,7 +70,7 @@ jobs:
     name: V4 confirmatory seeds ${{ matrix.seed_start }}-${{ matrix.seed_end }}
     needs: select-development-margin
     runs-on: ubuntu-latest
-    timeout-minutes: 50
+    timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
@@ -163,7 +163,7 @@ jobs:
     name: V4 fresh directional geometry mechanism
     needs: select-development-margin
     runs-on: ubuntu-latest
-    timeout-minutes: 50
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
