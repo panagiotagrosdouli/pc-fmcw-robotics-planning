@@ -1,0 +1,8 @@
+protocol_version,seed_start,seed_end,margin_m,episodes,collision_episodes,episodes_with_no_candidate_steps,minimum_realized_target_separation_m,hard_gate_pass
+part-b-final-v3,6000,6019,0.0,500,24,153,1.165642,false
+part-b-final-v3,6000,6019,0.5,500,3,155,1.798903,false
+part-b-final-v3,6000,6019,1.0,500,0,138,2.368143,false
+part-b-final-v3,6000,6019,1.5,500,0,139,2.507269,false
+part-b-final-v3,6000,6019,2.0,500,5,260,1.624154,false
+part-b-final-v3,6000,6019,2.5,500,0,300,2.352042,false
+part-b-final-v3,6000,6019,3.0,500,0,300,2.830477,false
