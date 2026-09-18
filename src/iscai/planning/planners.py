@@ -32,13 +32,16 @@ def _target_xy(target_prediction):
 class _BasePlanner:
     def __init__(self, link_predictor=None, connectivity_weight=1.0, vehicle_params=None,
                  target_clearance=2.0, require_static_stop_viability=False,
-                 bounded_brake_steer=False):
+                 bounded_brake_steer=False, time_aligned_dynamic=False,
+                 require_dynamic_stop_viability=False):
         self.link_predictor = link_predictor
         self.connectivity_weight = connectivity_weight
         self.vehicle_params = vehicle_params
         self.target_clearance = float(target_clearance)
         self.require_static_stop_viability = bool(require_static_stop_viability)
         self.bounded_brake_steer = bool(bounded_brake_steer)
+        self.time_aligned_dynamic = bool(time_aligned_dynamic)
+        self.require_dynamic_stop_viability = bool(require_dynamic_stop_viability)
         self.last_feasibility_counts = None
 
     def _candidates(self, ego_state, obstacles=None, safety_target_prediction=None):
@@ -51,6 +54,8 @@ class _BasePlanner:
             target_clearance=self.target_clearance,
             require_static_stop_viability=self.require_static_stop_viability,
             vehicle_params=self.vehicle_params,
+            time_aligned_dynamic=self.time_aligned_dynamic,
+            require_dynamic_stop_viability=self.require_dynamic_stop_viability,
         )
         self.last_feasibility_counts = counts
         return candidates

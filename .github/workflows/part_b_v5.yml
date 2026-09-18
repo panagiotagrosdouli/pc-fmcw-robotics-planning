@@ -1,0 +1,186 @@
+name: Part B V5 safety-selected confirmatory
+
+on:
+  # Explicit dispatch only: the full development sweep is computationally expensive.
+  workflow_dispatch:
+
+jobs:
+  development-margin-sweep:
+    name: V5 development margin ${{ matrix.margin }} m
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        margin: ['0.0','0.5','1.0','1.5','2.0','2.5','3.0']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11', cache: pip}
+      - name: Install dependencies
+        run: python -m pip install numpy scipy pandas scikit-learn
+      - name: Run development-only structural safety study
+        run: |
+          python scripts/run_pc_fmcw_robotics_benchmark.py \
+            --seed-start 12000 --seeds 20 \
+            --dt 0.1 --history 8 --horizon 20 \
+            --observation-sigma-m 0.20 --prediction-sigma-m 0.75 \
+            --connectivity-weight 1.0 --mc-samples 32 \
+            --collision-distance-m 2.0 \
+            --planning-safety-margin-m ${{ matrix.margin }} --v4-static-viability \
+            --v5-time-aligned-dynamic --v5-dynamic-stop-viability --v5-damped-lateral-prediction \
+            --output-dir results/v5_margin_${{ matrix.margin }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v5_margin_${{ matrix.margin }}
+          path: results/v5_margin_${{ matrix.margin }}/
+          retention-days: 90
+
+  select-development-margin:
+    name: select minimum V5 development margin passing hard gate
+    needs: development-margin-sweep
+    if: ${{ always() && needs.development-margin-sweep.result == 'success' }}
+    runs-on: ubuntu-latest
+    outputs:
+      selected_margin: ${{ steps.select.outputs.margin }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11', cache: pip}
+      - name: Install selection dependency
+        run: python -m pip install pandas
+      - uses: actions/download-artifact@v4
+        with: {pattern: 'v5_margin_*', path: results/v5_sweep}
+      - id: select
+        name: Apply predeclared minimum-passing-margin rule
+        shell: bash
+        run: |
+          python scripts/select_v5_safety_margin.py --input-dir results/v5_sweep --output-dir results/v5_selection
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          margin=json.loads(Path('results/v5_selection/selection.json').read_text())['selected_margin_m']
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f: f.write(f'margin={margin:.1f}\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: part-b-v5-development-selection, path: results/v5_selection/, retention-days: 90}
+
+  confirmatory-shard:
+    name: V5 confirmatory seeds ${{ matrix.seed_start }}-${{ matrix.seed_end }}
+    needs: select-development-margin
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {seed_start: 13000, seed_end: 13009, seeds: 10}
+          - {seed_start: 13010, seed_end: 13019, seeds: 10}
+          - {seed_start: 13020, seed_end: 13029, seeds: 10}
+          - {seed_start: 13030, seed_end: 13039, seeds: 10}
+          - {seed_start: 13040, seed_end: 13049, seeds: 10}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11', cache: pip}
+      - name: Install dependencies
+        run: python -m pip install numpy scipy matplotlib pandas pyyaml scikit-learn h5py huggingface_hub
+      - name: Run fresh V5 shard
+        run: |
+          python scripts/run_pc_fmcw_robotics_benchmark.py \
+            --seed-start ${{ matrix.seed_start }} --seeds ${{ matrix.seeds }} \
+            --dt 0.1 --history 8 --horizon 20 \
+            --observation-sigma-m 0.20 --prediction-sigma-m 0.75 \
+            --connectivity-weight 1.0 --mc-samples 32 \
+            --collision-distance-m 2.0 \
+            --planning-safety-margin-m ${{ needs.select-development-margin.outputs.selected_margin }} --v4-static-viability \
+            --v5-time-aligned-dynamic --v5-dynamic-stop-viability --v5-damped-lateral-prediction \
+            --output-dir results/part_b_v5_shard
+          git rev-parse HEAD > results/part_b_v5_shard/commit_sha.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: part-b-v5-shard-${{ matrix.seed_start }}-${{ matrix.seed_end }}
+          path: results/part_b_v5_shard/
+          retention-days: 90
+
+  confirmatory-aggregate:
+    name: V5 aggregate fresh 50-seed evidence
+    needs: [select-development-margin, confirmatory-shard]
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11', cache: pip}
+      - name: Install analysis dependencies
+        run: python -m pip install numpy scipy matplotlib pandas pyyaml scikit-learn
+      - uses: actions/download-artifact@v4
+        with: {pattern: 'part-b-v5-shard-*', path: results/shards}
+      - name: Aggregate and verify quarantined V5 protocol
+        run: |
+          mkdir -p results/part_b_final_v5
+          python - <<'PY'
+          from pathlib import Path
+          import pandas as pd
+          files=sorted(Path('results/shards').glob('*/episodes.csv'))
+          if len(files)!=5: raise SystemExit(f'Expected 5 shard files, found {len(files)}')
+          df=pd.concat([pd.read_csv(p) for p in files],ignore_index=True)
+          seeds=sorted(df.seed.unique().tolist())
+          if seeds!=list(range(13000,13050)): raise SystemExit(f'V5 seed mismatch: {seeds}')
+          if len(df)!=1250 or df.duplicated(['scenario','planner','seed']).any(): raise SystemExit('V5 paired cardinality failure')
+          margins=sorted(df.planning_safety_margin_m.unique().tolist())
+          expected=float('${{ needs.select-development-margin.outputs.selected_margin }}')
+          if margins!=[expected]: raise SystemExit(f'V5 safety margin mismatch: {margins} vs {expected}')
+          df.to_csv('results/part_b_final_v5/episodes.csv',index=False)
+          print(f'rows={len(df)} seeds={len(seeds)} selected_margin={margins[0]}')
+          PY
+          git rev-parse HEAD > results/part_b_final_v5/commit_sha.txt
+          python --version > results/part_b_final_v5/python_version.txt
+          python -m pip freeze > results/part_b_final_v5/pip_freeze.txt
+          cp configs/experiments/part_b_final_v5.yaml results/part_b_final_v5/protocol.yaml
+      - name: Hard safety gate before communication inference
+        run: |
+          python - <<'PY'
+          import pandas as pd
+          df=pd.read_csv('results/part_b_final_v5/episodes.csv')
+          collisions=int(df.collision_indicator.sum())
+          no_candidate=int((df.no_candidate_steps>0).sum())
+          print(f'collisions={collisions}; episodes_with_no_candidate={no_candidate}')
+          if collisions or no_candidate or int(df.static_clearance_violation_indicator.sum()): raise SystemExit('V5 HARD SAFETY GATE FAILED')
+          required={'mean_outage_probability','mean_snr_db','min_snr_db','mean_ber_model','mean_goodput_bps_model'}
+          missing=required-set(df.columns)
+          if missing: raise SystemExit(f'Missing frozen communication endpoints: {sorted(missing)}')
+          if df[list(required)].isna().any().any(): raise SystemExit('Non-finite communication endpoint')
+          PY
+      - name: Seed-level confirmatory inference
+        run: python scripts/analyze_pc_fmcw_confirmatory_seedlevel.py --input results/part_b_final_v5/episodes.csv --output-dir results/part_b_final_v5 --bootstrap-samples 100000
+      - name: Safety diagnostics
+        run: python scripts/diagnose_pc_fmcw_benchmark.py --input results/part_b_final_v5/episodes.csv --output-dir results/part_b_final_v5/diagnostics
+      - uses: actions/upload-artifact@v4
+        with: {name: part-b-final-v5-confirmatory, path: results/part_b_final_v5/, retention-days: 90}
+
+  geometry-mechanism:
+    name: V5 fresh directional geometry mechanism
+    needs: select-development-margin
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11', cache: pip}
+      - name: Install dependencies
+        run: python -m pip install numpy scipy pandas scikit-learn
+      - name: Run fresh V5 geometry study
+        run: |
+          python scripts/run_pc_fmcw_geometry_ablation.py \
+            --seed-start 14000 --seeds 20 --mc-samples 32 \
+            --planning-safety-margin-m ${{ needs.select-development-margin.outputs.selected_margin }} --v4-static-viability \
+            --v5-time-aligned-dynamic --v5-dynamic-stop-viability --v5-damped-lateral-prediction \
+            --output-dir results/pc_fmcw_geometry_ablation_v5
+          python scripts/analyze_pc_fmcw_geometry_ablation.py \
+            --input results/pc_fmcw_geometry_ablation_v5/episodes.csv \
+            --output-dir results/pc_fmcw_geometry_ablation_v5 --bootstrap 10000
+      - uses: actions/upload-artifact@v4
+        with: {name: pc-fmcw-geometry-ablation-v5, path: results/pc_fmcw_geometry_ablation_v5/, retention-days: 90}
