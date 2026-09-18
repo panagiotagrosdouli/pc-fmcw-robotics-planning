@@ -44,6 +44,39 @@ If the development rule passes:
 - Bootstrap confidence intervals, paired Wilcoxon tests, and Holm correction remain required.
 - Confirmatory communication inference is accepted only after zero collisions and zero no-candidate episodes across the full fresh run.
 
-## Current status
+## V3 development result (seeds 6000–6019)
 
-The V3 protocol is implemented in `.github/workflows/part_b_v3.yml` and `configs/experiments/part_b_final_v3.yaml` on branch `research/safety-remediation-v3` / PR #12. Development communication outcomes are not manuscript evidence. Paper 1 remains scientifically gated until the V3 development selector and fresh confirmatory hard gate complete.
+The complete predeclared margin sweep was executed from the repository `main` branch on 2026-09-18. Each margin contains 500 episode rows: 20 seeds × 5 scenarios × 5 planners. The exact development seed set was verified before aggregation. Communication columns in these development artifacts were not inspected for inferential claims.
+
+| Planning margin (m) | Collision episodes | Episodes with no-candidate steps | Minimum realized target separation (m) | Gate |
+|---:|---:|---:|---:|:---|
+| 0.0 | 24 | 153 | 1.165642 | FAIL |
+| 0.5 | 3 | 155 | 1.798903 | FAIL |
+| 1.0 | 0 | 138 | 2.368143 | FAIL |
+| 1.5 | 0 | 139 | 2.507269 | FAIL |
+| 2.0 | 5 | 260 | 1.624154 | FAIL |
+| 2.5 | 0 | 300 | 2.352042 | FAIL |
+| 3.0 | 0 | 300 | 2.830477 | FAIL |
+
+The machine-readable aggregate is stored in [`research/PART_B_V3_DEVELOPMENT_MARGIN_SUMMARY.csv`](research/PART_B_V3_DEVELOPMENT_MARGIN_SUMMARY.csv).
+
+### Failure mechanisms
+
+- `lane_choice` produced no-candidate steps in all 20 seeds for every planner at every tested margin. Its realized target separation remained large (minimum approximately 8.97–9.02 m across planners), which is consistent with candidate exhaustion driven by the static-obstacle envelope rather than a realized target collision.
+- `following_lateral_offset` produced no-candidate episodes for every planner at every margin. The count per planner was 8, 10, 7, 7, 15, 20, and 20 as the margin increased from 0.0 to 3.0 m. At margin 2.0, one episode collided for each planner; this non-monotonic outcome is retained.
+- `overtake` dominated the low-margin collision failures: at margin 0.0, P1 collided in all 20 seeds and P0/P2/P3/P4 collided once each. At margin 0.5, P1 collided three times. At margins 1.0 and 1.5 collisions were eliminated, but P1 still had no-candidate episodes (3 and 4, respectively). At margins 2.0–3.0, candidate exhaustion expanded across planners.
+- `intersection_turn` and `occluding_cut_in` did not appear in the failure set for any tested margin.
+
+The non-monotonic collision counts do not alter the predeclared rule: a margin must satisfy both hard conditions, and none did.
+
+## Protocol consequence
+
+No safety margin was selected or frozen. Therefore:
+
+- V3 confirmatory seeds `7000–7049` were not run;
+- no V3 P2-vs-P1, P3-vs-P2, or P4-vs-P2 communication inference was performed;
+- geometry-mechanism seeds `8000–8019` were not run because the protocol requires a frozen V3 margin;
+- physical-parameter sensitivity was not used to search for a favorable regime;
+- the negative safety result is retained as the V3 research outcome.
+
+Paper 1 remains scientifically gated. Any V4 safety change requires a new, explicitly versioned development protocol and fresh seed ranges; it must not reuse `7000–7049` for tuning.
