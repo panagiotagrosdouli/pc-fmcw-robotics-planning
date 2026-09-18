@@ -83,7 +83,7 @@ The planner, scenarios, and seeds are held fixed. The purpose is to test whether
 
 ## Confirmatory protocol
 
-The paper protocol freezes a 50-seed confirmatory set (`1000..1049`). Historical exploratory/20-seed results are not allowed to override the frozen confirmatory evidence.
+The historical V1 confirmatory set (`1000..1049`) was invalidated after its safety gate failed. The current V3 protocol reserves fresh development seeds `6000..6019`, confirmatory seeds `7000..7049`, and geometry-mechanism seeds `8000..8019`. The V3 development gate failed for every predeclared safety margin, so the confirmatory and mechanism sets remain quarantined and no V3 communication inference is accepted.
 
 For global confirmatory inference, repeated scenarios from one simulation seed are not treated as independent samples. Paired planner effects are first aggregated within seed; inference is then performed over independent seed-level effects using deterministic bootstrap confidence intervals, paired Wilcoxon tests where appropriate, and Holm correction across the predeclared comparison family.
 
