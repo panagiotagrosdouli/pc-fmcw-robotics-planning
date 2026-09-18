@@ -26,4 +26,18 @@ Only after a passing development result may the untouched V4 confirmatory seeds 
 
 ## Status
 
-The full V4 development sweep has been launched locally. Do not infer a pass from a one-seed diagnostic. The margin-selection output will be added here after the complete sweep. No V4 confirmatory communication inference is authorized until the selector returns a passing margin and the subsequent 50-seed hard safety gate passes.
+The full V4 development sweep completed on the frozen runner (local code commit `41bc5ae`, mirrored to PR #19 as `0d5e057`; the later workflow-timeout edit did not affect the runner). All seven margins completed the paired grid of 20 development seeds × five scenarios × five planners. The selector returned **no passing margin** and exited nonzero. The full episode CSVs, manifests, summaries, selector output, and SHA-256 checksums are archived in [`results_archive/part_b_v4_development`](../results_archive/part_b_v4_development/). The summary is:
+
+| Margin (m) | Target collision episodes | No-candidate episodes | Static-envelope violation episodes | Gate |
+|---:|---:|---:|---:|:---|
+| 0.0 | 23 | 18 | 0 | Fail |
+| 0.5 | 3 | 12 | 0 | Fail |
+| 1.0 | 0 | 17 | 0 | Fail |
+| 1.5 | 0 | 30 | 0 | Fail |
+| 2.0 | 0 | 68 | 0 | Fail |
+| 2.5 | 0 | 175 | 0 | Fail |
+| 3.0 | 0 | 200 | 0 | Fail |
+
+All static-envelope violations were eliminated in this development sweep, but the candidate-set failure persists in `following_lateral_offset` and `overtake`. At 1.0 m, 12 of 17 no-candidate episodes were in `following_lateral_offset` and five in `overtake`, with first failure usually around step 37–49. At 2.5 m, all 175 failing episodes first lost candidates at step 1. These counts describe observed development behavior; they do not establish the underlying feasibility cause for every episode.
+
+**Stop decision:** V4 confirmatory seeds 10000–10049 and geometry seeds 11000–11019 were not run; V3 confirmatory seeds 7000–7049 remain unused. There is no V4 selected margin, no 50-seed confirmatory inference, and no defensible Paper 1 safety or predictive-communication claim from this protocol. A future redesign requires its own predeclared protocol, development set, and independent confirmatory holdout. The negative V4 result must not be relabeled as a pass by dropping the no-candidate criterion.
