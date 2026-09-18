@@ -2,19 +2,7 @@
 name: Part B frozen confirmatory
 
 on:
-  pull_request:
-    paths:
-      - 'configs/experiments/part_b_final.yaml'
-      - 'src/iscai/planning/trajectory.py'
-      - 'src/iscai/planning/feasibility.py'
-      - 'scripts/run_pc_fmcw_safety_development.py'
-      - 'scripts/run_pc_fmcw_robotics_benchmark.py'
-      - 'scripts/analyze_pc_fmcw_benchmark.py'
-      - 'scripts/analyze_pc_fmcw_confirmatory_seedlevel.py'
-      - 'scripts/diagnose_pc_fmcw_benchmark.py'
-      - 'scripts/run_pc_fmcw_geometry_ablation.py'
-      - 'scripts/analyze_pc_fmcw_geometry_ablation.py'
-      - '.github/workflows/part_b_confirmatory.yml'
+  # Historical protocol: manual reproduction only.
   workflow_dispatch:
 
 jobs:
