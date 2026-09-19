@@ -24,4 +24,18 @@ Only after a development pass may 50 untouched confirmatory seeds 13000–13049 
 
 ## Status
 
-V5 code and protocol have been frozen before fresh seeds. Development sweep pending. A failed gate will be archived as a negative result; it will not be weakened after inspecting the outcomes.
+The complete V5 development sweep finished in GitHub Actions run [35455288436](https://github.com/panagiotagrosdouli/pc-fmcw-robotics-planning/actions/runs/35455288436) from frozen head commit `66eb475980e7c196beb6b1415cbd04529582f1dd`. All seven margin jobs completed successfully and produced 500 paired rows each. Independent artifact verification confirmed exactly 3,500 rows, seeds 12000–12019, all five scenarios and planners, no duplicate paired episode, and agreement with the selector summary.
+
+| Margin (m) | Target collision episodes | No-candidate episodes | Static-envelope violation episodes | Minimum target separation (m) | Gate |
+|---:|---:|---:|---:|---:|:---|
+| 0.0 | 0 | 26 | 0 | 2.107104 | Fail |
+| 0.5 | 0 | 27 | 0 | 2.494166 | Fail |
+| 1.0 | 0 | 4 | 0 | 3.319654 | Fail |
+| 1.5 | 0 | 35 | 0 | 4.163939 | Fail |
+| 2.0 | 0 | 190 | 0 | 4.534840 | Fail |
+| 2.5 | 0 | 200 | 0 | 4.970749 | Fail |
+| 3.0 | 0 | 200 | 0 | 5.352434 | Fail |
+
+The selector returned `selected_margin_m: null`, `gate_passes: false`, and `confirmatory_seeds_used: false`. V5 eliminated observed collisions and modeled static-envelope violations on the development grid, but it did not eliminate candidate-set failure; therefore no margin passed the joint gate. The minimum no-candidate count was four episodes at 1.0 m, which is still a hard failure under the frozen rule.
+
+**Stop decision:** confirmatory seeds 13000–13049 and geometry seeds 14000–14019 were not run; GitHub marked those jobs skipped. No V5 confirmatory communication, geometry-mechanism, or safety claim is authorized. The complete artifacts and original ZIP digests are archived in [`results_archive/part_b_v5_development`](../results_archive/part_b_v5_development/). A later redesign must use a new predeclared development set and independent confirmatory holdout; this result may not be converted to a pass by relaxing the no-candidate condition.
