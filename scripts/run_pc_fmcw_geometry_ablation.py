@@ -40,6 +40,9 @@ def main():
     ap.add_argument("--mc-samples", type=int, default=32)
     ap.add_argument("--planning-safety-margin-m", type=float, default=0.0)
     ap.add_argument("--v4-static-viability", action="store_true")
+    ap.add_argument("--v5-time-aligned-dynamic", action="store_true")
+    ap.add_argument("--v5-dynamic-stop-viability", action="store_true")
+    ap.add_argument("--v5-damped-lateral-prediction", action="store_true")
     args = ap.parse_args()
     if args.seeds < 1:
         raise SystemExit("--seeds must be >= 1")
@@ -50,6 +53,9 @@ def main():
         p3_mc_samples=args.mc_samples,
         planning_safety_margin_m=args.planning_safety_margin_m,
         v4_static_viability=args.v4_static_viability,
+        v5_time_aligned_dynamic=args.v5_time_aligned_dynamic,
+        v5_dynamic_stop_viability=args.v5_dynamic_stop_viability,
+        v5_damped_lateral_prediction=args.v5_damped_lateral_prediction,
     )
     seeds = range(args.seed_start, args.seed_start + args.seeds)
     rows = []
