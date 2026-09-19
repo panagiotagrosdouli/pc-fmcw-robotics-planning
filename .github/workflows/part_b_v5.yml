@@ -1,7 +1,20 @@
 name: Part B V5 safety-selected confirmatory
 
 on:
-  # Explicit dispatch only: the full development sweep is computationally expensive.
+  # The next stacked-PR synchronization launches the single predeclared run.
+  # Result-only documentation/archive commits do not match these paths.
+  pull_request:
+    branches: [research/v4-safety-protocol-and-paper2-assets]
+    types: [synchronize]
+    paths:
+      - '.github/workflows/part_b_v5.yml'
+      - 'configs/experiments/part_b_final_v5.yaml'
+      - 'scripts/run_pc_fmcw_robotics_benchmark.py'
+      - 'scripts/run_pc_fmcw_geometry_ablation.py'
+      - 'scripts/select_v5_safety_margin.py'
+      - 'src/iscai/planning/**'
+      - 'src/iscai/simulation/pc_fmcw_benchmark.py'
+      - 'tests/test_v5_dynamic_viability.py'
   workflow_dispatch:
 
 jobs:
