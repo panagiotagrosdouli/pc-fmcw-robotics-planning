@@ -32,6 +32,9 @@ class BenchmarkSettings:
     collision_distance_m: float=2.0
     planning_safety_margin_m: float=0.0
     v4_static_viability: bool=False
+    v5_time_aligned_dynamic: bool=False
+    v5_dynamic_stop_viability: bool=False
+    v5_damped_lateral_prediction: bool=False
 
     def __post_init__(self):
         if not np.isfinite(self.dt) or self.dt <= 0.0: raise ValueError("dt must be positive and finite")
@@ -45,10 +48,19 @@ class BenchmarkSettings:
         if not np.isfinite(self.planning_safety_margin_m) or self.planning_safety_margin_m < 0.0: raise ValueError("planning_safety_margin_m must be non-negative and finite")
 
 
-def _prediction(history,horizon,dt):
+def _prediction(history,horizon,dt,damped_lateral=False):
     history=np.asarray(history,float)
     if history.ndim != 2 or history.shape[1] != 2 or len(history) < 1: raise ValueError("history must have shape (N, 2) with N >= 1")
     mean=np.repeat(history[-1:, :], horizon, axis=0) if len(history)==1 else constant_velocity(history,horizon,dt)
+    if damped_lateral and len(history)>1:
+        # The lateral CV slope estimated from a short noisy window is not
+        # assumed to persist indefinitely. Decay it over a fixed 0.5 s time
+        # constant while retaining the same least-squares current estimate.
+        t=np.arange(len(history),dtype=float)*dt
+        slope,intercept=np.polyfit(t,history[:,1],1)
+        future_t=np.arange(1,horizon+1,dtype=float)*dt
+        tau=0.5
+        mean[:,1]=intercept+slope*t[-1]+slope*tau*(-np.expm1(-future_t/tau))
     target=np.zeros((horizon,4),float);target[:,:2]=mean
     if horizon>1:
         velocity=np.gradient(mean,dt,axis=0);target[:,3]=np.linalg.norm(velocity,axis=1)
@@ -96,10 +108,12 @@ def _simulate_episode(scenario,planner_name,seed,settings,link_predictor):
     planner_common=dict(vehicle_params=params,target_clearance=planning_target_clearance,
                         require_static_stop_viability=settings.v4_static_viability,
                         bounded_brake_steer=settings.v4_static_viability)
+    planner_common['time_aligned_dynamic']=settings.v5_time_aligned_dynamic
+    planner_common['require_dynamic_stop_viability']=settings.v5_dynamic_stop_viability
     planners={"P0":MobilityOnlyPlanner(link_predictor,connectivity_weight=0.0,**planner_common),"P1":ReactiveConnectivityPlanner(link_predictor,connectivity_weight=settings.connectivity_weight,**planner_common),"P2":PredictiveConnectivityPlanner(link_predictor,connectivity_weight=settings.connectivity_weight,**planner_common),"P3":RiskAwarePredictivePlanner(link_predictor,connectivity_weight=settings.connectivity_weight,mc_samples=settings.p3_mc_samples,**planner_common),"P4":OracleConnectivityPlanner(link_predictor,connectivity_weight=settings.connectivity_weight,**planner_common)}
     observations=[];snr=[];outage=[];ber=[];goodput=[];target_distance=[];realized_ttc=[];obstacle_clearance=[];prediction_ade=[];prediction_fde=[];path_length=0.0;no_candidate=0;first_no_candidate_step=-1;collision=False;collision_steps=0;first_collision_step=-1;static_clearance_violation_steps=0;candidate_counts={"generated":0,"road":0,"speed":0,"static":0,"dynamic":0,"feasible":0};zero_after_static=0;zero_after_dynamic=0;previous=ego[:2].copy();steps=max(0,len(target)-1)
     for k in range(steps):
-        observations.append(target[k,:2]+rng.normal(0.0,settings.observation_sigma_m,2));hist=observations[-settings.history_steps:];pred=_prediction(hist,settings.horizon_steps,settings.dt);truth=_truth_horizon(target,k+1,settings.horizon_steps);planner_target=pred
+        observations.append(target[k,:2]+rng.normal(0.0,settings.observation_sigma_m,2));hist=observations[-settings.history_steps:];pred=_prediction(hist,settings.horizon_steps,settings.dt,settings.v5_damped_lateral_prediction);truth=_truth_horizon(target,k+1,settings.horizon_steps);planner_target=pred
         n_prediction=min(len(pred),len(truth));prediction_error=np.linalg.norm(pred[:n_prediction,:2]-truth[:n_prediction,:2],axis=1);prediction_ade.append(float(np.mean(prediction_error)));prediction_fde.append(float(prediction_error[-1]))
         if planner_name=="P3":planner_target={"mean_xy":pred[:,:2],"sigma_xy":np.full_like(pred[:,:2],settings.prediction_sigma_m)}
         elif planner_name=="P4":planner_target=truth

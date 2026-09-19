@@ -11,11 +11,13 @@ class RiskAwarePredictivePlanner(_BasePlanner):
     def __init__(self, link_predictor, connectivity_weight=1.0,
                  vehicle_params=None, mc_samples=128, threshold_db=8.0,
                  risk_power=2.0, random_seed=0, target_clearance=2.0,
-                 require_static_stop_viability=False, bounded_brake_steer=False):
+                 require_static_stop_viability=False, bounded_brake_steer=False,
+                 time_aligned_dynamic=False, require_dynamic_stop_viability=False):
         if link_predictor is None:
             raise ValueError("P3 requires the same link predictor used by P1/P2")
         super().__init__(link_predictor, connectivity_weight, vehicle_params, target_clearance,
-                         require_static_stop_viability, bounded_brake_steer)
+                         require_static_stop_viability, bounded_brake_steer, time_aligned_dynamic,
+                         require_dynamic_stop_viability)
         self.mc_samples = int(mc_samples)
         self.threshold_db = float(threshold_db)
         self.risk_power = float(risk_power)
