@@ -33,7 +33,8 @@ class _BasePlanner:
     def __init__(self, link_predictor=None, connectivity_weight=1.0, vehicle_params=None,
                  target_clearance=2.0, require_static_stop_viability=False,
                  bounded_brake_steer=False, time_aligned_dynamic=False,
-                 require_dynamic_stop_viability=False):
+                 require_dynamic_stop_viability=False,
+                 physical_target_clearance=None):
         self.link_predictor = link_predictor
         self.connectivity_weight = connectivity_weight
         self.vehicle_params = vehicle_params
@@ -42,21 +43,40 @@ class _BasePlanner:
         self.bounded_brake_steer = bool(bounded_brake_steer)
         self.time_aligned_dynamic = bool(time_aligned_dynamic)
         self.require_dynamic_stop_viability = bool(require_dynamic_stop_viability)
+        self.physical_target_clearance = (
+            None if physical_target_clearance is None else float(physical_target_clearance)
+        )
+        if (self.physical_target_clearance is not None
+                and self.physical_target_clearance > self.target_clearance):
+            raise ValueError("physical_target_clearance cannot exceed target_clearance")
         self.last_feasibility_counts = None
+        self.last_buffered_feasibility_counts = None
+        self.last_margin_relaxed = False
 
     def _candidates(self, ego_state, obstacles=None, safety_target_prediction=None):
-        candidates = generate_candidates(ego_state, params=self.vehicle_params,
-                                         bounded_brake_steer=self.bounded_brake_steer)
-        candidates, counts = filter_with_diagnostics(
-            candidates,
-            target_xy=_target_xy(safety_target_prediction),
-            obstacles=obstacles,
-            target_clearance=self.target_clearance,
-            require_static_stop_viability=self.require_static_stop_viability,
-            vehicle_params=self.vehicle_params,
-            time_aligned_dynamic=self.time_aligned_dynamic,
-            require_dynamic_stop_viability=self.require_dynamic_stop_viability,
-        )
+        def filtered(clearance):
+            generated = generate_candidates(
+                ego_state, params=self.vehicle_params,
+                bounded_brake_steer=self.bounded_brake_steer
+            )
+            return filter_with_diagnostics(
+                generated,
+                target_xy=_target_xy(safety_target_prediction),
+                obstacles=obstacles,
+                target_clearance=clearance,
+                require_static_stop_viability=self.require_static_stop_viability,
+                vehicle_params=self.vehicle_params,
+                time_aligned_dynamic=self.time_aligned_dynamic,
+                require_dynamic_stop_viability=self.require_dynamic_stop_viability,
+            )
+
+        candidates, counts = filtered(self.target_clearance)
+        self.last_buffered_feasibility_counts = counts
+        self.last_margin_relaxed = False
+        if (not candidates and self.physical_target_clearance is not None
+                and self.physical_target_clearance < self.target_clearance):
+            candidates, counts = filtered(self.physical_target_clearance)
+            self.last_margin_relaxed = bool(candidates)
         self.last_feasibility_counts = counts
         return candidates
 
