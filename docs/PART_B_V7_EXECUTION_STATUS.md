@@ -24,4 +24,10 @@ The selector and hard gate remain unchanged: zero realized collision episodes, z
 
 ## Status
 
-Protocol frozen before inspection of any V7 seed. Claims remain limited to the analytical simulator and do not constitute optical measurements or real-vehicle safety validation.
+The frozen workflow completed successfully. All seven 500-episode development artifacts passed structural verification; the minimum-passing selector chose 0.5 m. At the selected margin there were zero collisions, zero no-candidate episodes, zero modeled static-envelope violations, and seven episodes/11 steps of explicit buffer relaxation.
+
+The 1,250-row independent confirmation over seeds 19000–19049 passed the unchanged hard gate with zero collisions, zero no-candidate episodes, and zero static violations. Communication inference and geometry were therefore authorized. P2 improved over P1 across all five prespecified communication endpoints after Holm correction; P3 was worse than P2 across those endpoints; P4–P2 differences were not significant after correction.
+
+The authorized 1,000-row geometry study completed over seeds 20000–20019. One directional/P2 episode at seed 20000 had one no-candidate step, while collisions and static violations remained zero. Geometry findings are consequently reported as mechanism evidence with this explicit limitation, not as an extension of the confirmatory safety claim.
+
+The development evidence and artifact digests are archived under `results_archive/part_b_v7_development/`. Claims remain limited to this analytical simulator and do not constitute optical measurements or real-vehicle safety validation.
