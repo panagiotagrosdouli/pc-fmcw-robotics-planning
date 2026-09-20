@@ -35,4 +35,6 @@ Only after a development pass may the workflow run the 50 confirmatory seeds. Th
 
 ## Status
 
-Protocol and implementation are frozen after 182 passing tests. No V6 seed has been used. The development workflow may start only from the committed V6 branch state.
+The frozen workflow ran from commit `4a1a1a218369f66543eccec05ef5117d3b84bc7a`. All seven 500-episode development artifacts passed structural verification. The predeclared selector chose 0.5 m: zero collision episodes, zero physical no-candidate episodes, zero modeled static-envelope violations, and 14 episodes/27 steps of explicitly recorded buffer relaxation. The complete development evidence is archived under `results_archive/part_b_v6_development/`.
+
+The development pass authorized the disjoint confirmatory and geometry jobs. Across the 1,250 confirmatory rows (50 seeds × five scenarios × five planners), realized collisions and modeled static-envelope violations were zero, but seed 16030 produced one no-candidate step for each of P0, P1, and P3 in `following_lateral_offset`. The aggregate hard gate therefore failed. Communication inference and safety diagnostics were skipped by the workflow; geometry output is not used as evidence. V6 terminates with a confirmatory stop decision and makes no validated safety or communication claim.
