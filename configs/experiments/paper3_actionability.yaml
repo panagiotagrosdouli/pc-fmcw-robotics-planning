@@ -1,0 +1,40 @@
+paper: 3
+study: communication_forecast_actionability
+status: pre_result_protocol
+source_branch: research/paper3-actionability
+
+qos:
+  primary_quantity: delay_ms
+  direction: lower_is_better
+  violation_operating_point_ms: 50.0
+
+horizons:
+  primary_steps: 20
+  sensitivity_steps: [1, 5, 10, 50, 100]
+
+methods:
+  A0: reactive_reference
+  A1: predictive_mean
+  A2: support_uncertainty_actionability_gate
+
+decision_rule:
+  support_required: true
+  conservative_gain: reference_lower_bound_minus_candidate_upper_bound
+  mobility_penalty: required
+  thresholds_selected_on: development_and_calibration_only
+  retune_on_confirmatory: false
+
+primary_endpoints:
+  - realized_delay_delta_vs_A0_ms
+  - violation_fraction_delta_vs_A0
+  - unsupported_action_rate
+  - beneficial_change_rate_among_changed
+  - harmful_change_rate_among_changed
+  - decision_regret_ms
+  - mobility_deviation
+
+statistical_unit: held_out_run
+multisplit_role: sensitivity_only
+multiplicity_correction: holm
+future_measured_qos_visible_at_decision_time: false
+random_row_split_allowed: false

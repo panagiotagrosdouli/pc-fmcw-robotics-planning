@@ -1,0 +1,30 @@
+name: Paper 3 measured actionability replay
+on:
+  pull_request:
+    paths:
+      - 'scripts/run_paper3_actionability.py'
+      - 'src/iscai/evaluation/actionability.py'
+      - 'tests/test_actionability.py'
+      - '.github/workflows/paper3_measured_replay.yml'
+  workflow_dispatch:
+
+jobs:
+  measured-replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - run: python -m pip install numpy pandas scipy scikit-learn pytest
+      - run: python -m pytest -q tests/test_actionability.py tests/test_real_v2x.py
+      - name: Download public CICV5G W2S measurements
+        run: python scripts/prepare_cicv5g.py --output data/raw/cicv5g
+      - name: Run Paper 3 measured route-constrained replay
+        run: PYTHONPATH=src python scripts/run_paper3_actionability.py --data data/raw/cicv5g --output results/paper3_actionability --seed 0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: paper3-measured-actionability
+          path: results/paper3_actionability/

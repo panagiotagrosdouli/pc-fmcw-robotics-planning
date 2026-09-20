@@ -1,0 +1,64 @@
+paper: 3
+study: external_scenario_shift_validation
+status: eligibility_frozen_before_planner_outcome_inspection
+source_dataset: CICV5G
+source_repository: zxr805/CICV5G
+purpose: external_scenario_shift_validation
+
+development_cohort:
+  subset: W2S
+  role: retrospective_development_only
+  confirmatory: false
+
+external_candidate_cohort:
+  exclude_subsets:
+    - W2S
+  include_scenarios:
+    - Urban road
+    - Arterial road
+    - Rural and off road
+  required_sampling_hz: 20
+  required_fields:
+    - pub_time
+    - sub_time
+    - delay
+    - utmX
+    - utmY
+    - Heading
+    - Velocity
+  route_requirements:
+    continuous_trace_required: true
+    future_candidate_must_correspond_to_actually_measured_future_state: true
+    arbitrary_spatial_counterfactuals_allowed: false
+  selection_prohibitions:
+    inspect_mean_delay_before_eligibility: false
+    inspect_A1_performance_before_eligibility: false
+    inspect_A2_performance_before_eligibility: false
+    select_runs_by_favorable_qos: false
+    select_runs_by_favorable_planner_result: false
+
+frozen_from_development:
+  nominal_horizon_steps: 20
+  offset_factors: [0.5, 1.0, 1.5]
+  uncertainty_alpha: 0.1
+  support_radius_m: 1.0
+  support_min_neighbors: 5
+  mobility_scale_ms: 1.0
+  min_net_gain_ms: 0.0
+  delay_violation_operating_point_ms: 50.0
+
+primary_external_endpoints:
+  - mean_delay_ms
+  - violation_fraction
+  - intervention_rate
+  - unsupported_intervention_rate
+  - beneficial_intervention_rate
+  - harmful_intervention_rate
+  - mean_realized_gain_when_changed_ms
+  - mean_regret_when_changed_ms
+  - mobility_deviation
+
+claim_boundary: >-
+  Passing this eligibility audit permits external scenario-shift validation only.
+  It does not retroactively make the W2S analysis confirmatory and does not
+  imply closed-loop vehicle or arbitrary-trajectory validation.
