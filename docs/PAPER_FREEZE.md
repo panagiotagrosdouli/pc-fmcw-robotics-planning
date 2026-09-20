@@ -1,5 +1,26 @@
 # Paper experiment freeze
 
+> Supersession notice (2026-09-20): the canonical Paper-1 evidence is the
+> frozen V7 protocol and artifacts below. The older `paper-closure` benchmark
+> description is retained as historical context and is not the submission
+> evidence package.
+
+## Canonical V7 evidence state
+
+- Frozen protocol commit: `9deb72e57dc6691e6cc60b5bdade3eeacf0ee5de`
+- Tree-identical workflow trigger: `409210803356640ef50caaa8c432c445abad91c7`
+- Development seeds: `18000..18019`; selected buffer: `0.5 m`
+- Confirmatory seeds: `19000..19049`; hard gate: PASS
+- Geometry seeds: `20000..20019`; authorized after the confirmatory gate
+- Workflow run: <https://github.com/panagiotagrosdouli/pc-fmcw-robotics-planning/actions/runs/35496870246>
+- Development archive: `results_archive/part_b_v7_development/`
+- Publication snapshot: `manuscripts/paper1_pc_fmcw/results_archive/`
+
+V7 is immutable evidence. Any later implementation change requires a new
+protocol version and new untouched seeds; it must not retroactively alter V7.
+
+## Historical freeze
+
 ## Canonical code state
 
 - Base commit: `ef1ff4a9d93960f4aba6be17e71f14d046000b9e`

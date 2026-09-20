@@ -1,0 +1,8 @@
+{
+  "gate_passes": true,
+  "target_collision_episodes": 0,
+  "no_candidate_episodes": 0,
+  "static_clearance_violation_episodes": 0,
+  "communication_inference_authorized": true,
+  "geometry_inference_authorized": true
+}

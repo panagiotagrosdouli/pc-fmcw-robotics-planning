@@ -83,7 +83,9 @@ The planner, scenarios, and seeds are held fixed. The purpose is to test whether
 
 ## Confirmatory protocol
 
-The historical V1 confirmatory set (`1000..1049`) was invalidated after its safety gate failed. The current V3 protocol reserves fresh development seeds `6000..6019`, confirmatory seeds `7000..7049`, and geometry-mechanism seeds `8000..8019`. The V3 development gate failed for every predeclared safety margin, so the confirmatory and mechanism sets remain quarantined and no V3 communication inference is accepted.
+V3, V4, and V5 produced valid negative development-gate results; V6 passed development but failed its independent confirmatory safety gate. Those failures remain part of the record and are not reused as favorable evidence. The frozen V7 protocol used untouched development seeds `18000..18019`; the predeclared minimum-passing rule selected a 0.5 m buffer. Only then were confirmatory seeds `19000..19049` opened. Their hard safety gate passed, authorizing the prespecified communication inference and geometry seeds `20000..20019`.
+
+V7 supports a modeled P2-over-P1 communication benefit across all five declared endpoints. P3 was worse than P2 across those endpoints, and P4 did not differ significantly from P2 after Holm correction. The geometry mechanism study supports dependence on directional geometry, but contains one directional/P2 no-candidate episode and is not additional safety evidence.
 
 For global confirmatory inference, repeated scenarios from one simulation seed are not treated as independent samples. Paired planner effects are first aggregated within seed; inference is then performed over independent seed-level effects using deterministic bootstrap confidence intervals, paired Wilcoxon tests where appropriate, and Holm correction across the predeclared comparison family.
 
