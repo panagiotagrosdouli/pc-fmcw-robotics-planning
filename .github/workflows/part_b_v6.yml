@@ -125,6 +125,8 @@ jobs:
     needs: [select-development-margin, confirmatory-shard]
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    outputs:
+      gate_passes: ${{ steps.safety_gate.outputs.gate_passes }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v6
@@ -155,30 +157,50 @@ jobs:
           python --version > results/part_b_final_v6/python_version.txt
           python -m pip freeze > results/part_b_final_v6/pip_freeze.txt
           cp configs/experiments/part_b_final_v6.yaml results/part_b_final_v6/protocol.yaml
-      - name: Hard safety gate before communication inference
+      - id: safety_gate
+        name: Record hard safety gate before communication inference
         run: |
           python - <<'PY'
+          import json
           import pandas as pd
           df=pd.read_csv('results/part_b_final_v6/episodes.csv')
           collisions=int(df.collision_indicator.sum())
           no_candidate=int((df.no_candidate_steps>0).sum())
-          print(f'collisions={collisions}; episodes_with_no_candidate={no_candidate}')
-          if collisions or no_candidate or int(df.static_clearance_violation_indicator.sum()): raise SystemExit('V6 HARD SAFETY GATE FAILED')
+          static_violations=int(df.static_clearance_violation_indicator.sum())
           required={'mean_outage_probability','mean_snr_db','min_snr_db','mean_ber_model','mean_goodput_bps_model'}
           missing=required-set(df.columns)
           if missing: raise SystemExit(f'Missing frozen communication endpoints: {sorted(missing)}')
           if df[list(required)].isna().any().any(): raise SystemExit('Non-finite communication endpoint')
+          gate_passes=not (collisions or no_candidate or static_violations)
+          result={
+              'gate_passes': gate_passes,
+              'target_collision_episodes': collisions,
+              'no_candidate_episodes': no_candidate,
+              'static_clearance_violation_episodes': static_violations,
+              'communication_inference_authorized': gate_passes,
+              'geometry_inference_authorized': gate_passes,
+          }
+          with open('results/part_b_final_v6/safety_gate.json','w') as f:
+              json.dump(result,f,indent=2)
+              f.write('\n')
+          print(json.dumps(result,sort_keys=True))
           PY
+          gate_passes=$(python -c "import json; print(str(json.load(open('results/part_b_final_v6/safety_gate.json'))['gate_passes']).lower())")
+          echo "gate_passes=$gate_passes" >> "$GITHUB_OUTPUT"
       - name: Seed-level confirmatory inference
+        if: steps.safety_gate.outputs.gate_passes == 'true'
         run: python scripts/analyze_pc_fmcw_confirmatory_seedlevel.py --input results/part_b_final_v6/episodes.csv --output-dir results/part_b_final_v6 --bootstrap-samples 100000
       - name: Safety diagnostics
+        if: steps.safety_gate.outputs.gate_passes == 'true'
         run: python scripts/diagnose_pc_fmcw_benchmark.py --input results/part_b_final_v6/episodes.csv --output-dir results/part_b_final_v6/diagnostics
       - uses: actions/upload-artifact@v4
+        if: always()
         with: {name: part-b-final-v6-confirmatory, path: results/part_b_final_v6/, retention-days: 90}
 
   geometry-mechanism:
     name: V6 fresh directional geometry mechanism
-    needs: select-development-margin
+    needs: [select-development-margin, confirmatory-aggregate]
+    if: needs.confirmatory-aggregate.outputs.gate_passes == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
