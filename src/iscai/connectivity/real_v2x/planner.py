@@ -40,6 +40,9 @@ def score_candidates(candidates, predictor, support_model=None, calibrator=None,
         if support_model is not None:
             s=support_model.evaluate(df)
             unsupported=float(np.mean(~s["supported"]))
-        score=mobility+comm_weight*comm+risk_weight*risk+unsupported_penalty*unsupported
+        # Empirical-support control defines P3.  P1 and P2 may receive the
+        # support model for diagnostics, but it must not alter their ranking.
+        support_cost = unsupported_penalty*unsupported if mode == PlannerMode.P3 else 0.0
+        score=mobility+comm_weight*comm+risk_weight*risk+support_cost
         out.append({**c,"score":float(score),"comm_cost":comm,"risk_cost":risk,"unsupported_fraction":unsupported,"pred_delay_ms":pred})
     return sorted(out,key=lambda z:z["score"])
