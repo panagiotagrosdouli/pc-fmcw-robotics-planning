@@ -43,6 +43,7 @@ def main():
     ap.add_argument("--v5-time-aligned-dynamic", action="store_true")
     ap.add_argument("--v5-dynamic-stop-viability", action="store_true")
     ap.add_argument("--v5-damped-lateral-prediction", action="store_true")
+    ap.add_argument("--v6-hierarchical-clearance", action="store_true")
     args = ap.parse_args()
     if args.seeds < 1:
         raise SystemExit("--seeds must be >= 1")
@@ -56,6 +57,7 @@ def main():
         v5_time_aligned_dynamic=args.v5_time_aligned_dynamic,
         v5_dynamic_stop_viability=args.v5_dynamic_stop_viability,
         v5_damped_lateral_prediction=args.v5_damped_lateral_prediction,
+        v6_hierarchical_clearance=args.v6_hierarchical_clearance,
     )
     seeds = range(args.seed_start, args.seed_start + args.seeds)
     rows = []

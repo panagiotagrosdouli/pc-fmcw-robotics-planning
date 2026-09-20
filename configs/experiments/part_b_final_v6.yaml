@@ -1,0 +1,53 @@
+protocol_version: part-b-final-v6
+claim_boundary: Controlled PC-FMCW-informed analytical simulation, not optical measurement.
+history:
+  v5_development_seeds: [12000, 12019]
+  v5_result: No margin passed the joint collision, candidate, and static-clearance gate; no V5 confirmation. Minimum was four no-candidate episodes at 1.0 m.
+structural_remediation:
+  hierarchical_clearance: Prefer collision distance plus the selected buffer; if that set is empty, allow only candidates that pass the unchanged 2.0 m physical filter and record every margin relaxation.
+  dynamic_time_alignment: Compare ego state at k+1 to target forecast at k+1; extend mean forecast at its terminal displacement.
+  dynamic_stop_viability: Candidate terminal state must permit maximum straight braking without intersecting the extended common predicted target.
+  lateral_forecast: Least-squares longitudinal CV; lateral velocity decays exponentially with predeclared 0.5 s time constant.
+  shared_by: [P0, P1, P2, P3, P4]
+  bounded_brake_steer: Maximum braking and lateral-acceleration-limited steering pulses of 1–5 steps, in both directions.
+  static_stop_viability: Every candidate's terminal state must permit a straight maximum-braking continuation clear of static obstacles and road boundaries.
+  no_candidate_response: Maximum braking with zero steering; no-candidate still fails the hard gate.
+  static_clearance_m: 1.5
+  physical_target_collision_distance_m: 2.0
+  margin_relaxation: Report-only diagnostic; never converts physical infeasibility into a candidate.
+development:
+  seed_range: [15000, 15019]
+  candidate_planning_safety_margins_m: [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
+  selection_rule: Minimum margin with zero target-collision episodes, zero episodes with no-candidate steps, and zero static-clearance-violation episodes across every scenario/planner.
+  use: Safety selection only; communication results are not confirmatory evidence.
+confirmatory:
+  seed_range: [16000, 16049]
+  prerequisite: Development margin selected and frozen; otherwise do not run.
+  hard_gate: Exact 50 seeds, same frozen margin, zero target collisions, zero no-candidate episodes, zero static-clearance violations, all five communication endpoints present.
+  comparisons: [[P1, P2], [P2, P3], [P2, P4]]
+  metrics: [mean_outage_probability, mean_snr_db, min_snr_db, mean_ber_model, mean_goodput_bps_model]
+  inference_unit: Seed after aggregating scenarios; paired bootstrap confidence intervals, Wilcoxon and Holm within the declared family.
+geometry_mechanism:
+  seed_range: [17000, 17019]
+  prerequisite: Frozen V6 margin.
+simulation:
+  dt_s: 0.1
+  history_steps: 8
+  horizon_steps: 20
+  observation_sigma_m: 0.20
+  prediction_sigma_m: 0.75
+  connectivity_weight: 1.0
+  p3_mc_samples: 32
+  collision_distance_m: 2.0
+link:
+  model: PC-FMCW-informed analytical surrogate; not measured or calibrated optical channel.
+  carrier_frequency_hz: 193.4e12
+  chirp_bandwidth_hz: 10.0e9
+  chirp_duration_s: 10.0e-6
+  data_rate_bps: 1.0e9
+  reference_snr_db: 20.0
+  reference_distance_m: 10.0
+  pathloss_exponent: 2.0
+  beam_sigma_rad: 0.12
+  outage_threshold_db: 8.0
+  outage_softness_db: 2.0

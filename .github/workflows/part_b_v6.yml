@@ -1,0 +1,224 @@
+name: Part B V6 safety-selected confirmatory
+
+on:
+  # The next stacked-PR synchronization launches the single predeclared run.
+  # Result-only documentation/archive commits do not match these paths.
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize]
+    paths:
+      - '.github/workflows/part_b_v6.yml'
+      - 'configs/experiments/part_b_final_v6.yaml'
+      - 'scripts/run_pc_fmcw_robotics_benchmark.py'
+      - 'scripts/run_pc_fmcw_geometry_ablation.py'
+      - 'scripts/select_v6_safety_margin.py'
+      - 'src/iscai/planning/**'
+      - 'src/iscai/simulation/pc_fmcw_benchmark.py'
+      - 'tests/test_v6_hierarchical_clearance.py'
+  workflow_dispatch:
+
+jobs:
+  development-margin-sweep:
+    name: V6 development margin ${{ matrix.margin }} m
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        margin: ['0.0','0.5','1.0','1.5','2.0','2.5','3.0']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v6
+        with: {python-version: '3.11', cache: pip}
+      - name: Install dependencies
+        run: python -m pip install numpy scipy pandas scikit-learn
+      - name: Run development-only structural safety study
+        run: |
+          python scripts/run_pc_fmcw_robotics_benchmark.py \
+            --seed-start 15000 --seeds 20 \
+            --dt 0.1 --history 8 --horizon 20 \
+            --observation-sigma-m 0.20 --prediction-sigma-m 0.75 \
+            --connectivity-weight 1.0 --mc-samples 32 \
+            --collision-distance-m 2.0 \
+            --planning-safety-margin-m ${{ matrix.margin }} --v4-static-viability \
+            --v5-time-aligned-dynamic --v5-dynamic-stop-viability --v5-damped-lateral-prediction \
+            --v6-hierarchical-clearance \
+            --output-dir results/v6_margin_${{ matrix.margin }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v6_margin_${{ matrix.margin }}
+          path: results/v6_margin_${{ matrix.margin }}/
+          retention-days: 90
+
+  select-development-margin:
+    name: select minimum V6 development margin passing hard gate
+    needs: development-margin-sweep
+    if: ${{ always() && needs.development-margin-sweep.result == 'success' }}
+    runs-on: ubuntu-latest
+    outputs:
+      selected_margin: ${{ steps.select.outputs.margin }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v6
+        with: {python-version: '3.11', cache: pip}
+      - name: Install selection dependency
+        run: python -m pip install pandas
+      - uses: actions/download-artifact@v4
+        with: {pattern: 'v6_margin_*', path: results/v6_sweep}
+      - id: select
+        name: Apply predeclared minimum-passing-margin rule
+        shell: bash
+        run: |
+          python scripts/select_v6_safety_margin.py --input-dir results/v6_sweep --output-dir results/v6_selection
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          margin=json.loads(Path('results/v6_selection/selection.json').read_text())['selected_margin_m']
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f: f.write(f'margin={margin:.1f}\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: part-b-v6-development-selection, path: results/v6_selection/, retention-days: 90}
+
+  confirmatory-shard:
+    name: V6 confirmatory seeds ${{ matrix.seed_start }}-${{ matrix.seed_end }}
+    needs: select-development-margin
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {seed_start: 16000, seed_end: 16009, seeds: 10}
+          - {seed_start: 16010, seed_end: 16019, seeds: 10}
+          - {seed_start: 16020, seed_end: 16029, seeds: 10}
+          - {seed_start: 16030, seed_end: 16039, seeds: 10}
+          - {seed_start: 16040, seed_end: 16049, seeds: 10}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v6
+        with: {python-version: '3.11', cache: pip}
+      - name: Install dependencies
+        run: python -m pip install numpy scipy matplotlib pandas pyyaml scikit-learn h5py huggingface_hub
+      - name: Run fresh V6 shard
+        run: |
+          python scripts/run_pc_fmcw_robotics_benchmark.py \
+            --seed-start ${{ matrix.seed_start }} --seeds ${{ matrix.seeds }} \
+            --dt 0.1 --history 8 --horizon 20 \
+            --observation-sigma-m 0.20 --prediction-sigma-m 0.75 \
+            --connectivity-weight 1.0 --mc-samples 32 \
+            --collision-distance-m 2.0 \
+            --planning-safety-margin-m ${{ needs.select-development-margin.outputs.selected_margin }} --v4-static-viability \
+            --v5-time-aligned-dynamic --v5-dynamic-stop-viability --v5-damped-lateral-prediction \
+            --v6-hierarchical-clearance \
+            --output-dir results/part_b_v6_shard
+          git rev-parse HEAD > results/part_b_v6_shard/commit_sha.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: part-b-v6-shard-${{ matrix.seed_start }}-${{ matrix.seed_end }}
+          path: results/part_b_v6_shard/
+          retention-days: 90
+
+  confirmatory-aggregate:
+    name: V6 aggregate fresh 50-seed evidence
+    needs: [select-development-margin, confirmatory-shard]
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    outputs:
+      gate_passes: ${{ steps.safety_gate.outputs.gate_passes }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v6
+        with: {python-version: '3.11', cache: pip}
+      - name: Install analysis dependencies
+        run: python -m pip install numpy scipy matplotlib pandas pyyaml scikit-learn
+      - uses: actions/download-artifact@v4
+        with: {pattern: 'part-b-v6-shard-*', path: results/shards}
+      - name: Aggregate and verify quarantined V6 protocol
+        run: |
+          mkdir -p results/part_b_final_v6
+          python - <<'PY'
+          from pathlib import Path
+          import pandas as pd
+          files=sorted(Path('results/shards').glob('*/episodes.csv'))
+          if len(files)!=5: raise SystemExit(f'Expected 5 shard files, found {len(files)}')
+          df=pd.concat([pd.read_csv(p) for p in files],ignore_index=True)
+          seeds=sorted(df.seed.unique().tolist())
+          if seeds!=list(range(16000,16050)): raise SystemExit(f'V6 seed mismatch: {seeds}')
+          if len(df)!=1250 or df.duplicated(['scenario','planner','seed']).any(): raise SystemExit('V6 paired cardinality failure')
+          margins=sorted(df.planning_safety_margin_m.unique().tolist())
+          expected=float('${{ needs.select-development-margin.outputs.selected_margin }}')
+          if margins!=[expected]: raise SystemExit(f'V6 safety margin mismatch: {margins} vs {expected}')
+          df.to_csv('results/part_b_final_v6/episodes.csv',index=False)
+          print(f'rows={len(df)} seeds={len(seeds)} selected_margin={margins[0]}')
+          PY
+          git rev-parse HEAD > results/part_b_final_v6/commit_sha.txt
+          python --version > results/part_b_final_v6/python_version.txt
+          python -m pip freeze > results/part_b_final_v6/pip_freeze.txt
+          cp configs/experiments/part_b_final_v6.yaml results/part_b_final_v6/protocol.yaml
+      - id: safety_gate
+        name: Record hard safety gate before communication inference
+        run: |
+          python - <<'PY'
+          import json
+          import pandas as pd
+          df=pd.read_csv('results/part_b_final_v6/episodes.csv')
+          collisions=int(df.collision_indicator.sum())
+          no_candidate=int((df.no_candidate_steps>0).sum())
+          static_violations=int(df.static_clearance_violation_indicator.sum())
+          required={'mean_outage_probability','mean_snr_db','min_snr_db','mean_ber_model','mean_goodput_bps_model'}
+          missing=required-set(df.columns)
+          if missing: raise SystemExit(f'Missing frozen communication endpoints: {sorted(missing)}')
+          if df[list(required)].isna().any().any(): raise SystemExit('Non-finite communication endpoint')
+          gate_passes=not (collisions or no_candidate or static_violations)
+          result={
+              'gate_passes': gate_passes,
+              'target_collision_episodes': collisions,
+              'no_candidate_episodes': no_candidate,
+              'static_clearance_violation_episodes': static_violations,
+              'communication_inference_authorized': gate_passes,
+              'geometry_inference_authorized': gate_passes,
+          }
+          with open('results/part_b_final_v6/safety_gate.json','w') as f:
+              json.dump(result,f,indent=2)
+              f.write('\n')
+          print(json.dumps(result,sort_keys=True))
+          PY
+          gate_passes=$(python -c "import json; print(str(json.load(open('results/part_b_final_v6/safety_gate.json'))['gate_passes']).lower())")
+          echo "gate_passes=$gate_passes" >> "$GITHUB_OUTPUT"
+      - name: Seed-level confirmatory inference
+        if: steps.safety_gate.outputs.gate_passes == 'true'
+        run: python scripts/analyze_pc_fmcw_confirmatory_seedlevel.py --input results/part_b_final_v6/episodes.csv --output-dir results/part_b_final_v6 --bootstrap-samples 100000
+      - name: Safety diagnostics
+        if: steps.safety_gate.outputs.gate_passes == 'true'
+        run: python scripts/diagnose_pc_fmcw_benchmark.py --input results/part_b_final_v6/episodes.csv --output-dir results/part_b_final_v6/diagnostics
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: part-b-final-v6-confirmatory, path: results/part_b_final_v6/, retention-days: 90}
+
+  geometry-mechanism:
+    name: V6 fresh directional geometry mechanism
+    needs: [select-development-margin, confirmatory-aggregate]
+    if: needs.confirmatory-aggregate.outputs.gate_passes == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v6
+        with: {python-version: '3.11', cache: pip}
+      - name: Install dependencies
+        run: python -m pip install numpy scipy pandas scikit-learn
+      - name: Run fresh V6 geometry study
+        run: |
+          python scripts/run_pc_fmcw_geometry_ablation.py \
+            --seed-start 17000 --seeds 20 --mc-samples 32 \
+            --planning-safety-margin-m ${{ needs.select-development-margin.outputs.selected_margin }} --v4-static-viability \
+            --v5-time-aligned-dynamic --v5-dynamic-stop-viability --v5-damped-lateral-prediction \
+            --v6-hierarchical-clearance \
+            --output-dir results/pc_fmcw_geometry_ablation_v6
+          python scripts/analyze_pc_fmcw_geometry_ablation.py \
+            --input results/pc_fmcw_geometry_ablation_v6/episodes.csv \
+            --output-dir results/pc_fmcw_geometry_ablation_v6 --bootstrap 10000
+      - uses: actions/upload-artifact@v4
+        with: {name: pc-fmcw-geometry-ablation-v6, path: results/pc_fmcw_geometry_ablation_v6/, retention-days: 90}
