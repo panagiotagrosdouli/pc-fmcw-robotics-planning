@@ -44,6 +44,7 @@ def main():
     ap.add_argument("--v5-dynamic-stop-viability", action="store_true")
     ap.add_argument("--v5-damped-lateral-prediction", action="store_true")
     ap.add_argument("--v6-hierarchical-clearance", action="store_true")
+    ap.add_argument("--v7-endpoint-anchored-lateral", action="store_true")
     args = ap.parse_args()
     if args.seeds < 1:
         raise SystemExit("--seeds must be >= 1")
@@ -58,6 +59,7 @@ def main():
         v5_dynamic_stop_viability=args.v5_dynamic_stop_viability,
         v5_damped_lateral_prediction=args.v5_damped_lateral_prediction,
         v6_hierarchical_clearance=args.v6_hierarchical_clearance,
+        v7_endpoint_anchored_lateral=args.v7_endpoint_anchored_lateral,
     )
     seeds = range(args.seed_start, args.seed_start + args.seeds)
     rows = []
