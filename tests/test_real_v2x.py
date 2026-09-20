@@ -35,7 +35,7 @@ def test_metadata_detects_s2w_direction(tmp_path):
     p=tmp_path/"n8"/"V30"/"s2w_n8_v30_run01.txt"; out=add_run_metadata(pd.DataFrame({"delay_ms":[1]}),p)
     assert out.loc[0,"scenario"]=="W2S" and out.loc[0,"direction"]=="s2w" and out.loc[0,"network"]=="n8" and out.loc[0,"nominal_speed_kmh"]==30.0
 
-def test_candidate_scorer_penalizes_unsupported():
+def test_candidate_scorer_reserves_support_penalty_for_p3():
     from iscai.connectivity.real_v2x.planner import score_candidates, PlannerMode
     class Predictor:
         def predict(self,df): return np.asarray(df["mock_pred"],float)
@@ -43,8 +43,11 @@ def test_candidate_scorer_penalizes_unsupported():
         def evaluate(self,df):
             flag=np.asarray(df["supported"],bool); return {"supported":flag,"nearest_distance_m":np.zeros(len(df)),"local_count":np.ones(len(df),int)}
     a=pd.DataFrame({"mock_pred":[10,10],"supported":[True,True]}); b=pd.DataFrame({"mock_pred":[10,10],"supported":[False,False]})
-    ranked=score_candidates([{"name":"a","df":a,"mobility_cost":0.0},{"name":"b","df":b,"mobility_cost":0.0}],Predictor(),Support(),mode=PlannerMode.P2,unsupported_penalty=2.0)
-    assert ranked[0]["name"]=="a" and ranked[1]["score"]>ranked[0]["score"]
+    candidates=[{"name":"a","df":a,"mobility_cost":0.0},{"name":"b","df":b,"mobility_cost":0.0}]
+    p2=score_candidates(candidates,Predictor(),Support(),mode=PlannerMode.P2,unsupported_penalty=2.0)
+    assert p2[0]["score"]==p2[1]["score"]
+    p3=score_candidates(candidates,Predictor(),Support(),mode=PlannerMode.P3,unsupported_penalty=2.0)
+    assert p3[0]["name"]=="a" and p3[1]["score"]>p3[0]["score"]
 
 def test_explicit_candidate_lag_context_is_not_overwritten():
     from iscai.connectivity.real_v2x.predictors import make_features
