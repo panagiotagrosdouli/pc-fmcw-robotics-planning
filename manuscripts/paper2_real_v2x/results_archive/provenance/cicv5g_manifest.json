@@ -1,0 +1,276 @@
+{
+  "dataset": "CICV5G",
+  "upstream_repository": "https://github.com/zxr805/CICV5G",
+  "upstream_tree_sha": "0ad0b8307b918b22754ff651f750e70c7960abd2",
+  "subset": "W2S",
+  "downloaded_at_utc": "2026-09-20T20:55:16.300521+00:00",
+  "n_files": 38,
+  "files": [
+    {
+      "upstream_path": "data/W2S/n78/V30/w2s_n78_v30_run01.txt",
+      "source_url": "https://raw.githubusercontent.com/zxr805/CICV5G/0ad0b8307b918b22754ff651f750e70c7960abd2/data/W2S/n78/V30/w2s_n78_v30_run01.txt",
+      "local_file": "data/raw/cicv5g/n78/V30/w2s_n78_v30_run01.txt",
+      "bytes": 299126,
+      "sha256": "9907d1015c18d6c2efdd53bd15c543e012835012698139ca1c2d275c68e5731c"
+    },
+    {
+      "upstream_path": "data/W2S/n78/V30/w2s_n78_v30_run02.txt",
+      "source_url": "https://raw.githubusercontent.com/zxr805/CICV5G/0ad0b8307b918b22754ff651f750e70c7960abd2/data/W2S/n78/V30/w2s_n78_v30_run02.txt",
+      "local_file": "data/raw/cicv5g/n78/V30/w2s_n78_v30_run02.txt",
+      "bytes": 305801,
+      "sha256": "1588073cda7567dd4634cc9de0e3e2bff4765fcb2735b5c43da6b1810886f160"
+    },
+    {
+      "upstream_path": "data/W2S/n78/V30/w2s_n78_v30_run03.txt",
+      "source_url": "https://raw.githubusercontent.com/zxr805/CICV5G/0ad0b8307b918b22754ff651f750e70c7960abd2/data/W2S/n78/V30/w2s_n78_v30_run03.txt",
+      "local_file": "data/raw/cicv5g/n78/V30/w2s_n78_v30_run03.txt",
+      "bytes": 307191,
+      "sha256": "2f2dd26f104de6ca4cb583db6d55ec31da9660c50fa8ed6f7563112393b17e6f"
+    },
+    {
+      "upstream_path": "data/W2S/n78/V30/w2s_n78_v30_run04.txt",
+      "source_url": "https://raw.githubusercontent.com/zxr805/CICV5G/0ad0b8307b918b22754ff651f750e70c7960abd2/data/W2S/n78/V30/w2s_n78_v30_run04.txt",
+      "local_file": "data/raw/cicv5g/n78/V30/w2s_n78_v30_run04.txt",
+      "bytes": 250032,
+      "sha256": "8fab263135b27d3732a8f7d0a52d0b2c150d6fb617187aacb1154d2d5e549565"
+    },
+    {
+      "upstream_path": "data/W2S/n78/V30/w2s_n78_v30_run05.txt",
+      "source_url": "https://raw.githubusercontent.com/zxr805/CICV5G/0ad0b8307b918b22754ff651f750e70c7960abd2/data/W2S/n78/V30/w2s_n78_v30_run05.txt",
+      "local_file": "data/raw/cicv5g/n78/V30/w2s_n78_v30_run05.txt",
+      "bytes": 241759,
+      "sha256": "7821d3a41396745df7e9b867b228ac4864aacefcc7395090c6a68674afd07c3e"
+    },
+    {
+      "upstream_path": "data/W2S/n78/V30/w2s_n78_v30_run06.txt",
+      "source_url": "https://raw.githubusercontent.com/zxr805/CICV5G/0ad0b8307b918b22754ff651f750e70c7960abd2/data/W2S/n78/V30/w2s_n78_v30_run06.txt",
+      "local_file": "data/raw/cicv5g/n78/V30/w2s_n78_v30_run06.txt",
+      "bytes": 238346,
+      "sha256": "eaa5dd3a2dca00a9b0ec5cd017b4a8c29b28bd9b77f8ede4e2d5c30aa3f0d2b1"
+    },
+    {
+      "upstream_path": "data/W2S/n78/V50/s2w_n78_v50_run01.txt",
+      "source_url": "https://raw.githubusercontent.com/zxr805/CICV5G/0ad0b8307b918b22754ff651f750e70c7960abd2/data/W2S/n78/V50/s2w_n78_v50_run01.txt",
+      "local_file": "data/raw/cicv5g/n78/V50/s2w_n78_v50_run01.txt",
+      "bytes": 120717,
+      "sha256": "c18bed4afbbd7791a2722d4ae074658b0b1367efed04af9c6dfa0aba1ea062a5"
+    },
+    {
+      "upstream_path": "data/W2S/n78/V50/s2w_n78_v50_run02.txt",
+      "source_url": "https://raw.githubusercontent.com/zxr805/CICV5G/0ad0b8307b918b22754ff651f750e70c7960abd2/data/W2S/n78/V50/s2w_n78_v50_run02.txt",
+      "local_file": "data/raw/cicv5g/n78/V50/s2w_n78_v50_run02.txt",
+      "bytes": 56563,
+      "sha256": "f0273c316b26ab82fcc76432804a6dbb5bc4786b8731e4d404ac302d3a8d5bb8"
+    },
+    {
+      "upstream_path": "data/W2S/n78/V50/s2w_n78_v50_run03.txt",
+      "source_url": "https://raw.githubusercontent.com/zxr805/CICV5G/0ad0b8307b918b22754ff651f750e70c7960abd2/data/W2S/n78/V50/s2w_n78_v50_run03.txt",
+      "local_file": "data/raw/cicv5g/n78/V50/s2w_n78_v50_run03.txt",
+      "bytes": 162423,
+      "sha256": "e950867a5d16c077bdfc085ffafdc6e9981c58bf9e7e101ec37b052b47dc398d"
+    },
+    {
+      "upstream_path": "data/W2S/n78/V50/s2w_n78_v50_run04.txt",
+      "source_url": "https://raw.githubusercontent.com/zxr805/CICV5G/0ad0b8307b918b22754ff651f750e70c7960abd2/data/W2S/n78/V50/s2w_n78_v50_run04.txt",
+      "local_file": "data/raw/cicv5g/n78/V50/s2w_n78_v50_run04.txt",
+      "bytes": 110503,
+      "sha256": "aa9a645d89f8e9c43900d995bf62059bb322c4158b4ec64fc9fc6d7c7572b3ec"
+    },
+    {
+      "upstream_path": "data/W2S/n78/V50/s2w_n78_v50_run05.txt",
+      "source_url": "https://raw.githubusercontent.com/zxr805/CICV5G/0ad0b8307b918b22754ff651f750e70c7960abd2/data/W2S/n78/V50/s2w_n78_v50_run05.txt",
+      "local_file": "data/raw/cicv5g/n78/V50/s2w_n78_v50_run05.txt",
+      "bytes": 186854,
+      "sha256": "98303294c05e6996568ea906298e779da3186de427031a340f3e9e3bdc353083"
+    },
+    {
+      "upstream_path": "data/W2S/n78/V50/w2s_n78_v50_run01.txt",
+      "source_url": "https://raw.githubusercontent.com/zxr805/CICV5G/0ad0b8307b918b22754ff651f750e70c7960abd2/data/W2S/n78/V50/w2s_n78_v50_run01.txt",
+      "local_file": "data/raw/cicv5g/n78/V50/w2s_n78_v50_run01.txt",
+      "bytes": 122328,
+      "sha256": "283d5daa7e22971a26b24e0fbb1bf16232c52b6d76ae61e7f0191281ac901a24"
+    },
+    {
+      "upstream_path": "data/W2S/n78/V50/w2s_n78_v50_run02.txt",
+      "source_url": "https://raw.githubusercontent.com/zxr805/CICV5G/0ad0b8307b918b22754ff651f750e70c7960abd2/data/W2S/n78/V50/w2s_n78_v50_run02.txt",
+      "local_file": "data/raw/cicv5g/n78/V50/w2s_n78_v50_run02.txt",
+      "bytes": 201645,
+      "sha256": "dc100d1bd23ca81cfef4cb03c477073971bb5d35494b39b59e4eba75a26d1894"
+    },
+    {
+      "upstream_path": "data/W2S/n78/V50/w2s_n78_v50_run03.txt",
+      "source_url": "https://raw.githubusercontent.com/zxr805/CICV5G/0ad0b8307b918b22754ff651f750e70c7960abd2/data/W2S/n78/V50/w2s_n78_v50_run03.txt",
+      "local_file": "data/raw/cicv5g/n78/V50/w2s_n78_v50_run03.txt",
+      "bytes": 195884,
+      "sha256": "62c778b5309efa8bb8b02192822d067c353a67a8cbc7215a1f666ce5c40e4247"
+    },
+    {
+      "upstream_path": "data/W2S/n78/V50/w2s_n78_v50_run04.txt",
+      "source_url": "https://raw.githubusercontent.com/zxr805/CICV5G/0ad0b8307b918b22754ff651f750e70c7960abd2/data/W2S/n78/V50/w2s_n78_v50_run04.txt",
+      "local_file": "data/raw/cicv5g/n78/V50/w2s_n78_v50_run04.txt",
+      "bytes": 170373,
+      "sha256": "09dc375f25305c0087d8d26c3e36a0590328ea290f77da450038923531322b53"
+    },
+    {
+      "upstream_path": "data/W2S/n78/V50/w2s_n78_v50_run05.txt",
+      "source_url": "https://raw.githubusercontent.com/zxr805/CICV5G/0ad0b8307b918b22754ff651f750e70c7960abd2/data/W2S/n78/V50/w2s_n78_v50_run05.txt",
+      "local_file": "data/raw/cicv5g/n78/V50/w2s_n78_v50_run05.txt",
+      "bytes": 166728,
+      "sha256": "8e80950e7b22413e5b8d1c2ebf8cdf282a874e503ce384e2bb61e2acb988c665"
+    },
+    {
+      "upstream_path": "data/W2S/n78/V50/w2s_n78_v50_run06.txt",
+      "source_url": "https://raw.githubusercontent.com/zxr805/CICV5G/0ad0b8307b918b22754ff651f750e70c7960abd2/data/W2S/n78/V50/w2s_n78_v50_run06.txt",
+      "local_file": "data/raw/cicv5g/n78/V50/w2s_n78_v50_run06.txt",
+      "bytes": 165654,
+      "sha256": "0146fa069e2f208916795afed96f7db2dbc69a6723625b1fdb23c627e56c7495"
+    },
+    {
+      "upstream_path": "data/W2S/n8/V30/s2w_n8_v30_run01.txt",
+      "source_url": "https://raw.githubusercontent.com/zxr805/CICV5G/0ad0b8307b918b22754ff651f750e70c7960abd2/data/W2S/n8/V30/s2w_n8_v30_run01.txt",
+      "local_file": "data/raw/cicv5g/n8/V30/s2w_n8_v30_run01.txt",
+      "bytes": 280528,
+      "sha256": "87131fbbb74c21f957ea397954522862515371c56552c38360843c7cc89a5a9a"
+    },
+    {
+      "upstream_path": "data/W2S/n8/V30/s2w_n8_v30_run02.txt",
+      "source_url": "https://raw.githubusercontent.com/zxr805/CICV5G/0ad0b8307b918b22754ff651f750e70c7960abd2/data/W2S/n8/V30/s2w_n8_v30_run02.txt",
+      "local_file": "data/raw/cicv5g/n8/V30/s2w_n8_v30_run02.txt",
+      "bytes": 293096,
+      "sha256": "c1d08800b949b77614809509f4392e1ee85cef121e5a77cc1f88ed711eb710e1"
+    },
+    {
+      "upstream_path": "data/W2S/n8/V30/s2w_n8_v30_run03.txt",
+      "source_url": "https://raw.githubusercontent.com/zxr805/CICV5G/0ad0b8307b918b22754ff651f750e70c7960abd2/data/W2S/n8/V30/s2w_n8_v30_run03.txt",
+      "local_file": "data/raw/cicv5g/n8/V30/s2w_n8_v30_run03.txt",
+      "bytes": 283485,
+      "sha256": "cf66337c4009ff0963ed3d928c95fb1994b3269e5f887a21989cb5e0498433f8"
+    },
+    {
+      "upstream_path": "data/W2S/n8/V30/w2s_n8_v30_run01.txt",
+      "source_url": "https://raw.githubusercontent.com/zxr805/CICV5G/0ad0b8307b918b22754ff651f750e70c7960abd2/data/W2S/n8/V30/w2s_n8_v30_run01.txt",
+      "local_file": "data/raw/cicv5g/n8/V30/w2s_n8_v30_run01.txt",
+      "bytes": 314339,
+      "sha256": "86cbedf6a41bf9d4583e13555f1be71c78f2c3b7f558c9a4ff7eca67a38abcca"
+    },
+    {
+      "upstream_path": "data/W2S/n8/V30/w2s_n8_v30_run02.txt",
+      "source_url": "https://raw.githubusercontent.com/zxr805/CICV5G/0ad0b8307b918b22754ff651f750e70c7960abd2/data/W2S/n8/V30/w2s_n8_v30_run02.txt",
+      "local_file": "data/raw/cicv5g/n8/V30/w2s_n8_v30_run02.txt",
+      "bytes": 271352,
+      "sha256": "76e6e6d34ba2d1808255dfd4d50122ca7a5579c180f23541bb5738ff63b4ad7b"
+    },
+    {
+      "upstream_path": "data/W2S/n8/V30/w2s_n8_v30_run03.txt",
+      "source_url": "https://raw.githubusercontent.com/zxr805/CICV5G/0ad0b8307b918b22754ff651f750e70c7960abd2/data/W2S/n8/V30/w2s_n8_v30_run03.txt",
+      "local_file": "data/raw/cicv5g/n8/V30/w2s_n8_v30_run03.txt",
+      "bytes": 268481,
+      "sha256": "fc783cb5a80536576c836081af50515ea7980730a46eac87fc7fe199cbb39627"
+    },
+    {
+      "upstream_path": "data/W2S/n8/V30/w2s_n8_v30_run04.txt",
+      "source_url": "https://raw.githubusercontent.com/zxr805/CICV5G/0ad0b8307b918b22754ff651f750e70c7960abd2/data/W2S/n8/V30/w2s_n8_v30_run04.txt",
+      "local_file": "data/raw/cicv5g/n8/V30/w2s_n8_v30_run04.txt",
+      "bytes": 252689,
+      "sha256": "561c75ae21efdadd96ca1ad18264a6c1f96f1809466abffdf3eeb7417112052d"
+    },
+    {
+      "upstream_path": "data/W2S/n8/V30/w2s_n8_v30_run05.txt",
+      "source_url": "https://raw.githubusercontent.com/zxr805/CICV5G/0ad0b8307b918b22754ff651f750e70c7960abd2/data/W2S/n8/V30/w2s_n8_v30_run05.txt",
+      "local_file": "data/raw/cicv5g/n8/V30/w2s_n8_v30_run05.txt",
+      "bytes": 248303,
+      "sha256": "9e99c9a896fd742879f4ceb4fa713fdc014993b8767692dc9cb1668094e1d86e"
+    },
+    {
+      "upstream_path": "data/W2S/n8/V30/w2s_n8_v30_run06.txt",
+      "source_url": "https://raw.githubusercontent.com/zxr805/CICV5G/0ad0b8307b918b22754ff651f750e70c7960abd2/data/W2S/n8/V30/w2s_n8_v30_run06.txt",
+      "local_file": "data/raw/cicv5g/n8/V30/w2s_n8_v30_run06.txt",
+      "bytes": 256436,
+      "sha256": "80a5c5f6fe52216e9199c6526fa685e17e4e14eaddd5df1d1cc4407abf05c396"
+    },
+    {
+      "upstream_path": "data/W2S/n8/V30/w2s_n8_v30_run07.txt",
+      "source_url": "https://raw.githubusercontent.com/zxr805/CICV5G/0ad0b8307b918b22754ff651f750e70c7960abd2/data/W2S/n8/V30/w2s_n8_v30_run07.txt",
+      "local_file": "data/raw/cicv5g/n8/V30/w2s_n8_v30_run07.txt",
+      "bytes": 257878,
+      "sha256": "b4cb5cf6f435c4f397d981bf41a28d89da17ef8bb32fa833360fff8b95f99ae0"
+    },
+    {
+      "upstream_path": "data/W2S/n8/V30/w2s_n8_v30_run09.txt",
+      "source_url": "https://raw.githubusercontent.com/zxr805/CICV5G/0ad0b8307b918b22754ff651f750e70c7960abd2/data/W2S/n8/V30/w2s_n8_v30_run09.txt",
+      "local_file": "data/raw/cicv5g/n8/V30/w2s_n8_v30_run09.txt",
+      "bytes": 254811,
+      "sha256": "5ff2a92f1199f0bd1e08616ad3c51f29b9e3b0cf83a7a61a1b823c4e9118168a"
+    },
+    {
+      "upstream_path": "data/W2S/n8/V30/w2s_n8_v30_run10.txt",
+      "source_url": "https://raw.githubusercontent.com/zxr805/CICV5G/0ad0b8307b918b22754ff651f750e70c7960abd2/data/W2S/n8/V30/w2s_n8_v30_run10.txt",
+      "local_file": "data/raw/cicv5g/n8/V30/w2s_n8_v30_run10.txt",
+      "bytes": 277148,
+      "sha256": "3fe051b7639613fca67a3dd3c18acf30b6b093c38bc0b63f5b5341f6dec5eab2"
+    },
+    {
+      "upstream_path": "data/W2S/n8/V50/s2w_n8_v50_run01.txt",
+      "source_url": "https://raw.githubusercontent.com/zxr805/CICV5G/0ad0b8307b918b22754ff651f750e70c7960abd2/data/W2S/n8/V50/s2w_n8_v50_run01.txt",
+      "local_file": "data/raw/cicv5g/n8/V50/s2w_n8_v50_run01.txt",
+      "bytes": 179225,
+      "sha256": "b5ae042941bd22d0b2c40918694a3c9d83302966a103ca5833738546727a0866"
+    },
+    {
+      "upstream_path": "data/W2S/n8/V50/s2w_n8_v50_run02.txt",
+      "source_url": "https://raw.githubusercontent.com/zxr805/CICV5G/0ad0b8307b918b22754ff651f750e70c7960abd2/data/W2S/n8/V50/s2w_n8_v50_run02.txt",
+      "local_file": "data/raw/cicv5g/n8/V50/s2w_n8_v50_run02.txt",
+      "bytes": 182885,
+      "sha256": "5f4b62e2c4c25bbb3b0a6e4e8e03ed686b9c51c7b10755fce77b69ab0d4b857f"
+    },
+    {
+      "upstream_path": "data/W2S/n8/V50/s2w_n8_v50_run03.txt",
+      "source_url": "https://raw.githubusercontent.com/zxr805/CICV5G/0ad0b8307b918b22754ff651f750e70c7960abd2/data/W2S/n8/V50/s2w_n8_v50_run03.txt",
+      "local_file": "data/raw/cicv5g/n8/V50/s2w_n8_v50_run03.txt",
+      "bytes": 159923,
+      "sha256": "dd0488e7e94a58773f91fd3456833e4384388d65373516710e34009d9318b188"
+    },
+    {
+      "upstream_path": "data/W2S/n8/V50/w2s_n8_v50_run01.txt",
+      "source_url": "https://raw.githubusercontent.com/zxr805/CICV5G/0ad0b8307b918b22754ff651f750e70c7960abd2/data/W2S/n8/V50/w2s_n8_v50_run01.txt",
+      "local_file": "data/raw/cicv5g/n8/V50/w2s_n8_v50_run01.txt",
+      "bytes": 222838,
+      "sha256": "e2f7d731e10d0bc03abc33dd0958097d2e8bc0510c0d887e0d69866a4609746f"
+    },
+    {
+      "upstream_path": "data/W2S/n8/V50/w2s_n8_v50_run02.txt",
+      "source_url": "https://raw.githubusercontent.com/zxr805/CICV5G/0ad0b8307b918b22754ff651f750e70c7960abd2/data/W2S/n8/V50/w2s_n8_v50_run02.txt",
+      "local_file": "data/raw/cicv5g/n8/V50/w2s_n8_v50_run02.txt",
+      "bytes": 227817,
+      "sha256": "c41a50fc33335733cf9ee044857f92303ebf62e78dd907b70f1818104d974760"
+    },
+    {
+      "upstream_path": "data/W2S/n8/V50/w2s_n8_v50_run03.txt",
+      "source_url": "https://raw.githubusercontent.com/zxr805/CICV5G/0ad0b8307b918b22754ff651f750e70c7960abd2/data/W2S/n8/V50/w2s_n8_v50_run03.txt",
+      "local_file": "data/raw/cicv5g/n8/V50/w2s_n8_v50_run03.txt",
+      "bytes": 209035,
+      "sha256": "42ac2d992bcc3ea56ca5a5c2e67c67914017861692323fb85234cd62d77908a4"
+    },
+    {
+      "upstream_path": "data/W2S/n8/V50/w2s_n8_v50_run04.txt",
+      "source_url": "https://raw.githubusercontent.com/zxr805/CICV5G/0ad0b8307b918b22754ff651f750e70c7960abd2/data/W2S/n8/V50/w2s_n8_v50_run04.txt",
+      "local_file": "data/raw/cicv5g/n8/V50/w2s_n8_v50_run04.txt",
+      "bytes": 112000,
+      "sha256": "d36c1a7e6dc77649f1ee7a2c35c4a0ede0c369bee8f1df23e6bb1516b5481c84"
+    },
+    {
+      "upstream_path": "data/W2S/n8/V50/w2s_n8_v50_run05.txt",
+      "source_url": "https://raw.githubusercontent.com/zxr805/CICV5G/0ad0b8307b918b22754ff651f750e70c7960abd2/data/W2S/n8/V50/w2s_n8_v50_run05.txt",
+      "local_file": "data/raw/cicv5g/n8/V50/w2s_n8_v50_run05.txt",
+      "bytes": 101694,
+      "sha256": "2032f84e79ce3ab9a080fa41447b085d0765249674d27a5bff4e128f54cc5747"
+    },
+    {
+      "upstream_path": "data/W2S/n8/V50/w2s_n8_v50_run06.txt",
+      "source_url": "https://raw.githubusercontent.com/zxr805/CICV5G/0ad0b8307b918b22754ff651f750e70c7960abd2/data/W2S/n8/V50/w2s_n8_v50_run06.txt",
+      "local_file": "data/raw/cicv5g/n8/V50/w2s_n8_v50_run06.txt",
+      "bytes": 107929,
+      "sha256": "c579d9fb43bc2720aec71c68dba516b273af4cc629476a67723523e958e62588"
+    }
+  ]
+}
