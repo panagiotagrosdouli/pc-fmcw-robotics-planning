@@ -28,7 +28,7 @@ The numerical values below are reconciled to the archived `real-v2x-dual-branch-
 - P2 vs P1 >50 ms violation fraction improves in 5/5 assignments; descriptive mean effect -0.002239.
 - P3 vs P2 unsupported-selection fraction improves in 5/5 assignments; descriptive mean effect -0.027954.
 - P3 vs P2 measured-delay effects have mixed sign; descriptive mean about -0.005765 ms; no stable additional QoS claim.
-- Archived vectorized replay records about 83.1 microseconds/candidate for batched QoS/support evaluation and about 9.85 microseconds mean decision scoring. This is implementation-level evidence only, not embedded/end-to-end real-time validation.
+- Hosted-run timing is diagnostic only; exact latency values are not paper claims because repeated workflow runs vary materially with runner load.
 
 ## Statistical interpretation
 
@@ -37,11 +37,11 @@ The numerical values below are reconciled to the archived `real-v2x-dual-branch-
 - The five alternative grouped split assignments reuse the same finite set of runs and are dependent; use mean/median/min/max/fraction-same-sign descriptively only.
 - Do not use the split-assignment Wilcoxon fields from historical multisplit CSV output as independent-sample inference.
 
-## Manuscript-critical remaining assets
+## Final presentation work
 
 - Generate publication figures from the archived result CSVs/artifacts.
 - Generate final formatted tables from artifact files rather than hand-entered numbers.
-- Verify every numerical statement against archived result artifacts before submission.
+- Re-run the automated numerical-claim verification before submission.
 - Complete venue-specific reference/style adaptation after scientific content is frozen.
 - Maintain dataset license/access and code/data-availability statements.
 - Run final manuscript claim audit against `docs/research/CLAIM_AUDIT.md`.
