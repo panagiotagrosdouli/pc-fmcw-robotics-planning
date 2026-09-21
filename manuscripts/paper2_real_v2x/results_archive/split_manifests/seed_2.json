@@ -1,0 +1,46 @@
+{
+  "train_runs": [
+    "s2w_n78_v50_run03",
+    "s2w_n78_v50_run04",
+    "s2w_n8_v30_run02",
+    "s2w_n8_v30_run03",
+    "s2w_n8_v50_run03",
+    "w2s_n78_v30_run02",
+    "w2s_n78_v30_run04",
+    "w2s_n78_v30_run05",
+    "w2s_n78_v30_run06",
+    "w2s_n78_v50_run04",
+    "w2s_n78_v50_run06",
+    "w2s_n8_v30_run01",
+    "w2s_n8_v30_run02",
+    "w2s_n8_v30_run03",
+    "w2s_n8_v30_run04",
+    "w2s_n8_v30_run05",
+    "w2s_n8_v30_run06",
+    "w2s_n8_v50_run01",
+    "w2s_n8_v50_run02",
+    "w2s_n8_v50_run03",
+    "w2s_n8_v50_run05",
+    "w2s_n8_v50_run06"
+  ],
+  "cal_runs": [
+    "s2w_n78_v50_run01",
+    "s2w_n78_v50_run05",
+    "w2s_n78_v30_run01",
+    "w2s_n78_v30_run03",
+    "w2s_n78_v50_run01",
+    "w2s_n78_v50_run02",
+    "w2s_n78_v50_run03"
+  ],
+  "test_runs": [
+    "s2w_n78_v50_run02",
+    "s2w_n8_v30_run01",
+    "s2w_n8_v50_run01",
+    "s2w_n8_v50_run02",
+    "w2s_n78_v50_run05",
+    "w2s_n8_v30_run07",
+    "w2s_n8_v30_run09",
+    "w2s_n8_v30_run10",
+    "w2s_n8_v50_run04"
+  ]
+}
