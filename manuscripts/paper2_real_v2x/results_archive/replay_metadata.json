@@ -1,0 +1,62 @@
+{
+  "seed": 0,
+  "offsets": [
+    10,
+    20,
+    30
+  ],
+  "nominal_horizon": 20,
+  "delay_threshold_ms": 50.0,
+  "threshold_status": "experimental operating point; not a universal standard",
+  "support_radius_m": 1.0,
+  "support_min_neighbors": 5,
+  "decision_compute_us_mean": 9257.709195508358,
+  "decision_compute_us_p95": 9418.948349999999,
+  "claim_boundary": "Route-constrained offline measured replay; future measured QoS is outcome-only. This is decision-value evidence, not closed-loop vehicle or arbitrary counterfactual validation.",
+  "split": {
+    "train_runs": [
+      "s2w_n78_v50_run01",
+      "s2w_n78_v50_run02",
+      "s2w_n78_v50_run03",
+      "s2w_n78_v50_run04",
+      "s2w_n78_v50_run05",
+      "s2w_n8_v30_run02",
+      "s2w_n8_v50_run02",
+      "s2w_n8_v50_run03",
+      "w2s_n78_v30_run01",
+      "w2s_n78_v50_run01",
+      "w2s_n78_v50_run02",
+      "w2s_n78_v50_run04",
+      "w2s_n78_v50_run05",
+      "w2s_n78_v50_run06",
+      "w2s_n8_v30_run01",
+      "w2s_n8_v30_run02",
+      "w2s_n8_v30_run04",
+      "w2s_n8_v30_run05",
+      "w2s_n8_v30_run06",
+      "w2s_n8_v50_run01",
+      "w2s_n8_v50_run04",
+      "w2s_n8_v50_run05"
+    ],
+    "cal_runs": [
+      "s2w_n8_v50_run01",
+      "w2s_n78_v30_run02",
+      "w2s_n78_v30_run06",
+      "w2s_n78_v50_run03",
+      "w2s_n8_v30_run03",
+      "w2s_n8_v30_run09",
+      "w2s_n8_v50_run03"
+    ],
+    "test_runs": [
+      "s2w_n8_v30_run01",
+      "s2w_n8_v30_run03",
+      "w2s_n78_v30_run03",
+      "w2s_n78_v30_run04",
+      "w2s_n78_v30_run05",
+      "w2s_n8_v30_run07",
+      "w2s_n8_v30_run10",
+      "w2s_n8_v50_run02",
+      "w2s_n8_v50_run06"
+    ]
+  }
+}
