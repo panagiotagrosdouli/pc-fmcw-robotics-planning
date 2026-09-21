@@ -89,7 +89,7 @@ These five assignments are dependent because they reuse drives. Historical split
 
 ## 8. Computational implementation
 
-The archived vectorized replay reports about **83.1 microseconds per candidate** for batched QoS/support evaluation and approximately **9.85 microseconds mean decision-scoring time**. These are implementation-level CI timings only, not embedded-system or end-to-end real-time guarantees.
+The workflow records implementation timing as a diagnostic, but hosted-run timing varies materially with runner load and is not used as a paper result. No embedded-system, end-to-end real-time, or certified latency claim is made.
 
 ## 9. Discussion
 
