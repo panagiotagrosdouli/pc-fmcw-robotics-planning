@@ -7,7 +7,7 @@ committed to this repository. When GITHUB_TOKEN/GH_TOKEN is available (for examp
 GitHub Actions), it is used only to avoid anonymous GitHub API rate limits.
 """
 from __future__ import annotations
-import argparse, hashlib, json, os, urllib.parse, urllib.request
+import argparse, hashlib, json, os, time, urllib.parse, urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -39,6 +39,27 @@ def sha256(path: Path) -> str:
         for block in iter(lambda:f.read(1024*1024), b""): h.update(block)
     return h.hexdigest()
 
+def download_atomic(url: str, dest: Path, attempts: int = 5) -> None:
+    """Download with bounded retries without accepting a partial file."""
+    part = dest.with_suffix(dest.suffix + ".part")
+    last_error = None
+    for attempt in range(attempts):
+        try:
+            req = urllib.request.Request(url, headers=github_headers())
+            with urllib.request.urlopen(req, timeout=60) as response, part.open("wb") as out:
+                for block in iter(lambda: response.read(1024 * 1024), b""):
+                    out.write(block)
+            if part.stat().st_size == 0:
+                raise RuntimeError(f"empty download: {url}")
+            part.replace(dest)
+            return
+        except Exception as exc:
+            last_error = exc
+            part.unlink(missing_ok=True)
+            if attempt + 1 < attempts:
+                time.sleep(2 ** attempt)
+    raise RuntimeError(f"failed to download {url} after {attempts} attempts") from last_error
+
 def main() -> None:
     ap=argparse.ArgumentParser(); ap.add_argument("--output",default="data/raw/cicv5g"); ap.add_argument("--limit",type=int,default=0,help="0 downloads all W2S text runs")
     args=ap.parse_args(); root=Path(args.output); root.mkdir(parents=True,exist_ok=True)
@@ -51,7 +72,8 @@ def main() -> None:
         # manifest cannot describe one revision while downloading another.
         raw_base=f"https://raw.githubusercontent.com/{REPO}/{upstream_tree_sha}/"
         url=raw_base+urllib.parse.quote(rel,safe="/")
-        if not dest.exists() or dest.stat().st_size==0: urllib.request.urlretrieve(url,dest)
+        if not dest.exists() or dest.stat().st_size==0:
+            download_atomic(url,dest)
         rec={"upstream_path":rel,"source_url":url,"local_file":str(dest),"bytes":dest.stat().st_size,"sha256":sha256(dest)}
         records.append(rec); print(f"[{i}/{len(paths)}] {dest} ({rec['bytes']} bytes)")
     manifest={"dataset":"CICV5G","upstream_repository":f"https://github.com/{REPO}","upstream_tree_sha":upstream_tree_sha,"subset":"W2S","downloaded_at_utc":datetime.now(timezone.utc).isoformat(),"n_files":len(records),"files":records}
