@@ -1,5 +1,9 @@
 # Research and implementation audit — 2026-09-04
 
+> **Superseded historical audit.** This file records repository status on
+> 2026-09-04. Its incomplete/pending labels must not be used as current status.
+> The canonical closure decision is `PAPER_READINESS_AUDIT.md`.
+
 ## Scope and claim boundary
 
 This audit evaluates the repository as a controlled, model-based study of
