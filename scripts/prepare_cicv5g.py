@@ -7,13 +7,12 @@ committed to this repository. When GITHUB_TOKEN/GH_TOKEN is available (for examp
 GitHub Actions), it is used only to avoid anonymous GitHub API rate limits.
 """
 from __future__ import annotations
-import argparse, hashlib, json, os, urllib.parse, urllib.request
+import argparse, hashlib, json, os, time, urllib.parse, urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
 REPO = "zxr805/CICV5G"
 TREE_API = f"https://api.github.com/repos/{REPO}/git/trees/main?recursive=1"
-RAW_BASE = f"https://raw.githubusercontent.com/{REPO}/main/"
 
 def github_headers() -> dict[str, str]:
     headers = {"User-Agent": "pc-fmcw-real-v2x-research", "Accept": "application/vnd.github+json"}
@@ -23,13 +22,16 @@ def github_headers() -> dict[str, str]:
         headers["X-GitHub-Api-Version"] = "2022-11-28"
     return headers
 
-def discover_upstream() -> list[str]:
+def discover_upstream() -> tuple[str, list[str]]:
     req = urllib.request.Request(TREE_API, headers=github_headers())
     with urllib.request.urlopen(req, timeout=30) as r:
         payload = json.load(r)
+    tree_sha = str(payload.get("sha", ""))
+    if not tree_sha:
+        raise RuntimeError("CICV5G tree response did not include a commit/tree SHA")
     paths = [x["path"] for x in payload.get("tree", []) if x.get("type") == "blob" and x["path"].startswith("data/W2S/") and x["path"].endswith(".txt")]
     if not paths: raise RuntimeError("No CICV5G W2S text files discovered upstream")
-    return sorted(paths)
+    return tree_sha, sorted(paths)
 
 def sha256(path: Path) -> str:
     h=hashlib.sha256()
@@ -37,19 +39,44 @@ def sha256(path: Path) -> str:
         for block in iter(lambda:f.read(1024*1024), b""): h.update(block)
     return h.hexdigest()
 
+def download_atomic(url: str, dest: Path, attempts: int = 5) -> None:
+    """Download with bounded retries without accepting a partial file."""
+    part = dest.with_suffix(dest.suffix + ".part")
+    last_error = None
+    for attempt in range(attempts):
+        try:
+            req = urllib.request.Request(url, headers=github_headers())
+            with urllib.request.urlopen(req, timeout=60) as response, part.open("wb") as out:
+                for block in iter(lambda: response.read(1024 * 1024), b""):
+                    out.write(block)
+            if part.stat().st_size == 0:
+                raise RuntimeError(f"empty download: {url}")
+            part.replace(dest)
+            return
+        except Exception as exc:
+            last_error = exc
+            part.unlink(missing_ok=True)
+            if attempt + 1 < attempts:
+                time.sleep(2 ** attempt)
+    raise RuntimeError(f"failed to download {url} after {attempts} attempts") from last_error
+
 def main() -> None:
     ap=argparse.ArgumentParser(); ap.add_argument("--output",default="data/raw/cicv5g"); ap.add_argument("--limit",type=int,default=0,help="0 downloads all W2S text runs")
     args=ap.parse_args(); root=Path(args.output); root.mkdir(parents=True,exist_ok=True)
-    paths=discover_upstream()
+    upstream_tree_sha,paths=discover_upstream()
     if args.limit>0: paths=paths[:args.limit]
     records=[]
     for i,rel in enumerate(paths,1):
         dest=root/rel.replace("data/W2S/",""); dest.parent.mkdir(parents=True,exist_ok=True)
-        url=RAW_BASE+urllib.parse.quote(rel,safe="/")
-        if not dest.exists() or dest.stat().st_size==0: urllib.request.urlretrieve(url,dest)
+        # Pin every raw URL to the exact tree returned by discovery so the
+        # manifest cannot describe one revision while downloading another.
+        raw_base=f"https://raw.githubusercontent.com/{REPO}/{upstream_tree_sha}/"
+        url=raw_base+urllib.parse.quote(rel,safe="/")
+        if not dest.exists() or dest.stat().st_size==0:
+            download_atomic(url,dest)
         rec={"upstream_path":rel,"source_url":url,"local_file":str(dest),"bytes":dest.stat().st_size,"sha256":sha256(dest)}
         records.append(rec); print(f"[{i}/{len(paths)}] {dest} ({rec['bytes']} bytes)")
-    manifest={"dataset":"CICV5G","upstream_repository":f"https://github.com/{REPO}","subset":"W2S","downloaded_at_utc":datetime.now(timezone.utc).isoformat(),"n_files":len(records),"files":records}
+    manifest={"dataset":"CICV5G","upstream_repository":f"https://github.com/{REPO}","upstream_tree_sha":upstream_tree_sha,"subset":"W2S","downloaded_at_utc":datetime.now(timezone.utc).isoformat(),"n_files":len(records),"files":records}
     (root/"manifest.json").write_text(json.dumps(manifest,indent=2),encoding="utf-8")
     print(json.dumps({"n_files":len(records),"manifest":str(root/'manifest.json')},indent=2))
 

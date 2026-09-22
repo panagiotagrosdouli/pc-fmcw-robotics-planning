@@ -65,6 +65,14 @@ jobs:
           python scripts/analyze_real_v2x_replay_multisplit.py \
             --root results/real_v2x_replay_multisplit \
             --bootstrap 5000
+      - name: Record exact code, data, and environment provenance
+        run: |
+          mkdir -p results/provenance
+          git rev-parse HEAD > results/provenance/commit_sha.txt
+          python --version > results/provenance/python_version.txt
+          python -m pip freeze > results/provenance/pip_freeze.txt
+          cp data/raw/cicv5g/manifest.json results/provenance/cicv5g_manifest.json
+          sha256sum results/provenance/cicv5g_manifest.json > results/provenance/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
           name: real-v2x-research-study
@@ -74,3 +82,4 @@ jobs:
             results/real_v2x_multisplit/
             results/real_v2x_replay/
             results/real_v2x_replay_multisplit/
+            results/provenance/

@@ -77,7 +77,7 @@ For P3 versus P2, measured-delay effects are heterogeneous (`+0.073, +0.015, +0.
 By contrast, P3 reduces unsupported-selection exposure relative to P2 in **all five** split assignments: approximately `-0.0184, -0.0153, -0.0190, -0.0562, -0.0309` absolute, with descriptive mean approximately **-0.0280**. P3 also incurs additional mobility deviation in all five assignments. The robust interpretation is therefore a repeatable **validity-versus-mobility trade-off**, not QoS superiority.
 
 ## Computational behavior
-The vectorized replay implementation processed approximately 27k–34k candidate queries per split. Batched QoS/support inference required about **81–96 microseconds per candidate** across the completed split assignments on hosted GitHub Actions hardware. The lightweight decision-scoring portion was on the order of **10 microseconds mean per scoring call** in those runs, with rare timing outliers affecting the mean. These measurements demonstrate low software overhead in the benchmark implementation but are not an end-to-end embedded real-time guarantee.
+The workflow records hosted-run timing only as a diagnostic. Repeated evidence runs showed material wall-clock variation under runner load, so no exact latency value is promoted to a scientific result and no embedded or end-to-end real-time claim is made.
 
 ## Negative results retained
 The following negative results are part of the contribution rather than omitted:
