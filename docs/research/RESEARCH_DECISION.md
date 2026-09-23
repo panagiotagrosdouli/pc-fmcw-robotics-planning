@@ -41,7 +41,10 @@ P3 does not improve measured delay over P2: P3-P2 is +0.073 ms (p=0.742), and th
 RMSE, interval coverage/width, support-stratified error, selected-horizon/mobility deviation, changed-decision fraction, SINR diagnostics, decision compute time and failure cases.
 
 ## Computational result
-The replay implementation measured approximately **8.63 ms mean** and **8.85 ms p95** decision computation on the hosted CI runner. This supports only an implementation-level computational-practicality statement. It is not end-to-end embedded or vehicle real-time validation.
+Hosted-run timing is retained only as a diagnostic. Repeated otherwise
+equivalent evidence runs showed material wall-clock variation with runner load,
+so no exact latency value is a paper claim and no embedded or end-to-end
+real-time capability is inferred.
 
 ## Relationship to PC-FMCW
 The existing PC-FMCW branch remains the technology-specific model-based optical experiment. The measured CICV5G branch tests the general decision-layer principle under real communication traces. No 5G measurement is relabeled as PC-FMCW, and no real-data result is presented as optical-channel validation.

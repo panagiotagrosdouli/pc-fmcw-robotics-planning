@@ -1,5 +1,10 @@
 # Post-Freeze Research Expansion Plan
 
+> **Out of scope for the current two-paper submission.** This document is
+> retained as historical/future planning material and is excluded from the
+> submission evidence package. None of its proposed work is needed to support
+> the frozen claims.
+
 Status: planned after validation of the canonical frozen paper experiment.
 
 ## Goal

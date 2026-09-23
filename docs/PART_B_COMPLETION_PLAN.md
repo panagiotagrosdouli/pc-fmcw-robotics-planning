@@ -1,5 +1,10 @@
 # Part B Completion Plan — Predictive Connectivity-Aware Receding-Horizon Motion Planning
 
+> **Historical planning document.** This checklist predates the frozen V7
+> execution and is retained only as an audit trail. It is not a current status
+> report or submission source. Use `PAPER_READINESS_AUDIT.md`,
+> `docs/PART_B_V7_EXECUTION_STATUS.md`, and the Paper-1 manuscript instead.
+
 ## Research question
 
 **Can predictive connectivity-aware motion planning improve future modeled communication reliability relative to reactive planning while maintaining comparable safety and acceptable mobility cost?**

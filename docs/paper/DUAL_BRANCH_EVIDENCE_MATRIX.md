@@ -8,9 +8,9 @@
 | Predictive planner | P2 future trajectory-conditioned connectivity | P2 horizon-adaptive causal QoS prediction | Predictive information has decision value in both branches |
 | Risk/support planner | P3 Monte Carlo/risk-sensitive | P3 uncertainty + empirical-support penalty | Risk awareness is best framed as robustness/validity control |
 | Oracle | P4 simulator truth for connectivity only | Omitted for arbitrary positions | Real observational data do not justify a free oracle |
-| Strongest positive result | P2 improves link metrics vs P1 in the verified historical baseline | Primary split shows lower measured replay delay for P2 vs P1; grouped multi-split robustness is being executed | Predictive-versus-reactive contrast is the cross-branch hypothesis, but each branch keeps its own evidence level |
-| P3 vs P2 | Small, non-significant link gains in the historical baseline | No delay gain; lower unsupported exposure in the primary split | Do not claim risk-awareness automatically improves QoS |
-| Safety result | No planner-level collision-rate difference in verified baseline | Route replay is not a safety-validation experiment | No cross-branch safety improvement claim |
+| Strongest positive result | Frozen V7 confirmation supports P2 over P1 on all five modeled communication endpoints after Holm correction | P2 has lower measured replay delay direction in 5/5 grouped assignments; the primary effect does not survive Holm correction | Predictive-versus-reactive evidence is positive at different evidence levels; the channels remain separate |
+| P3 vs P2 | P3 is worse on all five V7 communication endpoints | No stable delay gain; lower unsupported exposure in 5/5 grouped assignments | Do not claim risk-awareness automatically improves QoS |
+| Safety result | V7 confirmation has zero sampled gate failures, but does not establish a safety improvement or guarantee | Route replay is not a safety-validation experiment | No cross-branch safety improvement claim |
 | Real measurements? | No | Yes, communication traces only | Measurement realism belongs to V2X decision validation, not PC-FMCW channel validation |
 | Counterfactual validity | Simulator supplies model value at arbitrary candidates | Restricted/audited because measurements exist only on visited states | Explicit distinction is a methodological contribution |
 | Main limitation | model calibration / optical realism | observational support / route coverage / distribution shift | The limitations are different and therefore complementary |
@@ -37,20 +37,19 @@ Planner effects such as selected trajectory, mobility deviation and unsupported-
 
 ### Supported now
 
-- the historical 20-seed PC-FMCW-informed baseline supports a P2-versus-P1 modeled-connectivity advantage;
+- the frozen 50-seed V7 confirmation supports a P2-versus-P1 modeled-connectivity advantage across all five declared endpoints;
 - one-step measured V2X delay is strongly persistent and naive learned spatial models are not automatically superior;
 - calibrated context/spatial information has incremental value at longer planning horizons across the five tested grouped split assignments;
 - the primary route-constrained held-out replay shows a lower-delay direction for P2 relative to P1 at a small mobility cost;
 - the primary replay shows that P3 can reduce reliance on empirically unsupported selections, but does not improve measured delay relative to P2;
 - the same predictive-connectivity decision abstraction can be instantiated with technology-specific modeled optical QoS and with field-measured V2X data without conflating the two channels.
 
-### Partially supported / needs closure
+### Not established
 
-- the frozen 50-seed Part-B-final-v1 confirmatory PC-FMCW result;
-- robustness of PC-FMCW effects across observation noise, target-prediction uncertainty, horizon, link-model mismatch and connectivity-weight sweeps;
-- robustness of route-replay P2/P1 and P3/P2 effects across multiple grouped split assignments;
 - real-time suitability on target vehicle hardware;
-- optical-specific superiority of angular/pointing-aware modeling over distance-only connectivity.
+- measured optical-channel validity or physical calibration;
+- real-road closed-loop benefit or safety improvement;
+- independent replication from grouped assignments that reuse drives.
 
 ### Do not claim
 
