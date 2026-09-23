@@ -6,8 +6,7 @@ The canonical submission source is `paper2.tex`. It is intentionally self-contai
 
 ```bash
 cd manuscripts/paper2_real_v2x
-pdflatex -interaction=nonstopmode -halt-on-error paper2.tex
-pdflatex -interaction=nonstopmode -halt-on-error paper2.tex
+latexmk -pdf -interaction=nonstopmode -halt-on-error paper2.tex
 ```
 
 ## Regenerate publication assets from archived results

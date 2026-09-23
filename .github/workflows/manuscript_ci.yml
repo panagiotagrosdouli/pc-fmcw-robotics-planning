@@ -30,6 +30,11 @@ jobs:
               manuscripts/paper2_real_v2x/results_archive \
               --out manuscripts/paper2_real_v2x/generated
           fi
+      - name: Regenerate Paper 1 publication assets
+        run: |
+          python scripts/build_paper1_publication_assets.py \
+            --input manuscripts/paper1_pc_fmcw/results_archive/confirmatory_seed_level_effects.csv \
+            --out manuscripts/paper1_pc_fmcw/generated/table_confirmatory_effects.tex
       - name: Compile all manuscript sources
         run: |
           set -euo pipefail
@@ -39,7 +44,7 @@ jobs:
             dir=$(dirname "$tex")
             file=$(basename "$tex")
             echo "Compiling $tex"
-            (cd "$dir" && pdflatex -interaction=nonstopmode -halt-on-error "$file" && pdflatex -interaction=nonstopmode -halt-on-error "$file")
+            (cd "$dir" && latexmk -pdf -interaction=nonstopmode -halt-on-error "$file")
           done < <(find manuscripts -type f -name 'paper*.tex' | sort)
           if [ "$found" -eq 0 ]; then
             echo 'No manuscript .tex sources found' >&2
@@ -56,6 +61,8 @@ jobs:
           mkdir -p manuscript-artifacts
           find manuscripts -type f \( -name 'paper*.pdf' -o -path '*/generated/*.pdf' -o -path '*/generated/*.svg' -o -path '*/generated/*.tex' -o -path '*/generated/*.csv' \) -exec cp --parents {} manuscript-artifacts/ \;
           test -n "$(find manuscript-artifacts -type f -name 'paper*.pdf' -print -quit)"
+      - name: Build supplementary reproducibility archives
+        run: python scripts/build_submission_package.py --out manuscript-artifacts/supplementary
       - uses: actions/upload-artifact@v4
         with:
           name: manuscript-publication-assets

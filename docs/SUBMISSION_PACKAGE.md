@@ -50,3 +50,5 @@ not paper claims.
 3. Regenerate tables/figures from archived machine-readable artifacts.
 4. Confirm there are no unresolved markers in the manuscript sources.
 5. Verify venue formatting and bibliography metadata without changing claims.
+
+Venue selection, bibliography verification, and the frozen-release manifest are recorded in `VENUE_AND_SUBMISSION_PLAN.md`, `BIBLIOGRAPHY_AUDIT.md`, and `SUBMISSION_RELEASE_MANIFEST.md`.
