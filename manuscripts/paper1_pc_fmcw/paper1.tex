@@ -44,13 +44,13 @@ The independent statistical unit is the seed. Scenario rows are paired within se
 \section{Results}
 The confirmatory artifact contains 1,250 planner-scenario rows: 50 seeds, five scenarios, and five planners. The hard gate passed with zero collision episodes, zero no-candidate episodes, and zero modeled static-clearance-violation episodes.
 
-\begin{table*}[t]
+\begin{table}[t]
 \caption{Confirmatory seed-level effects. CI denotes the deterministic 95\% bootstrap interval; $p_H$ is Holm adjusted.}
 \label{tab:confirmatory}
 \centering
 \small
-\input{generated/table_confirmatory_effects.tex}
-\end{table*}
+\resizebox{\columnwidth}{!}{\input{generated/table_confirmatory_effects.tex}}
+\end{table}
 
 P2 improved all five modeled communication endpoints relative to P1 (Table~\ref{tab:confirmatory}). P3 was worse than P2 on every endpoint after correction, which rules out a claim that the evaluated uncertainty penalty improved communication utility. P4--P2 intervals included zero and all adjusted $p$-values equaled 1.0; under these conditions the practical forecast captured most of the modeled connectivity-only oracle value.
 
