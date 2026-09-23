@@ -1,12 +1,11 @@
-\documentclass[conference]{IEEEtran}
+\documentclass[journal]{IEEEtran}
 \usepackage{amsmath,amssymb,booktabs,multirow,graphicx,url,xcolor}
 \usepackage[hidelinks]{hyperref}
 \usepackage{siunitx}
 \title{When Can an Autonomous Vehicle Trust a Connectivity Map?\\
 Measurement-Support-Aware Predictive Planning with Field-Measured Vehicular QoS}
-\author{\IEEEauthorblockN{Panagiota Grosdouli}
-\IEEEauthorblockA{Independent Research Manuscript\\
-Repository: \texttt{pc-fmcw-robotics-planning}}}
+\author{Panagiota Grosdouli%
+\thanks{Affiliation and corresponding-author contact must be confirmed before submission.}}
 \begin{document}
 \maketitle
 
@@ -145,11 +144,35 @@ On the archived primary grouped split, persistence achieves 5.576 ms delay MAE a
 \subsection{Horizon-dependent predictive value}
 Across five grouped split assignments, calibration-gated horizon-adaptive prediction improves delay MAE over persistence in all five assignments at 20, 50, and 100 steps. Mean improvements are approximately 1.463, 2.510, and 2.621 ms, respectively. Improvements at 1, 5, and 10 steps are small or inconsistent. The supported conclusion is therefore horizon-qualified rather than a generic ``ML beats persistence'' claim.
 
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{generated/fig_horizon_improvement.pdf}
+\caption{Descriptive delay-MAE improvement over persistence across grouped split assignments. Split assignments reuse drives and are not independent replicates.}
+\label{fig:horizon}
+\end{figure}
+
 \subsection{Support-conditioned diagnostics}
 On the archived primary split, delay MAE is 5.332 ms for queries within 1 m of a training measurement, 7.120 ms at 1--5 m, and 9.579 ms at 5--15 m. Empirical interval coverage is 0.888, 0.864, and 0.761 across the same bins. Forensic analysis shows that this relationship is context dependent rather than universally monotonic, so support is interpreted as an empirical risk indicator rather than a deterministic error law.
 
 \subsection{Predictive planning versus reactive planning}
 In the archived primary held-out replay, P1 obtains 23.318 ms mean measured delay and a 0.02179 threshold-violation fraction. P2 reduces these to 22.526 ms and 0.01900, while changing 2.51\% of decisions and incurring 0.01254 mobility deviation.
+
+\begin{table}[t]
+\caption{Primary held-out replay summary over nine acquisition runs.}
+\label{tab:replay}
+\centering
+\small
+\begin{tabular}{lrrrr}
+\toprule
+ & Delay & $>50$ ms & Unsupported & Mobility \\
+Planner & (ms) & fraction & fraction & deviation \\
+\midrule
+P1 & 23.318 & 0.02179 & 0.1562 & 0 \\
+P2 & 22.526 & 0.01900 & 0.1563 & 0.01254 \\
+P3 & 22.598 & 0.01934 & 0.1380 & 0.02305 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 The paired P2--P1 mean-delay effect is approximately $-0.792$ ms with bootstrap 95\% CI $[-1.723,-0.138]$ ms. The raw paired Wilcoxon $p$-value is 0.046875, but the Holm-adjusted value across the 12-test family is approximately 0.28125; therefore this is exploratory, not multiplicity-corrected confirmatory evidence.
 
@@ -171,17 +194,12 @@ This evaluation is offline route-constrained replay, not closed-loop vehicle dep
 \section{Data and Code Availability}
 The CICV5G dataset is publicly archived with the dataset publication \cite{zhang2026} and Zenodo DOI 10.5281/zenodo.17475688. The repository records the acquisition subset, grouped split protocol, predictors, support model, replay implementation, and analysis scripts needed to regenerate the reported study subject to the dataset license and access conditions.
 
+\section*{Declarations}
+Author affiliation, acknowledgements, funding, and competing-interest declarations must be confirmed by the author before submission; no statement is inferred from repository contents.
+
 \section{Conclusion}
 Field-measured communication prediction can become decision-relevant at planning horizons even when persistence dominates one-step prediction. In route-constrained measured replay, predictive P2 shows a consistent directional reduction in measured delay relative to reactive P1 across grouped split assignments, while P3 consistently reduces unsupported decision exposure without a stable additional QoS gain. The broader methodological lesson is that a connectivity predictor should be evaluated not only by accuracy but also by causal horizon, empirical support, and the validity of the counterfactual states on which a planner acts.
 
-\begin{thebibliography}{4}
-\bibitem{ghaffarkhah2011}
-A. Ghaffarkhah and Y. Mostofi, ``Communication-Aware Motion Planning in Mobile Networks,'' \emph{IEEE Trans. Autom. Control}, vol. 56, no. 10, pp. 2478--2485, 2011, doi: 10.1109/TAC.2011.2164033.
-\bibitem{gordon2026}
-D. Gordon, M. B. Khan, T. Zugno, Y. Wu, M. Boban, X. An, and F. Dressler, ``Communication-aware Robot Motion Planning via Online Estimation of Radio Maps,'' in \emph{Proc. IEEE INFOCOM}, 2026, doi: 10.1109/INFOCOM59046.2026.11571354.
-\bibitem{ullah2025}
-I. Ullah, H. El Sayed, A. A. Dowhuszko, M. A. Khan, and J. H{\"a}m{\"a}l{\"a}inen, ``Trajectory Planning of Autonomous Vehicles to Ensure Target QoS Requirements in 6G Mobile Networks,'' \emph{IEEE Access}, vol. 13, pp. 37361--37369, 2025, doi: 10.1109/ACCESS.2025.3543204.
-\bibitem{zhang2026}
-X. Zhang, L. Xiong, P. Zhang, \emph{et al.}, ``5G communication delay dataset for cloud-based vehicle planning and control,'' \emph{Scientific Data}, vol. 13, Art. no. 878, 2026, doi: 10.1038/s41597-026-07239-7.
-\end{thebibliography}
+\bibliographystyle{IEEEtran}
+\bibliography{references}
 \end{document}
