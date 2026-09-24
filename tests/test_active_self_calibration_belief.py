@@ -27,3 +27,13 @@ def test_information_gain_is_zero_when_all_hypotheses_predict_same_snr():
     ego=np.array([[0.0,0.0,0.0,10.0],[1.0,0.0,0.0,10.0]])
     target=np.array([[20.0,0.0],[21.0,0.0]])
     assert np.isclose(belief.expected_information_gain(model,ego,target),0.0)
+
+
+def test_distance_only_ablation_ignores_angular_latents():
+    ego=np.array([0.0,0.0,0.0,10.0]);target=np.array([10.0,5.0])
+    a=LatentLinkParameters(alpha_loss=1.0,delta_beam_rad=-0.04,k_angular=0.75)
+    b=LatentLinkParameters(alpha_loss=1.0,delta_beam_rad=0.04,k_angular=1.25)
+    distance_only=ParameterizedPCFMCWLinkModel(directional=False)
+    directional=ParameterizedPCFMCWLinkModel(directional=True)
+    assert np.isclose(distance_only.snr_at_state(ego,target,a),distance_only.snr_at_state(ego,target,b))
+    assert not np.isclose(directional.snr_at_state(ego,target,a),directional.snr_at_state(ego,target,b))
