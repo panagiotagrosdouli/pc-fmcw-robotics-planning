@@ -139,7 +139,7 @@ The C0-C4 family directly supplies:
 - information-gain removal while retaining belief updates (C1);
 - oracle parameter gap (C4).
 
-A directional-vs-distance-only mechanism ablation is compatible with the architecture but should be added as a separately declared prospective experiment rather than silently changing this protocol.
+A directional-vs-distance-only mechanism ablation is implemented through `--link-model distance_only`. It removes angular attenuation while retaining the same planner/safety machinery and records the geometry mode in provenance. It is explicitly marked as a development mechanism ablation, not part of the primary frozen confirmatory protocol; under this ablation, `delta_beam_rad` and `k_angular` are intentionally non-identifiable from link observations.
 
 ## Provenance and artifacts
 
