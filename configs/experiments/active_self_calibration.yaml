@@ -1,0 +1,68 @@
+protocol_version: active-self-calibration-v1
+study_title: Decision-Triggered Active Self-Calibration for PC-FMCW-Informed Vehicular Optical Planning
+claim_boundary: >-
+  Controlled PC-FMCW-informed analytical simulation with MODELED latent optical-link
+  parameters. This is not measured optical calibration and not real-world validation.
+protocol_status: prospective_unexecuted
+planners: [C0, C1, C2, C3, C4]
+planner_semantics:
+  C0: fixed nominal link model; no online update
+  C1: passive Bayesian grid update; no information-seeking objective
+  C2: unconditional information-seeking ablation whenever safe candidates exist
+  C3: decision-triggered information seeking using ranking disagreement and expected regret
+  C4: non-deployable oracle latent-parameter reference; no privileged safety information
+latent_model:
+  status: MODELED
+  parameters: [alpha_loss, delta_beam_rad, k_angular]
+  nominal: {alpha_loss: 1.0, delta_beam_rad: 0.0, k_angular: 1.0}
+  observation: modeled_snr_db
+  observation_sigma_db: 1.0
+  measured_optical_calibration: false
+simulation:
+  dt: 0.1
+  scenario_steps: 31
+  history_steps: 8
+  horizon_steps: 16
+  target_observation_sigma_m: 0.20
+  connectivity_weight: 1.0
+  collision_distance_m: 2.0
+  planning_safety_margin_m: 0.5
+  information_horizon_steps: 4
+  candidate_lateral_offsets: [-1.0, 0.0, 1.0]
+  candidate_horizons: [2.0, 3.0]
+  candidate_speed_offsets: [-1.5, 0.0, 1.5]
+  require_static_stop_viability: true
+  bounded_brake_steer: true
+  time_aligned_dynamic: true
+  require_dynamic_stop_viability: true
+  hierarchical_clearance: true
+  damped_lateral_prediction: true
+  endpoint_anchored_lateral: true
+development:
+  seed_range: [31000, 31019]
+  hyperparameter_grid:
+    decision_threshold: [0.10, 0.25, 0.40]
+    information_weight: [0.25, 0.45, 0.70]
+    probe_weight: [0.10, 0.20, 0.40]
+  default_hyperparameters:
+    decision_threshold: 0.25
+    information_weight: 0.45
+    probe_weight: 0.20
+    min_expected_regret: 0.0
+  use: tuning, debugging, and mechanism inspection only
+confirmatory:
+  seed_range: [32000, 32049]
+  requires_frozen_protocol: true
+  tuning_after_opening: prohibited
+  inference_unit: independent scenario seed after within-seed aggregation across declared scenarios
+  primary_metric: cumulative_decision_regret
+  primary_comparisons: [[C0, C1], [C1, C2], [C2, C3], [C3, C4]]
+  statistics: [paired_bootstrap_ci, paired_wilcoxon, effect_sizes, holm]
+scenarios:
+  - A_angular_bias
+  - B_distance_loss_mismatch
+  - C_combined_ambiguity
+  - D_model_already_accurate
+  - E_decision_irrelevant_uncertainty
+  - F_decision_critical_uncertainty
+artifact_root: artifacts/active_self_calibration
