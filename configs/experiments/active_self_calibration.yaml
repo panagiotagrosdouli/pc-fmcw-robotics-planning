@@ -58,6 +58,9 @@ confirmatory:
   primary_metric: cumulative_decision_regret
   primary_comparisons: [[C0, C1], [C1, C2], [C2, C3], [C3, C4]]
   statistics: [paired_bootstrap_ci, paired_wilcoxon, effect_sizes, holm]
+ablations:
+  geometry_models: [directional, distance_only]
+  distance_only_scope: development_mechanism_ablation_not_primary_confirmatory
 scenarios:
   - A_angular_bias
   - B_distance_loss_mismatch
