@@ -424,13 +424,44 @@ The CICV5G support study uses the measured dataset of Zhang \emph{et al.} \cite{
 
 These results support measured QoS/pose transfer and offline replay methodology. The split assignments reuse the same finite drives and are not independent replications. Most importantly, 5G delay measurements do not calibrate an optical channel and do not validate the PC-FMCW-informed directional latent model.
 
-\section{Discussion and Limitations}
-The frozen result supports decision relevance as a guard against unnecessary information seeking. It does not establish that the implemented active probing policy is better than passive Bayesian calibration. Scenario F suggests that detecting decision relevance is insufficient by itself; limited probing actions, the short-horizon information proxy, or value scaling may matter, but the frozen study does not identify which explanation dominates.
+\section{Discussion}
+\subsection{What the Frozen Study Supports}
+The strongest result is not that active calibration beats passive calibration. It is that \emph{unconditional} information seeking can be highly damaging, and that downstream decision relevance is an effective guard against much of that damage. C2 learns the modeled parameter vector more aggressively, but pays for that information with higher regret, higher probing burden, and worse mean outage. C3 keeps most of the benefits of passive adaptation while largely refusing probes that do not alter the motion decision.
 
-The latent parameters and observation noise are modeled. The analytical link is not physically calibrated. C4 is a model-relative oracle, not evidence of real-world optimality. The candidate lattice constrains identifiability. The sampled hard gate is not a safety guarantee. The V-VLC directional comparison is null and CICV5G is a different radio modality.
+Scenario E makes this point especially cleanly. The posterior remains uncertain, yet C3 does nothing because that uncertainty does not change the preferred safe trajectory. This is precisely the distinction between parameter uncertainty and decision-relevant uncertainty.
+
+\subsection{Why Decision Relevance Was Not Sufficient}
+Scenario F provides the complementary boundary. C3 correctly identifies decision disagreement and does probe, but the probe does not improve regret relative to passive C1. Several explanations are plausible: the candidate lattice may not contain a sufficiently informative low-cost experiment; the four-step information horizon may be too short; the predictive-variance proxy may value measurements that do not resolve the particular ranking ambiguity; or the relative scaling between task cost, probe cost, and information reward may be imperfect. The frozen data do not identify which explanation dominates, so these remain hypotheses for future work rather than retrospective claims.
+
+This negative result is consistent with the broader dual-control literature: creating a useful dual effect requires more than simply adding an exploration bonus \cite{mesbah2018,hu2024}. The quality of the belief model, future-information approximation, action set, and safety mechanism determines whether exploration has positive decision value.
+
+\subsection{Relation to Prior Calibration and Communication-Aware Planning}
+Informative path planning and calibration trajectory design often evaluate information quality or parameter observability directly \cite{hitz2017,lv2022,amersdorfer2025}. Our evaluation changes the endpoint: information is useful only insofar as it reduces downstream trajectory-selection loss. This does not replace observability analysis; rather, it highlights a decision layer above it.
+
+Likewise, communication-aware and ISAC-aware planners already adapt motion to link quality or sensing utility \cite{ghaffarkhah2011,gordon2026,jin2026}. Here the communication objective itself depends on an uncertain model, and motion can alter the future belief about that model. That additional coupling motivates the C1/C2/C3 decomposition.
+
+\section{Limitations and Threats to Validity}
+\subsection{Model Validity}
+The optical-link equations, latent parameters, and Gaussian SNR observation noise are modeled. No measured PC-FMCW calibration is claimed. The V-VLC support study is not used to fit the three latent parameters, and its null directional comparison argues against treating the simulator mechanism as experimentally validated.
+
+\subsection{Identifiability and Action Richness}
+Identifiability is conditional on the geometry exposed by the candidate lattice. A different set of safe maneuvers, a longer information horizon, or a richer latent family could change both posterior learning and decision disagreement. The distance-only ablation intentionally makes two angular latents non-identifiable and demonstrates that the planner does not force artificial convergence.
+
+\subsection{Approximate Information Value}
+$G(\tau)$ sums marginal predictive-variance terms under the current belief. It does not solve the exact Bayesian dual-control problem, propagate all possible future observations, or account for future replanning inside the information objective. Accordingly, C3 is best described as a decision-triggered active-calibration heuristic grounded in dual-control principles, not an optimal dual controller.
+
+\subsection{Statistical Generalization}
+The confirmatory unit is the independent simulator seed within six fixed mechanism scenarios. The absence of sampled safety failures is not a safety guarantee, and statistical conclusions apply only to the declared benchmark distribution. The C1--C3 comparison was not predeclared as a primary inferential family and is kept descriptive.
+
+\subsection{Measured-Support Scope}
+The V-VLC and CICV5G studies answer different empirical questions. The former tests measured vehicular optical path-loss prediction; the latter tests 5G QoS prediction and offline replay. Neither is a closed-loop real-vehicle validation of active optical self-calibration.
 
 \section{Conclusion}
-Decision-triggered active self-calibration removes most of the large decision-regret and probing penalty produced by unconditional information seeking and suppresses probing when uncertainty is decision irrelevant. However, it does not demonstrate a confirmatory advantage over passive calibration. The supported conclusion is therefore deliberately narrow: decision relevance is useful for deciding when \emph{not} to probe, while the present probing policy does not yet show that active calibration improves downstream decisions beyond passive Bayesian updating.
+We evaluated whether active calibration should be triggered by uncertainty in a modeled directional vehicular link or by the \emph{decision consequences} of that uncertainty. Under the frozen controlled benchmark, unconditional information seeking substantially worsened decision regret despite improving parameter estimation. Decision-triggered C3 removed most of that penalty, sharply reduced probing, and correctly remained inactive when uncertainty was decision irrelevant.
+
+The result has an equally important negative boundary. C3 did not demonstrate a confirmatory advantage over passive C1, and in the decision-critical scenario F it probed without lowering regret. A distance-only development ablation eliminated the active mechanism, while measured V-VLC data provided essentially null support for directional predictive gain.
+
+The supported conclusion is therefore deliberately narrow: \emph{decision relevance is useful for preventing unnecessary active calibration, but the implemented probing policy does not yet demonstrate a confirmatory advantage over passive Bayesian calibration}. Future work should focus on richer safe probe actions and more faithful approximations of downstream value of information rather than simply increasing information gain.
 
 \section*{Data and Code Availability}
 Frozen protocol records, compact machine-readable summaries, artifact IDs/digests, workflows, and build instructions are included in the repository. Full Actions artifacts remain the authoritative raw evidence.
