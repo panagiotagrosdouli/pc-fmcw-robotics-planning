@@ -21,7 +21,7 @@ def _fmt_p(value: float) -> str:
         s = f"{value:.2e}"
         mantissa, exponent = s.split("e")
         exp = int(exponent)
-        return rf"$${mantissa}\times 10^{{{exp}}}$"
+        return "$" + mantissa + rf"\times 10^{{{exp}}}$"
     return f"{value:.5f}".rstrip("0").rstrip(".")
 
 
