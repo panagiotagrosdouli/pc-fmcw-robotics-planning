@@ -9,7 +9,7 @@ Audited state: frozen Paper-1 V7, verified Paper-2 measured-data evidence, and c
 |---|---|---|
 | Paper 1 — PC-FMCW predictive connectivity-aware robotics | **PASS WITH EXPLICIT LIMITATIONS** | Frozen V7 supports predictive-vs-reactive modeled-connectivity claims under a controlled analytical link. It is not measured optical validation or a safety guarantee. |
 | Paper 2 — field-measured V2X predictive planning | **PASS WITH EXPLICIT LIMITATIONS** | Whole-drive measured-data prediction/replay and support analysis are reproducible. P2 evidence remains exploratory/descriptive after multiplicity correction; reused grouped splits are sensitivity analyses. |
-| Paper 3 — decision-triggered active self-calibration | **PASS WITH EXPLICIT LIMITATIONS** | Frozen 50-seed C0-C4 confirmation supports strong suppression of unconditional probing cost, but does **not** establish superiority over passive C1. Scenario F is a retained null/negative mechanism result. Target venue is frozen as T-IV Regular Paper. |
+| Paper 3 — decision-triggered active self-calibration | **PASS WITH EXPLICIT LIMITATIONS** | Frozen 50-seed C0-C4 confirmation supports strong suppression of unconditional probing cost, but does **not** establish superiority over passive C1. Scenario F is a retained null/negative mechanism result. Preferred venue is T-IV Regular Paper, but portal submission is blocked pending clarification of T-IV's public-repository checklist item. |
 
 ## Repository-wide audit method
 
@@ -60,7 +60,7 @@ The confirmatory artifact contains 1,500 planner/scenario/seed episodes and 45,0
 
 ## Reproducibility status
 
-Paper 1 and Paper 2 retain their existing canonical manuscript directories and compact result archives. Paper 3 is canonicalized under `manuscripts/paper3_active_self_calibration/`, with a manuscript source, claim-evidence map, build instructions, generated vector figures/LaTeX tables from frozen compact evidence, compact confirmatory/mechanism/support summaries, and links to the immutable Actions artifacts. The Paper-3 target venue is frozen as IEEE Transactions on Intelligent Vehicles (T-IV), Regular Paper.
+Paper 1 and Paper 2 retain their existing canonical manuscript directories and compact result archives. Paper 3 is canonicalized under `manuscripts/paper3_active_self_calibration/`, with a manuscript source, claim-evidence map, build instructions, generated vector figures/LaTeX tables from frozen compact evidence, compact confirmatory/mechanism/support summaries, and links to the immutable Actions artifacts. The preferred Paper-3 venue is IEEE Transactions on Intelligent Vehicles (T-IV), Regular Paper, conditional on resolving the journal's public-repository policy for the already-public manuscript history.
 
 The full Paper-3 primary evidence came from GitHub Actions run `36105008882` (`asc-confirmatory` artifact ID `10852339416`, digest `sha256:04acd4a427092897f5d13da6c41be8c2c51195adec2de8250a5f11d45098a3f0`). The standalone distance-only ablation came from run `36110361343` (artifact ID `10853600391`, digest `sha256:415d4d4d80697bdef3c35475773139a7fc07ce1f8435d38d0d1143bbacc8e0c5`).
 
@@ -78,4 +78,4 @@ The full Paper-3 primary evidence came from GitHub Actions run `36105008882` (`a
 
 ## Remaining work before portal submission
 
-No new scientific experiment is required by this audit. The Paper-3 venue is frozen as T-IV Regular Paper; the generated Paper-3 PDF has compiled and passed visual inspection. Remaining work is author/portal operations only: confirm affiliation/postal address, institutional email, short biography, ORCID if used, acknowledgements/funding and conflict-of-interest text; make the traditional-vs-open-access choice; then choose the final archival release/tag/DOI state before portal submission.
+No new scientific experiment is required by this audit. The generated Paper-3 PDF has compiled and passed visual inspection. T-IV is the preferred scope target, but it is **not yet portal-ready**: the official T-IV checklist's public-repository restriction must be clarified because the manuscript is already public in GitHub history. Remaining work is publication operations only: obtain that clarification (or select a policy-compatible fallback), confirm affiliation/postal address, institutional email, short biography, required ORCID, acknowledgements/funding and conflict-of-interest text, make the traditional-vs-open-access choice, and then choose the final archival release/tag/DOI state.

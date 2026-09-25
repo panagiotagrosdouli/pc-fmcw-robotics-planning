@@ -1,6 +1,6 @@
 # Paper 3 build
 
-The canonical source is `paper3.tex`. The primary target is **IEEE Transactions on Intelligent Vehicles (T-IV), Regular Paper**, frozen on 2026-09-25. The source uses the required IEEE double-column journal class; final author biography/metadata must be inserted only after the author supplies verified details.
+The canonical source is `paper3.tex`. The preferred target is **IEEE Transactions on Intelligent Vehicles (T-IV), Regular Paper**, but the target is conditional pending clarification of the journal's public-repository checklist item because this manuscript is already present in public GitHub history. The source uses the IEEE double-column journal class; final author biography/metadata must be inserted only after verified details are supplied.
 
 ## Regenerate publication assets
 
@@ -47,6 +47,7 @@ Current venue-specific checks:
 - Generated figures/tables: regenerated from frozen compact evidence before manuscript CI.
 - PDF visual QA: completed after publication-asset generation.
 - Author block: no affiliation/email is embedded under the title.
-- Remaining manual fields: affiliation/postal address, institutional email, short biography, conflict-of-interest disclosure, funding/acknowledgements, ORCID if used, and traditional-vs-open-access choice.
+- T-IV policy blocker: obtain written clarification for the already-public GitHub manuscript history before portal submission.
+- Remaining manual fields: affiliation/postal address, institutional email, short biography, conflict-of-interest disclosure, funding/acknowledgements, required ORCID, and traditional-vs-open-access choice.
 
 See `TIV_SUBMISSION_CHECKLIST.md` for the portal-facing checklist.

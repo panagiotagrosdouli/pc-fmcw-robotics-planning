@@ -23,8 +23,9 @@
 - [x] C4 described only as a model-relative oracle.
 - [x] Safety wording limited to sampled benchmark outcomes.
 - [x] Compact result CSVs included.
-- [x] Primary target frozen as IEEE Transactions on Intelligent Vehicles (T-IV), Regular Paper.
-- [ ] Affiliation/postal address, institutional email, short biography, and ORCID if used confirmed by author.
+- [ ] Preferred target is T-IV Regular Paper; freeze only after written clarification of the T-IV public-repository checklist item.
+- [ ] Affiliation/postal address, institutional email, short biography, and ORCID confirmed by author (required by current T-IV checklist).
 - [ ] Funding/acknowledgements and T-IV conflict-of-interest disclosure confirmed by author.
 - [x] Generated Paper-3 PDF compiled and visually inspected for clipping, overlap, figure/table readability, and IEEE double-column layout.
+- [ ] T-IV public-repository policy clarified for the already-public GitHub manuscript history, or a policy-compatible fallback venue selected.
 - [ ] Final archival release/tag/DOI decision made by repository owner.
