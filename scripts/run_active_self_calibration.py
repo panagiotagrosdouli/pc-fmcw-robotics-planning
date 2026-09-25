@@ -71,6 +71,7 @@ def _settings(config,hyper):
         hierarchical_clearance=bool(s["hierarchical_clearance"]),
         damped_lateral_prediction=bool(s["damped_lateral_prediction"]),
         endpoint_anchored_lateral=bool(s["endpoint_anchored_lateral"]),
+        prediction_min_history_steps=int(s.get("prediction_min_history_steps",3)),
     )
 
 def _one_run(config,args,hyper,seed_values,link_model,setting_id=None):
