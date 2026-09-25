@@ -1,0 +1,42 @@
+name: Active Self-Calibration
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  active-calibration-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install numpy scipy matplotlib pandas pyyaml pytest scikit-learn h5py huggingface_hub
+      - name: Active self-calibration unit tests
+        run: python -m pytest tests/test_active_self_calibration_belief.py tests/test_active_self_calibration_planners.py tests/test_active_self_calibration_benchmark.py
+      - name: Engineering smoke experiment
+        run: |
+          python scripts/run_active_self_calibration.py             --phase smoke             --seeds 1             --scenario-steps 8             --output-dir artifacts/active_self_calibration/ci_smoke
+      - name: Smoke statistics
+        run: |
+          python scripts/analyze_active_self_calibration.py             --input artifacts/active_self_calibration/ci_smoke/episodes.csv             --output-dir artifacts/active_self_calibration/ci_smoke             --bootstrap-samples 100
+      - name: Smoke figures
+        run: |
+          python scripts/plot_active_self_calibration.py             --episodes artifacts/active_self_calibration/ci_smoke/episodes.csv             --steps artifacts/active_self_calibration/ci_smoke/steps.csv             --output-dir artifacts/active_self_calibration/ci_smoke/figures
+      - name: Verify smoke artifacts
+        run: |
+          test -s artifacts/active_self_calibration/ci_smoke/episodes.csv
+          test -s artifacts/active_self_calibration/ci_smoke/steps.csv
+          test -s artifacts/active_self_calibration/ci_smoke/manifest.json
+          test -s artifacts/active_self_calibration/ci_smoke/paired_effects.csv
+          test -s artifacts/active_self_calibration/ci_smoke/figures/decision_regret_by_planner.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: active-self-calibration-ci-smoke
+          path: artifacts/active_self_calibration/ci_smoke
