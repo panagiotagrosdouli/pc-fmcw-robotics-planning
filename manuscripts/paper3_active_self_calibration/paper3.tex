@@ -389,9 +389,19 @@ Scenario F is deliberately decision critical. C3 recognizes that condition and a
 C1--C3 was not a predeclared primary confirmatory comparison, so we do not add a post-hoc superiority test. Descriptively, both the overall mean and the canonical F scenario favor C1 on regret.
 
 \section{Directional Mechanism Ablation}
-A separate development-only ablation removes angular attenuation while preserving the planner/safety machinery and frozen-selected hyperparameters. Across 20 development seeds, mean regret is zero for C0/C4 and numerical roundoff for C1--C3; probe fraction is zero for every planner. C1 reduces the remaining distance-loss parameter error relative to C0, while angular latents are intentionally non-identifiable.
+A separate development-only ablation removes the angular-loss term while preserving the planner family, Bayesian update machinery, candidate generation, common hard safety, selected hyperparameters, and development seeds. In this model, $\delta_{\mathrm{beam}}$ and $k_{\mathrm{angular}}$ have no observation effect by construction.
 
-This collapse supports dependence on directional geometry inside the analytical model. It is not physical optical validation.
+\begin{table}[t]
+\caption{Distance-only development mechanism ablation.}
+\label{tab:distance}
+\centering
+\small
+\resizebox{\columnwidth}{!}{\input{generated/table_distance_only.tex}}
+\end{table}
+
+Regret and probe fraction collapse to zero or numerical roundoff across C0--C4, and C1--C3 become behaviorally identical. Passive Bayesian updating can still reduce error in the remaining distance-loss degree of freedom, but learning that parameter does not change the candidate ranking in the evaluated scenarios.
+
+This is mechanism-specific evidence: nontrivial active-calibration behavior in the primary directional study depends on directional geometry. Because the ablation uses development seeds and a deliberately simplified model, it is not primary confirmatory evidence and does not establish physical optical identifiability.
 
 \section{Measured Support and Claim Boundaries}
 The measured V-VLC support study uses the dataset associated with Turan and Coleri \cite{turan2021}. On held-out spatial groups, distance-only MAE is 5.587261 dB and directional MAE is 5.580011 dB. The directional-minus-distance-only absolute-error effect is -0.005031 dB (95\% CI [-0.019734,0.010134], Wilcoxon $p=0.375269$), effectively null evidence for a meaningful directional gain.
