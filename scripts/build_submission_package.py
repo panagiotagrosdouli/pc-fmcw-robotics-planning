@@ -44,6 +44,7 @@ PAPERS = {
         "scripts/select_active_self_calibration_development.py",
         "scripts/freeze_active_self_calibration_protocol.py",
         "scripts/plot_active_self_calibration.py",
+        "scripts/build_paper3_publication_assets.py",
     ],
 }
 

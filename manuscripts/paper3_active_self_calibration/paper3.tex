@@ -65,38 +65,26 @@ The confirmatory artifact contains 1,500 planner/scenario/seed episodes and 45,0
 
 \begin{table}[t]
 \caption{Frozen confirmatory planner means.}
+\label{tab:means}
 \centering
 \small
-\begin{tabular}{lrrrr}
-\toprule
-Planner & Regret & Probe frac. & Param. error & Outage\\
-\midrule
-C0 & 0.006432 & 0 & 1.011511 & 0.098529\\
-C1 & 0.004786 & 0 & 0.618016 & 0.099026\\
-C2 & 0.088076 & 0.038111 & 0.564531 & 0.104132\\
-C3 & 0.005865 & 0.000667 & 0.611326 & 0.097478\\
-C4 & 0 & 0 & 0 & 0.118835\\
-\bottomrule
-\end{tabular}
-\label{tab:means}
+\input{generated/table_planner_means.tex}
 \end{table}
 
 \begin{table}[t]
 \caption{Primary seed-level cumulative-regret effects. Delta is planner B minus planner A.}
+\label{tab:regret}
 \centering
 \small
-\begin{tabular}{lrrr}
-\toprule
-Comparison & Delta & 95\% CI & Holm $p$\\
-\midrule
-C1-C0 & -0.001646 & [-0.003079,-0.000578] & 0.05765\\
-C2-C1 & +0.083290 & [0.073641,0.093720] & $1.24{\times}10^{-14}$\\
-C3-C2 & -0.082211 & [-0.092695,-0.072358] & $1.24{\times}10^{-14}$\\
-C4-C3 & -0.005865 & [-0.007628,-0.004242] & $1.24{\times}10^{-6}$\\
-\bottomrule
-\end{tabular}
-\label{tab:regret}
+\input{generated/table_primary_regret_effects.tex}
 \end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{generated/fig_overall.pdf}
+\caption{Frozen confirmatory planner means for cumulative decision regret (left) and probe fraction (right). C2 illustrates the cost of unconditional information seeking; C3 suppresses most of that probing burden.}
+\label{fig:overall}
+\end{figure}
 
 Passive C1 lowers parameter error relative to C0. C2 learns parameters somewhat more aggressively than C1 but incurs much greater decision regret. C3 accepts higher parameter error than C2 while dramatically reducing regret and probing. Thus parameter learning and decision quality are not interchangeable endpoints.
 
@@ -106,6 +94,13 @@ C1 and C3 were not a predeclared primary pair. Descriptively, C1 has lower overa
 Scenario E was designed so that parameter uncertainty should be decision irrelevant. C3 has zero mean probe fraction and zero mean regret, whereas C2 still probes (0.004667) and incurs regret (0.008610).
 
 Scenario F was designed to be decision critical. Here C3 activates probing (0.003333) but does not improve regret over passive C1: mean regret is 0.031984 (C0), 0.028037 (C1), 0.140882 (C2), 0.034416 (C3), and 0 (C4). This negative result is retained rather than followed by post-confirmatory tuning.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{generated/fig_decision_relevance.pdf}
+\caption{Mechanism diagnostics for passive C1, unconditional-active C2, and decision-triggered C3. In scenario E, C3 suppresses probing entirely; in scenario F, C3 probes but does not outperform passive C1 on regret.}
+\label{fig:decision-relevance}
+\end{figure}
 
 \section{Directional Mechanism Ablation}
 A separate development-only ablation removes angular attenuation while preserving the planner/safety machinery and frozen-selected hyperparameters. Across 20 development seeds, mean regret is zero for C0/C4 and numerical roundoff for C1--C3; probe fraction is zero for every planner. C1 reduces the remaining distance-loss parameter error relative to C0, while angular latents are intentionally non-identifiable.
