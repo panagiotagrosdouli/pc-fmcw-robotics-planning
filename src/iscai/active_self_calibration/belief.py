@@ -93,9 +93,9 @@ class GridBelief:
         observation = float(observed_snr_db)
         if not np.isfinite(observation):
             raise ValueError("observed_snr_db must be finite")
-        predicted = np.array(
-            [model.snr_at_state(ego_state, target_state, p) for p in self.support], dtype=float
-        )
+        ego=np.asarray(ego_state,dtype=float).reshape(1,-1)
+        target=np.asarray(target_state,dtype=float).reshape(1,-1)
+        predicted=model.snr_hypotheses(ego,target,self.support)[:,0]
         sigma = self.observation_sigma_db
         log_prior = np.log(np.maximum(self.weights, 1e-300))
         log_likelihood = -0.5 * ((observation - predicted) / sigma) ** 2 - np.log(sigma)
@@ -104,9 +104,9 @@ class GridBelief:
         self.weights = _normalized(np.exp(log_post))
 
     def predictive_snr(self, model, ego_state, target_state) -> np.ndarray:
-        return np.array(
-            [model.snr_at_state(ego_state, target_state, p) for p in self.support], dtype=float
-        )
+        ego=np.asarray(ego_state,dtype=float).reshape(1,-1)
+        target=np.asarray(target_state,dtype=float).reshape(1,-1)
+        return model.snr_hypotheses(ego,target,self.support)[:,0]
 
     def expected_information_gain(
         self,
@@ -125,13 +125,11 @@ class GridBelief:
         if n <= 0:
             return 0.0
         sigma2 = self.observation_sigma_db**2
-        total = 0.0
-        for i in range(n):
-            means = self.predictive_snr(model, ego[i], target[i])
-            mean = float(self.weights @ means)
-            variance = float(self.weights @ ((means - mean) ** 2))
-            total += 0.5 * np.log1p(max(variance, 0.0) / sigma2)
-        return float(total)
+        means=model.snr_hypotheses(ego[:n],target[:n],self.support)
+        predictive_mean=self.weights @ means
+        centered=means-predictive_mean[None,:]
+        variance=self.weights @ (centered**2)
+        return float(np.sum(0.5*np.log1p(np.maximum(variance,0.0)/sigma2)))
 
 
 def normalized_parameter_error(
