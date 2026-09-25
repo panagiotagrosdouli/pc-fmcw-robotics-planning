@@ -106,6 +106,7 @@ def _validate_common(shard,expected_hash,expected_seeds):
 def _reconstruct(config,shards,expected_hash,expected_seeds):
     n_unit=len(expected_seeds)*len(config["scenarios"])
     manifest_hashes={}
+    git_shas=set()
     full=[]
     baseline=[]
     adaptive=[]
@@ -117,6 +118,9 @@ def _reconstruct(config,shards,expected_hash,expected_seeds):
         shard["planners"]=planners
         shard["hyper"]=_hyper(shard["manifest"])
         manifest_hashes[shard["label"]]=sha256(shard["manifest_path"])
+        git_sha=str(shard["manifest"].get("git_commit_sha",""))
+        if not git_sha or git_sha=="unavailable":raise SystemExit(f"{shard['label']}: missing usable git_commit_sha")
+        git_shas.add(git_sha)
         if planners==FULL_PLANNERS:
             if len(d)!=n_unit*5:
                 raise SystemExit(f"{shard['label']}: full shard has {len(d)} rows, expected {n_unit*5}")
@@ -147,7 +151,8 @@ def _reconstruct(config,shards,expected_hash,expected_seeds):
         table=pd.DataFrame(settings).drop_duplicates("setting_id")
         if len(table)!=27:
             raise SystemExit(f"expected 27 monolithic settings, found {len(table)}")
-        return pd.concat(episode_sets,ignore_index=True),table,step_sources,manifest_hashes,"monolithic"
+        if len(git_shas)!=1:raise SystemExit(f"development shards span multiple Git commits: {sorted(git_shas)}")
+        return pd.concat(episode_sets,ignore_index=True),table,step_sources,manifest_hashes,"monolithic",next(iter(git_shas))
 
     # Optimized exact reconstruction: one common C0/C1/C4 baseline + 27 C2/C3 settings.
     if len(baseline)!=1:
@@ -176,7 +181,8 @@ def _reconstruct(config,shards,expected_hash,expected_seeds):
         step_sources[sid]=[b,shard]
 
     table=pd.DataFrame(settings).sort_values("setting_id",kind="stable").reset_index(drop=True)
-    return pd.concat(episode_sets,ignore_index=True),table,step_sources,manifest_hashes,"planner_subset_reconstructed"
+    if len(git_shas)!=1:raise SystemExit(f"development shards span multiple Git commits: {sorted(git_shas)}")
+    return pd.concat(episode_sets,ignore_index=True),table,step_sources,manifest_hashes,"planner_subset_reconstructed",next(iter(git_shas))
 
 
 def main():
@@ -195,7 +201,7 @@ def main():
     if not shards:
         raise SystemExit(f"no development shards found under {args.root}")
 
-    episodes,setting_table,step_sources,manifest_hashes,layout=_reconstruct(
+    episodes,setting_table,step_sources,manifest_hashes,layout,development_git_sha=_reconstruct(
         config,shards,expected_hash,expected_seeds
     )
     if len(setting_table)!=27:
@@ -278,6 +284,7 @@ def main():
         },
         "development_seed_values":expected_seeds,
         "config_sha256":expected_hash,
+        "development_git_commit_sha":development_git_sha,
         "shard_manifest_sha256":manifest_hashes,
     }
     (out/"selection.json").write_text(json.dumps(selection,indent=2),encoding="utf-8")
@@ -285,6 +292,7 @@ def main():
         "schema_version":1,"protocol_version":config["protocol_version"],"phase":"development",
         "evidence_role":"development_only_not_confirmatory_evidence",
         "development_layout":layout,
+        "git_commit_sha":development_git_sha,
         "config_path":str(args.config),"config_sha256":expected_hash,
         "seed_values":expected_seeds,"seed_count":len(expected_seeds),
         "n_settings":len(setting_table),"selected_setting_id":setting_id,
