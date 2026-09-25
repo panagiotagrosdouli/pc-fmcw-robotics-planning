@@ -364,17 +364,29 @@ Across all 1,500 confirmatory episodes, the sampled hard gate recorded zero coll
 
 Mean progress was almost unchanged across planners, approximately 24.76~m overall. C2 gained only about 0.0198~m relative to C1 while incurring the much larger regret and probing burden above. Mean outage probability increased by about 0.005105 for C2 relative to C1 and decreased by about 0.006654 for C3 relative to C2; both effects survived Holm correction. C4 should not be interpreted as an outage-minimizing controller because it optimizes the same mixed mobility/connectivity objective using true model parameters.
 
-\section{Decision-Relevance Diagnostics}
-Scenario E was designed so that parameter uncertainty should be decision irrelevant. C3 has zero mean probe fraction and zero mean regret, whereas C2 still probes (0.004667) and incurs regret (0.008610).
+\section{Decision-Relevance Mechanism}
+Scenarios E and F were declared specifically to probe the decision-relevance mechanism. Their confirmatory summaries are generated directly from the frozen compact evidence.
 
-Scenario F was designed to be decision critical. Here C3 activates probing (0.003333) but does not improve regret over passive C1: mean regret is 0.031984 (C0), 0.028037 (C1), 0.140882 (C2), 0.034416 (C3), and 0 (C4). This negative result is retained rather than followed by post-confirmatory tuning.
+\begin{table}[t]
+\caption{Decision-relevance diagnostics for passive C1, unconditional-active C2, and decision-triggered C3.}
+\label{tab:ef}
+\centering
+\small
+\resizebox{\columnwidth}{!}{\input{generated/table_scenario_ef.tex}}
+\end{table}
+
+In scenario E, broad parameter uncertainty exists but the mobility-dominant decision is common across plausible models. C3 behaves as intended: mean probe fraction and mean regret are both zero. C2 still probes and incurs regret. This is direct mechanism evidence that posterior uncertainty alone is not a sufficient reason to excite the vehicle.
+
+Scenario F is deliberately decision critical. C3 recognizes that condition and activates probing, but the intervention does \emph{not} improve the primary metric over passive C1: mean regret is 0.028037 for C1 and 0.034416 for C3. This negative result is essential. It shows that detecting decision relevance does not guarantee that the available probe action, information proxy, and value scaling will produce a beneficial experiment.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{generated/fig_decision_relevance.pdf}
-\caption{Mechanism diagnostics for passive C1, unconditional-active C2, and decision-triggered C3. In scenario E, C3 suppresses probing entirely; in scenario F, C3 probes but does not outperform passive C1 on regret.}
+\caption{Mechanism diagnostics. In E, C3 suppresses probing completely; in F, C3 probes but does not outperform passive C1 on regret.}
 \label{fig:decision-relevance}
 \end{figure}
+
+C1--C3 was not a predeclared primary confirmatory comparison, so we do not add a post-hoc superiority test. Descriptively, both the overall mean and the canonical F scenario favor C1 on regret.
 
 \section{Directional Mechanism Ablation}
 A separate development-only ablation removes angular attenuation while preserving the planner/safety machinery and frozen-selected hyperparameters. Across 20 development seeds, mean regret is zero for C0/C4 and numerical roundoff for C1--C3; probe fraction is zero for every planner. C1 reduces the remaining distance-loss parameter error relative to C0, while angular latents are intentionally non-identifiable.
