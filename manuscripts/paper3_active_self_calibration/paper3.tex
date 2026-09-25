@@ -158,24 +158,110 @@ G(\tau)
 \end{equation}
 This is a Gaussian predictive-information approximation. It is not exact mutual information, does not integrate the future closed-loop posterior tree, and is not a physically calibrated Fisher-information measure.
 
-\section{Decision-Triggered Planning}
-Let $J(\tau,\phi)$ be candidate cost under latent hypothesis $\phi$, and let $\bar{\tau}$ minimize posterior-expected cost. Decision disagreement and expected decision regret are
+\section{Decision-Triggered Active Self-Calibration}
+\subsection{Decision Diagnostics}
+For each safe candidate and each belief hypothesis, the planner forms a cost matrix $J(\tau_i,\phi_m)$. The posterior-expected candidate cost is
+\begin{equation}
+\bar J(\tau_i)=\sum_m b_k(\phi_m)J(\tau_i,\phi_m),
+\end{equation}
+and the belief-optimal baseline is
+\begin{equation}
+\bar\tau=\arg\min_{\tau_i\in\mathcal{T}^{\mathrm{safe}}_k}\bar J(\tau_i).
+\end{equation}
+
+Two diagnostics quantify whether model uncertainty matters to the decision:
 \begin{align}
-U_D &= P_{\phi}\!\left[\arg\min_{\tau}J(\tau,\phi)\neq\bar{\tau}\right],\\
-R_D &= E_{\phi}\!\left[J(\bar{\tau},\phi)-\min_{\tau}J(\tau,\phi)\right].
+U_D
+&=
+P_{\phi\sim b_k}
+\!\left[
+\arg\min_{\tau_i}J(\tau_i,\phi)\neq\bar\tau
+\right],\\
+R_D
+&=
+E_{\phi\sim b_k}
+\!\left[
+J(\bar\tau,\phi)-\min_{\tau_i}J(\tau_i,\phi)
+\right].
 \end{align}
-C3 enables the information reward only when both declared gates are exceeded.
+$U_D$ is the posterior mass for which the trajectory ranking disagrees with the belief-optimal candidate; $R_D$ measures the expected cost of committing to that candidate when a different candidate is optimal under a plausible hypothesis.
 
-The planner family is:
-\begin{itemize}
-\item C0: nominal parameters, no update;
-\item C1: passive Bayesian calibration, no information reward;
-\item C2: unconditional information-seeking;
-\item C3: decision-triggered information-seeking;
-\item C4: true-parameter connectivity reference.
-\end{itemize}
+\subsection{Planner Family}
+Table~\ref{tab:planner-family} defines the C0--C4 information boundary. C0 and C4 use fixed parameter values; C1--C3 update the Bayesian belief causally.
 
-All planners share road, speed, static-obstacle, time-aligned dynamic-target, and stopping-feasibility filters. Information value is evaluated only after this common hard-safety filter and cannot make an infeasible candidate feasible.
+\begin{table}[t]
+\caption{Planner family and information boundary.}
+\label{tab:planner-family}
+\centering
+\small
+\resizebox{\columnwidth}{!}{
+\begin{tabular}{lcccc}
+\toprule
+Planner & Bayes update & Information reward & True $\phi$ & Role\\
+\midrule
+C0 & No & No & No & Nominal baseline\\
+C1 & Yes & No & No & Passive calibration\\
+C2 & Yes & Always & No & Unconditional active\\
+C3 & Yes & Decision gated & No & Decision-triggered active\\
+C4 & No & No & Yes & Model-relative oracle\\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+For C1, candidate selection minimizes $\bar J(\tau)$. When active information seeking is enabled, the implementation also computes a normalized first-control deviation plus a small mobility-excess penalty $P(\tau)$ relative to $\bar\tau$. C2 uses
+\begin{equation}
+S_{C2}(\tau)=
+\bar J(\tau)+\lambda_P P(\tau)-\lambda_I G(\tau).
+\end{equation}
+C3 first evaluates the gate
+\begin{equation}
+I_k=
+\mathbb{1}
+\!\left[
+U_D>\eta_D
+\ \wedge\
+R_D>\eta_R
+\right],
+\end{equation}
+and then scores
+\begin{equation}
+S_{C3}(\tau)=
+\bar J(\tau)+\lambda_P P(\tau)
+-
+I_k\,\lambda_I U_D G(\tau).
+\end{equation}
+The selected frozen setting is $\eta_D=0.10$, $\eta_R=0$, $\lambda_I=0.25$, and $\lambda_P=0.20$. A probe is recorded when information seeking is active and the selected candidate differs from the passive belief-optimal baseline.
+
+C4 receives the true simulator $\phi^\star$ only for connectivity scoring. It uses the same target prediction, candidate generator, and hard-safety filters as C0--C3. It therefore provides a model-relative parameter oracle, not privileged future motion truth and not a safety oracle.
+
+\begin{figure*}[t]
+\centering
+\begin{tikzpicture}[
+node distance=0.30cm and 0.30cm,
+block/.style={draw,rounded corners,align=center,minimum height=0.72cm,text width=1.85cm,font=\scriptsize},
+wide/.style={draw,rounded corners,align=center,minimum height=0.72cm,text width=2.30cm,font=\scriptsize},
+arrow/.style={-{Latex[length=1.8mm]},thick}
+]
+\node[block] (hist) {Ego state +\\target history};
+\node[block,right=of hist] (pred) {Common causal\\target prediction};
+\node[block,right=of pred] (cand) {Candidate\\trajectory lattice};
+\node[block,right=of cand] (safe) {Common hard\\safety filter};
+\node[wide,right=of safe] (score) {Belief-dependent scoring\\C0/C1/C2/C3/C4};
+\node[block,right=of score] (exec) {Execute first\\control action};
+\node[block,right=of exec] (obs) {Realized modeled\\SNR observation};
+\node[wide,below=0.50cm of score] (update) {C1--C3 Bayesian update\\after execution};
+\draw[arrow] (hist) -- (pred);
+\draw[arrow] (pred) -- (cand);
+\draw[arrow] (cand) -- (safe);
+\draw[arrow] (safe) -- (score);
+\draw[arrow] (score) -- (exec);
+\draw[arrow] (exec) -- (obs);
+\draw[arrow] (obs.south) |- (update.east);
+\draw[arrow] (update.west) -| (score.south);
+\end{tikzpicture}
+\caption{Causal receding-horizon architecture. Every planner receives the same candidate set after common hard-safety filtering. C1--C3 update their link belief only after the selected action is executed and its modeled-SNR observation is realized.}
+\label{fig:architecture}
+\end{figure*}
 
 \section{Frozen Protocol}
 Development seeds were 31000--31019. The complete 27-setting grid was executed before deterministic selection. Setting \texttt{dev\_t010\_i025\_p020} was selected: decision threshold 0.10, information weight 0.25, probe weight 0.20, and minimum expected regret 0. The protocol was frozen at 2026-09-25 07:28:10 UTC before confirmatory seeds 32000--32049 were opened.
