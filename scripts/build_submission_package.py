@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build deterministic source/evidence archives for the two papers."""
+"""Build deterministic source/evidence archives for the three canonical papers."""
 from __future__ import annotations
 
 import argparse
@@ -32,6 +32,18 @@ PAPERS = {
         "configs/real_v2x_support.yaml",
         ".github/workflows/real_v2x_research.yml",
         "scripts/build_paper2_publication_assets.py",
+    ],
+    "paper3": [
+        "manuscripts/paper3_active_self_calibration",
+        "configs/experiments/active_self_calibration.yaml",
+        "docs/ACTIVE_SELF_CALIBRATION_RESEARCH_PLAN.md",
+        ".github/workflows/active-self-calibration-research.yml",
+        ".github/workflows/active-self-calibration-ablation.yml",
+        "scripts/run_active_self_calibration.py",
+        "scripts/analyze_active_self_calibration.py",
+        "scripts/select_active_self_calibration_development.py",
+        "scripts/freeze_active_self_calibration_protocol.py",
+        "scripts/plot_active_self_calibration.py",
     ],
 }
 

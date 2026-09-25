@@ -1,16 +1,33 @@
 # Submission release manifest
 
-- Submission-package base commit: `8b39a16563b36c595bd84bd1b9f7fbfe370fb1b7`.
-- Intended tag after merged PDF CI: `paper-submission-v1.0`.
-- Paper 1 venue/source: T-IV regular-paper format, `manuscripts/paper1_pc_fmcw/paper1.tex`.
-- Paper 2 venue/source: T-ITS regular-paper format, `manuscripts/paper2_real_v2x/paper2.tex`.
-- Machine-generated assets are regenerated in `.github/workflows/manuscript_ci.yml`.
-- Scientific status remains governed by `PAPER_READINESS_AUDIT.md` and `docs/PAPER_FREEZE.md`.
+The repository now contains three canonical manuscript packages.
+
+- Paper 1 source: `manuscripts/paper1_pc_fmcw/paper1.tex`.
+- Paper 2 source: `manuscripts/paper2_real_v2x/paper2.tex`.
+- Paper 3 source: `manuscripts/paper3_active_self_calibration/paper3.tex`.
+- Machine-generated/build assets are validated by `.github/workflows/manuscript_ci.yml`.
+- Supplementary reproducibility archives are produced by `scripts/build_submission_package.py` for `paper1`, `paper2`, and `paper3`.
+- Scientific status is governed by `PAPER_READINESS_AUDIT.md` plus the paper-specific frozen protocol/evidence files.
+
+## Paper-3 immutable evidence references
+
+- Primary full-research run: `36105008882`.
+- Confirmatory artifact: `asc-confirmatory`, artifact ID `10852339416`, digest `sha256:04acd4a427092897f5d13da6c41be8c2c51195adec2de8250a5f11d45098a3f0`.
+- Development/freeze artifact: `asc-development-frozen`, artifact ID `10851144697`.
+- Distance-only mechanism ablation run: `36110361343`.
+- Distance-only artifact: artifact ID `10853600391`, digest `sha256:415d4d4d80697bdef3c35475773139a7fc07ce1f8435d38d0d1143bbacc8e0c5`.
+- Frozen confirmatory seed range: `32000..32049`.
+- Development seed range: `31000..31019`.
+- Selected setting: `dev_t010_i025_p020`.
 
 ## Frozen scientific boundaries
 
-The release process may correct language, formatting, citation metadata, or reproducibility packaging. It may not change protocol choices, open quarantined seeds, tune after confirmatory outcomes, omit negative results, or strengthen claims beyond archived evidence.
+Release work may correct wording, formatting, citation metadata, or reproducibility packaging. It may not change protocol choices, tune after confirmatory outcomes, omit negative results, relabel development/mechanism evidence as primary confirmation, or strengthen claims beyond archived evidence.
+
+## Release/tag state
+
+The historical intended tag `paper-submission-v1.0` predates the Paper-3 package and should not be minted from an earlier two-paper state. A new final release tag should be chosen only after all three PDFs compile and the repository owner confirms the intended submission set.
 
 ## Zenodo
 
-No repository DOI is claimed until a repository owner enables the GitHub–Zenodo integration and archives the tagged release. Once minted, add the DOI to this manifest and both code-availability statements without changing the scientific content.
+No repository DOI is claimed until the repository owner enables an archival integration and archives a release. Once minted, add the DOI to this manifest and the relevant code-availability statements without changing scientific content.

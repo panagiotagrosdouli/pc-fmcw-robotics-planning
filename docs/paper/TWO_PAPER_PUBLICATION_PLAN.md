@@ -1,3 +1,5 @@
+> **Historical / superseded.** This two-paper plan predates the completed active self-calibration study. The canonical publication split is now documented in `THREE_PAPER_PUBLICATION_PLAN.md`. This file is retained as provenance for the earlier publication decision.
+
 # Two-Paper Publication Plan
 
 ## Purpose
