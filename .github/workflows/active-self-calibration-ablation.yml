@@ -1,0 +1,87 @@
+name: Active Self-Calibration Distance-Only Ablation
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/active-self-calibration-ablation.yml"
+      - "configs/experiments/active_self_calibration.yaml"
+      - "src/iscai/active_self_calibration/**"
+      - "scripts/run_active_self_calibration.py"
+      - "scripts/analyze_active_self_calibration.py"
+      - "scripts/plot_active_self_calibration.py"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  distance-only-development-ablation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install numpy scipy matplotlib pandas pyyaml
+      - name: Run standalone distance-only mechanism ablation
+        run: |
+          python scripts/run_active_self_calibration.py \
+            --phase development \
+            --planners C0,C1,C2,C3,C4 \
+            --decision-threshold 0.10 \
+            --information-weight 0.25 \
+            --probe-weight 0.20 \
+            --min-expected-regret 0.0 \
+            --link-model distance_only \
+            --output-dir artifacts/active_self_calibration/distance_only_ablation
+      - name: Analyze development-only mechanism ablation
+        run: |
+          python scripts/analyze_active_self_calibration.py \
+            --input artifacts/active_self_calibration/distance_only_ablation/episodes.csv \
+            --output-dir artifacts/active_self_calibration/distance_only_ablation \
+            --bootstrap-samples 10000
+          python scripts/plot_active_self_calibration.py \
+            --episodes artifacts/active_self_calibration/distance_only_ablation/episodes.csv \
+            --steps artifacts/active_self_calibration/distance_only_ablation/steps.csv \
+            --output-dir artifacts/active_self_calibration/distance_only_ablation/figures
+      - name: Verify ablation evidence boundary
+        run: |
+          python - <<'PY'
+          import json
+          import pandas as pd
+
+          root = "artifacts/active_self_calibration/distance_only_ablation"
+          manifest = json.load(open(root + "/manifest.json"))
+          assert manifest["phase"] == "development"
+          assert manifest["evidence_role"] == "development_mechanism_ablation_not_primary_confirmatory_evidence"
+          assert manifest["link_geometry_model"] == "distance_only"
+          assert manifest["seed_values"] == list(range(31000, 31020))
+          assert manifest["planner_subset"] == ["C0", "C1", "C2", "C3", "C4"]
+          assert manifest["selected_hyperparameters"] == {
+              "decision_threshold": 0.10,
+              "information_weight": 0.25,
+              "probe_weight": 0.20,
+              "min_expected_regret": 0.0,
+          }
+
+          episodes = pd.read_csv(root + "/episodes.csv")
+          assert len(episodes) == 20 * 6 * 5
+          assert not episodes.duplicated(["planner", "scenario", "seed"]).any()
+          assert set(episodes["link_geometry_model"]) == {"distance_only"}
+
+          print("distance-only mechanism-ablation evidence boundary verified")
+          print("collision episodes:", int(episodes["collision_indicator"].sum()))
+          print("no-candidate steps:", int(episodes["no_candidate_steps"].sum()))
+          print("static-clearance-violation steps:", int(episodes["static_clearance_violation_steps"].sum()))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: asc-distance-only-ablation
+          path: artifacts/active_self_calibration/distance_only_ablation
+          retention-days: 90
