@@ -1,14 +1,8 @@
 name: Active Self-Calibration Distance-Only Ablation
 
 on:
-  pull_request:
-    paths:
-      - ".github/workflows/active-self-calibration-ablation.yml"
-      - "configs/experiments/active_self_calibration.yaml"
-      - "src/iscai/active_self_calibration/**"
-      - "scripts/run_active_self_calibration.py"
-      - "scripts/analyze_active_self_calibration.py"
-      - "scripts/plot_active_self_calibration.py"
+  # Development-only mechanism ablation has been executed and archived.
+  # Keep reproduction manual so later manuscript edits cannot create new evidence.
   workflow_dispatch:
 
 concurrency:
