@@ -263,10 +263,61 @@ arrow/.style={-{Latex[length=1.8mm]},thick}
 \label{fig:architecture}
 \end{figure*}
 
-\section{Frozen Protocol}
-Development seeds were 31000--31019. The complete 27-setting grid was executed before deterministic selection. Setting \texttt{dev\_t010\_i025\_p020} was selected: decision threshold 0.10, information weight 0.25, probe weight 0.20, and minimum expected regret 0. The protocol was frozen at 2026-09-25 07:28:10 UTC before confirmatory seeds 32000--32049 were opened.
+\section{Frozen Experimental Protocol}
+\subsection{Identifiability and Decision-Relevance Scenarios}
+Six scenarios were declared before confirmatory execution. Table~\ref{tab:scenarios} shows the simulator truth and intended mechanism. All latent values are modeled quantities.
 
-Six declared scenarios (A--F) are repeated within each seed. The independent inferential unit is the seed after averaging scenarios. Primary comparison families are C0--C1, C1--C2, C2--C3, and C3--C4. Deterministic paired bootstrap intervals, paired Wilcoxon tests, Cohen's $d_z$/rank-biserial effects, and Holm correction are reported across the seven declared metrics in each family.
+\begin{table*}[t]
+\caption{Declared scenarios. Broad denotes the $3\times3\times3$ support in Section IV; narrow denotes $\alpha\in\{0.97,1,1.03\}$, $\delta\in\{-0.01,0,0.01\}$ rad, and $k\in\{0.95,1,1.05\}$.}
+\label{tab:scenarios}
+\centering
+\small
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lllll}
+\toprule
+Scenario & Motion context & True $(\alpha_{\mathrm{loss}},\delta_{\mathrm{beam}},k_{\mathrm{angular}})$ & Prior & Intended mechanism\\
+\midrule
+A & Following / lateral offset & $(1.00,\ 0.04,\ 1.00)$ & Broad & Boresight mismatch with directional sensitivity\\
+B & Overtake & $(1.15,\ 0,\ 1.00)$ & Broad & Distance-loss mismatch\\
+C & Intersection turn & $(1.15,\ -0.04,\ 0.75)$ & Broad & Combined geometry-dependent ambiguity\\
+D & Overtake & $(1.00,\ 0,\ 1.00)$ & Narrow & Model already accurate; little useful probing expected\\
+E & Straight following & $(1.15,\ 0.04,\ 1.25)$ & Broad & Parameter uncertainty but common mobility-dominant decision\\
+F & Lane choice & $(0.85,\ 0.04,\ 1.25)$ & Broad & Competing safe trajectories with model-dependent ranking\\
+\bottomrule
+\end{tabular}}
+\end{table*}
+
+During development, scenario A exposed incidental safety stress unrelated to the intended angular-identifiability mechanism. A preconfirmatory diagnostic tested the declared longitudinal translations and selected the smallest shift, $+1$~m, that removed the common no-candidate failure across all 20 development seeds without relaxing hard safety. This structural remediation was frozen before confirmatory seeds were opened.
+
+\subsection{Simulation and Candidate Settings}
+The simulation timestep is 0.1~s and each scenario contains 31 states. The causal predictor uses eight history steps and produces a 16-step planning horizon after a three-observation startup guard. Target-position observation noise has standard deviation 0.20~m. The communication observation noise has standard deviation 1~dB. The information horizon is four steps.
+
+Static and dynamic stop-viability checks, bounded brake/steer dynamics, time-aligned target clearance, and hierarchical clearance handling are enabled for every planner. These implementation choices are inherited from the common planning infrastructure and are held fixed across C0--C4.
+
+\subsection{Development, Freeze, and Confirmation}
+Development seeds are 31000--31019. The predeclared grid contains three values each for decision threshold, information weight, and probe weight, giving 27 C2/C3 settings. C0, C1, and C4 are common controls. A setting is eligible only if all reconstructed C0--C4 development episodes satisfy zero collisions, zero no-candidate episodes, and zero static-clearance violations. Among eligible settings, the deterministic rule lexicographically minimizes C3 mean cumulative decision regret, C3 cumulative probe cost, C3 probe fraction, and finally the setting identifier.
+
+The selected setting is \texttt{dev\_t010\_i025\_p020}. The protocol was frozen at 2026-09-25 07:28:10 UTC. Confirmatory seeds 32000--32049 were then opened without further tuning. The confirmatory artifact contains
+\[
+50\ \text{seeds}\times 6\ \text{scenarios}\times 5\ \text{planners}
+=1500
+\]
+episode rows and 45,000 timestep rows.
+
+\subsection{Metrics and Statistical Analysis}
+The primary endpoint is cumulative oracle-parameter decision regret. After a candidate is selected, its evaluation-only regret is
+\begin{equation}
+r_k=
+J(\tau_k,\phi^\star)
+-
+\min_{\tau\in\mathcal{T}^{\mathrm{safe}}_k}
+J(\tau,\phi^\star),
+\end{equation}
+and negative numerical roundoff is clipped at zero before accumulation. The oracle computation occurs only after candidate selection and cannot affect C0--C3 actions.
+
+Six scenarios are averaged within seed before inferential testing, so the independent confirmatory unit is the seed ($n=50$). The predeclared comparison families are C0--C1, C1--C2, C2--C3, and C3--C4. Seven metrics are analyzed within each family: cumulative regret, oracle-parameter agreement, probe fraction, cumulative probe cost, final normalized parameter error, progress, and mean outage probability.
+
+For each metric and comparison, the analysis reports a deterministic paired bootstrap 95\% interval with 10,000 resamples, a two-sided paired Wilcoxon test, Cohen's $d_z$, and rank-biserial effect size. Wilcoxon $p$-values are Holm adjusted across the seven metrics within each planner-comparison family. Scenario rows and timesteps are diagnostics and are never treated as independent confirmatory replicates.
 
 \section{Confirmatory Results}
 The confirmatory artifact contains 1,500 planner/scenario/seed episodes and 45,000 timestep rows. The sampled hard gate recorded zero collision episodes, zero no-candidate steps, and zero static-clearance-violation steps.
