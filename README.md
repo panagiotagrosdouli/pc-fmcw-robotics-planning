@@ -6,14 +6,15 @@ Predictive connectivity-aware autonomous motion planning from a PC-FMCW integrat
 
 ## What this repository has become
 
-This repository started as a robotics extension of the PC-FMCW laser-headlamp ISCAI architecture. It now contains **two deliberately separated research tracks** that share one decision-layer question: when is future communication information useful enough, and trustworthy enough, to influence autonomous vehicle motion?
+This repository started as a robotics extension of the PC-FMCW laser-headlamp ISCAI architecture. It now contains **three deliberately separated research tracks** around a common decision-layer theme: when should communication information influence vehicle motion, when can measured predictions be trusted, and when should motion itself be used to learn an uncertain communication model?
 
-The two tracks are not treated as interchangeable evidence. The first is a **PC-FMCW-informed controlled simulation study**. The second uses **field-measured vehicular communication data** to test the general predictive-planning principle under real QoS variation. Real V2X measurements are never presented as PC-FMCW optical measurements or as validation of the PC-FMCW propagation model.
+The three tracks are not treated as interchangeable evidence. Paper 1 is a **PC-FMCW-informed controlled simulation study** of predictive connectivity-aware motion. Paper 2 uses **field-measured vehicular communication data** to test predictive planning under real QoS variation. Paper 3 is a separate **modeled active self-calibration study** asking whether safe vehicle motion should also act as an experiment for uncertain directional optical-link parameters. Real V2X measurements are never presented as PC-FMCW optical measurements, and the Paper-3 latent parameters are modeled simulator quantities rather than measured optical calibration.
 
 The intended publication split is therefore:
 
 1. **Paper 1 — PC-FMCW perception-to-action robotics:** technology-specific predictive connectivity-aware motion planning built downstream of PC-FMCW sensing/tracking.
 2. **Paper 2 — Measurement-support-aware V2X planning:** real-data predictive QoS planning with explicit anti-leakage, empirical-support, uncertainty, and counterfactual-validity analysis.
+3. **Paper 3 — Decision-triggered active self-calibration:** a separate frozen study of passive, unconditional-active, decision-triggered, and oracle-reference calibration under modeled directional optical uncertainty.
 
 This split is intentional rather than salami slicing: the two studies have different primary research questions, evidence sources, validity threats, and main contributions.
 
@@ -224,21 +225,21 @@ Detailed paper-ready material is under [`docs/paper/`](docs/paper/), including c
 
 ---
 
-# Why two papers rather than one oversized paper?
+# Why three papers rather than one oversized paper?
 
 The common decision layer is valuable, but the evidence answers two different scientific questions.
 
-| | Paper 1 | Paper 2 |
-|---|---|---|
-| Primary domain | PC-FMCW / optical ISCAI robotics | Measured vehicular V2X / telecom-robotics |
-| Evidence | Controlled seeded simulation | Field-measured QoS + offline replay |
-| Main question | Can PC-FMCW-informed future connectivity improve ego-motion decisions? | When can measured-data connectivity prediction be trusted for planning? |
-| Main validity threat | Fidelity of analytical optical surrogate | Leakage and unsupported counterfactual extrapolation |
-| Key mechanism | Directional geometry + future target/link prediction | QoS horizon prediction + empirical measurement support |
-| Core comparison | P2 vs P1; P3 vs P2; mechanism/oracle analyses | Predictive P2 vs reactive P1; support-aware P3 vs P2 |
-| Claim level | Model-based PC-FMCW-informed robotics | Field-measured communication replay |
+| | Paper 1 | Paper 2 | Paper 3 |
+|---|---|---|---|
+| Primary domain | PC-FMCW / optical ISCAI robotics | Measured vehicular V2X / telecom-robotics | Modeled directional optical self-calibration |
+| Evidence | Controlled seeded simulation | Field-measured QoS + offline replay | Frozen paired-seed synthetic calibration study + separate support studies |
+| Main question | Can PC-FMCW-informed future connectivity improve ego-motion decisions? | When can measured-data connectivity prediction be trusted for planning? | When should safe motion also be used to learn uncertain link parameters? |
+| Main validity threat | Fidelity of analytical optical surrogate | Leakage and unsupported counterfactual extrapolation | Model-relative identifiability and whether information gain improves decisions |
+| Key mechanism | Directional geometry + future target/link prediction | QoS horizon prediction + empirical measurement support | Decision-relevance gate for active information seeking |
+| Core comparison | P2 vs P1; P3 vs P2; mechanism/oracle analyses | Predictive P2 vs reactive P1; support-aware P3 vs P2 | C0-C1, C1-C2, C2-C3, C3-C4; E/F mechanism diagnostics |
+| Claim level | Model-based PC-FMCW-informed robotics | Field-measured communication replay | Modeled active-calibration mechanism; not measured optical calibration |
 
-The papers can cross-reference the shared planning architecture, but each must retain its own primary hypothesis, experimental evidence, limitations, and contribution statement.
+The papers can cross-reference the shared planning architecture, but each retains its own primary hypothesis, experimental evidence, limitations, and contribution statement. In particular, Paper 3 does not reinterpret the frozen evidence of Papers 1 or 2.
 
 ---
 
@@ -299,6 +300,11 @@ The repository now includes the following research infrastructure:
 - negative-result and failure-mode reporting;
 - provenance manifests, deterministic seeds, tests, CI workflows, and machine-readable outputs;
 - literature/gap analysis and explicit claim audits;
+- frozen C0-C4 active self-calibration benchmark with causal Bayesian updates;
+- deterministic development selection followed by untouched confirmatory seeds `32000..32049`;
+- distance-only active-calibration mechanism ablation;
+- measured V-VLC support study with an explicitly null directional-vs-distance-only effect;
+- active-calibration manuscript draft with preserved null/negative findings;
 - paper-ready real-V2X methods/results/discussion/limitations documents;
 - cross-branch evidence and publication-positioning documents.
 
@@ -317,6 +323,10 @@ The frozen paper protocol and exact large-seed execution instructions are docume
 
 See the real-data experiment configuration and scripts in the repository together with [`docs/paper/EXPERIMENTAL_SETUP_REAL_V2X.md`](docs/paper/EXPERIMENTAL_SETUP_REAL_V2X.md) and [`docs/paper/METHODS_REAL_V2X.md`](docs/paper/METHODS_REAL_V2X.md). Dataset provenance and split rules must be preserved when reproducing results; row-randomized train/test splitting is not an acceptable substitute.
 
+## Active self-calibration study
+
+The frozen Paper-3 protocol, results, claim boundaries, and mechanism ablation are documented in [`docs/ACTIVE_SELF_CALIBRATION_RESEARCH_PLAN.md`](docs/ACTIVE_SELF_CALIBRATION_RESEARCH_PLAN.md) and [`docs/ACTIVE_SELF_CALIBRATION_PAPER_SKELETON.md`](docs/ACTIVE_SELF_CALIBRATION_PAPER_SKELETON.md). The expensive full research and distance-only ablation workflows are intentionally manual (`workflow_dispatch`) after evidence freeze, so documentation edits cannot silently open new confirmatory runs. Reproduction must preserve the frozen protocol and must not relabel development or ablation artifacts as primary confirmatory evidence.
+
 # Research integrity and reporting rules
 
 Before turning any output into a manuscript claim, use [`docs/EXPERIMENT_REPORTING_CHECKLIST.md`](docs/EXPERIMENT_REPORTING_CHECKLIST.md) and the paper evidence/claim documents.
@@ -332,6 +342,8 @@ These categories must not be silently mixed.
 
 # Current status
 
-**Dual-paper research framework implemented and integrated on `main`.** The real-V2X branch has completed measured-data prediction, support-aware replay, multi-split robustness, and multiplicity-aware analysis. The PC-FMCW branch contains the frozen 50-seed confirmatory protocol and optical directional-mechanism ablation; final manuscript numerical claims must use the frozen confirmatory artifact once complete rather than historical exploratory numbers.
+**Three-paper research framework implemented and integrated on `main`.** Paper 1 contains the frozen PC-FMCW-informed predictive-planning evidence; Paper 2 contains completed measured-data prediction, support-aware replay, multi-split robustness, and multiplicity-aware analysis; Paper 3 contains a completed frozen 50-seed active self-calibration confirmatory study, measured-data support tracks, and a separate distance-only mechanism ablation.
 
-The repository should now be read as a reproducible research program rather than a single planner demo: **Paper 1 studies PC-FMCW-informed perception-to-action planning; Paper 2 studies trustworthy predictive connectivity planning with field-measured vehicular QoS.**
+For Paper 3, the frozen confirmatory artifact contains 1,500 planner/scenario/seed episodes and 45,000 timestep rows with zero collision episodes, zero no-candidate steps, and zero static-clearance-violation steps. C3 strongly reduced the regret/probing penalty of unconditional C2 but did not establish superiority over passive C1; the decision-critical F scenario is retained as a null/negative mechanism result rather than retuned away.
+
+The repository should now be read as a reproducible research program rather than a single planner demo: **Paper 1 studies PC-FMCW-informed perception-to-action planning; Paper 2 studies trustworthy predictive connectivity planning with field-measured vehicular QoS; Paper 3 studies when decision relevance should gate active self-calibration under modeled optical uncertainty.**
