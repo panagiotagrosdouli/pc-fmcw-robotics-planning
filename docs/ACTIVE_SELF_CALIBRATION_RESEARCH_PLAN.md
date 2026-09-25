@@ -163,3 +163,20 @@ The experiment is scientifically meaningful only if these assumptions remain exp
 ## Causal target-prediction warm-up
 
 Development exposed a step-2 two-sample noise-reversal artifact. The active-calibration protocol therefore holds the latest measured target position until three observations are available, then uses the existing predictor. Scenario geometry and hard safety distances are unchanged, and confirmatory seeds remain unopened until development revalidation.
+
+
+## Post-study closure
+
+The prospective protocol described above has now been executed and frozen.
+
+- Development seeds `31000..31019` and the declared 27-setting hyperparameter grid were completed before confirmatory opening.
+- The deterministic selection rule chose `dev_t010_i025_p020`: decision threshold `0.10`, information weight `0.25`, probe weight `0.20`, minimum expected regret `0`.
+- The protocol freeze completed at `2026-09-25T07:28:10.141950+00:00`; untouched confirmatory execution began afterward with seeds `32000..32049`.
+- The frozen confirmatory artifact contains 1,500 planner/scenario/seed episodes and 45,000 timestep rows with no duplicate episode keys.
+- Confirmatory safety diagnostics recorded zero collision episodes, zero no-candidate steps, and zero static-clearance-violation steps.
+- C3 strongly reduced the regret and probing burden of unconditional C2 but did not establish superiority over passive C1. In the decision-critical F scenario, C3 probed but had higher mean regret than C1; this is retained as a null/negative mechanism result.
+- The standalone distance-only study is explicitly a development mechanism ablation. It produced effectively zero decision regret and zero probing across C0-C4 while retaining learnability only for the remaining distance-loss degree of freedom.
+- The measured V-VLC comparison was effectively null for directional predictive gain, and CICV5G remains a separately scoped measured 5G QoS/offline-replay support study. Neither is relabeled as direct physical validation of the synthetic optical self-calibration mechanism.
+- No post-confirmatory hyperparameter retuning was performed.
+
+The expensive full-research and distance-only workflows are intentionally manual after evidence closure. Their purpose is reproducibility; later documentation changes must not silently create new confirmatory evidence.
