@@ -1,5 +1,5 @@
 \documentclass[journal]{IEEEtran}
-\usepackage{amsmath,amssymb,booktabs,graphicx,url,microtype}
+\usepackage{amsmath,amssymb,booktabs,graphicx,url,microtype,cite}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,positioning}
 \usepackage[hidelinks]{hyperref}
@@ -238,8 +238,8 @@ C4 receives the true simulator $\phi^\star$ only for connectivity scoring. It us
 \centering
 \begin{tikzpicture}[
 node distance=0.30cm and 0.30cm,
-block/.style={draw,rounded corners,align=center,minimum height=0.72cm,text width=1.85cm,font=\scriptsize},
-wide/.style={draw,rounded corners,align=center,minimum height=0.72cm,text width=2.30cm,font=\scriptsize},
+block/.style={draw,fill=white,rounded corners,align=center,minimum height=0.72cm,text width=1.85cm,font=\scriptsize},
+wide/.style={draw,fill=white,rounded corners,align=center,minimum height=0.72cm,text width=2.30cm,font=\scriptsize},
 arrow/.style={-{Latex[length=1.8mm]},thick}
 ]
 \node[block] (hist) {Ego state +\\target history};
