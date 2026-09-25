@@ -27,7 +27,7 @@ Release work may correct wording, formatting, citation metadata, or reproducibil
 
 ## Publication-asset state
 
-The Paper-3 manuscript is generated from compact frozen evidence using `scripts/build_paper3_publication_assets.py`. Manuscript PDF CI has compiled the source successfully with generated vector figures and LaTeX tables, and the resulting PDF has been visually inspected for clipping/overlap/readability.
+The Paper-3 manuscript is generated from compact frozen evidence using `scripts/build_paper3_publication_assets.py`. The final merged manuscript is an 8-page IEEE double-column PDF with a 220-word abstract and 24 cited bibliography entries. Manuscript PDF CI compiled the source successfully with generated vector figures and LaTeX tables, and the resulting PDF was visually inspected for clipping, overlap, glyph rendering, architecture routing, figure/table readability, and bibliography layout.
 
 ## Venue-policy blocker
 
