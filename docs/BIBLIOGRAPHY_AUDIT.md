@@ -1,6 +1,6 @@
 # Bibliography audit
 
-Audit date: 2026-09-23. Citation keys were checked against publisher or institutional metadata and matched to manuscript citation contexts.
+Audit date: 2026-09-25. Citation keys were checked against publisher or institutional metadata and matched to manuscript citation contexts.
 
 | Key | Metadata result | DOI | Used for |
 |---|---|---|---|
@@ -8,7 +8,7 @@ Audit date: 2026-09-23. Citation keys were checked against publisher or institut
 | `gordon2026` | Seven authors, INFOCOM 2026, pages and year verified; corrected sixth author to Xueli An | `10.1109/INFOCOM59046.2026.11571354` | Contemporary online radio-map planning |
 | `ullah2025` | Five authors, IEEE Access 13, pages 37361–37369, year verified | `10.1109/ACCESS.2025.3543204` | Vehicular QoS-aware trajectory planning |
 | `takai2014` | Six authors, IEEE Photonics Journal 6(5), year verified | `10.1109/JPHOT.2014.2352620` | Optical V2V prior art; not surrogate calibration |
-| `avatamanitei2024` | Four authors, Sensors 24(9), article 2814, year verified | `10.3390/s24092814` | Directional/FoV receiver prior art; not model validation |
+| `avatamanitei2024` | Publisher metadata corrected to three authors: Alin-Mihai Cailean, Sebastian-Andrei Avatamanitei, Catalin Beguni; Sensors 24(9), article 2814 | `10.3390/s24092814` | Directional/FoV receiver prior art; not model validation |
 | `zhang2026` | All nine authors, Scientific Data 13, article 878, publication year verified | `10.1038/s41597-026-07239-7` | CICV5G provenance and measured-variable facts |
 
 ## Citation mapping checks
@@ -19,7 +19,7 @@ Audit date: 2026-09-23. Citation keys were checked against publisher or institut
 - No reference is used to support a real-road safety guarantee, measured optical validation, or state-of-the-art claim.
 - BibTeX keys used in each `.tex` file resolve to the corresponding `.bib` file.
 
-The audit is targeted to citations actually used in the two manuscripts; it is not a systematic literature review or novelty-priority search.
+The audit is targeted to citations actually used in the three manuscripts; it is not a systematic literature review or novelty-priority search.
 
 
 ## Paper 3 positioning references
@@ -41,3 +41,26 @@ Audit date: 2026-09-25. These references are used only to position the active se
 - The manuscript does not claim that communication-aware planning, informative motion, calibration-trajectory design, ISAC-to-planning coupling, or optical communication-aware control are individually new.
 - The narrower study question is the decision-relevance gate for active learning of **modeled** directional optical-link parameters under a frozen safe-planning benchmark.
 - The citation set is a targeted positioning audit, not a systematic literature review or a basis for universal priority claims.
+
+
+## Paper 3 expanded IEEE literature audit
+
+Audit date: 2026-09-25. The full citation-to-claim map is maintained at `manuscripts/paper3_active_self_calibration/BIBLIOGRAPHY_NOTES.md`.
+
+| Key | Verified venue / pages | DOI | Manuscript role |
+|---|---|---|---|
+| `barshalom1974` | IEEE TAC 19(5), 494-500 | `10.1109/TAC.1974.1100635` | Classical dual effect |
+| `heirung2015` | Journal of Process Control 32, 64-76 | `10.1016/j.jprocont.2015.04.012` | MPC online experiment design |
+| `klenske2016` | JMLR 17(127), 1-30 | no DOI used | Approximate Bayesian dual control |
+| `mesbah2018` | Annual Reviews in Control 45, 107-117 | `10.1016/j.arcontrol.2017.11.001` | Active uncertainty learning / dual-control survey |
+| `li2025` | IEEE T-ASE 22, 2145-2158 | `10.1109/TASE.2024.3375373` | Exploration/exploitation dual control |
+| `hu2024` | IJRR 43(9), 1382-1408 | `10.1177/02783649231215371` | Shielding-aware dual control for interaction planning |
+| `pashupathy2026` | IEEE T-ASE 23, 8046-8058 | `10.1109/TASE.2026.3679278` | Active estimation plus robotic path planning |
+| `hitz2017` | Journal of Field Robotics 34(8), 1427-1449 | `10.1002/rob.21722` | Informative path planning |
+| `cheng2022` | IEEE IoT Journal 9(23), 23441-23451 | `10.1109/JIOT.2022.3191386` | Vehicular ISAC context |
+| `karbalayghareh2020` | IEEE TVT 69(7), 6891-6901 | `10.1109/TVT.2020.2993294` | Geometry-aware V-VLC channel modeling |
+| `turan2022nlos` | IEEE TVT 71(9), 10110-10114 | `10.1109/TVT.2022.3181160` | Measurement-based NLoS V-VLC |
+| `mohamed2023` | IEEE TVT 72(8), 9692-9703 | `10.1109/TVT.2023.3253762` | Measured vehicle oscillation / optical-path effects |
+| `cailean2024` | Sensors 24(9), 2814 | `10.3390/s24092814` | Adaptive field-of-view V-VLC receiver |
+
+These sources are used for prior-art positioning and claim boundaries. Frozen repository artifacts, not external literature, support the Paper-3 C0-C4 numerical findings.

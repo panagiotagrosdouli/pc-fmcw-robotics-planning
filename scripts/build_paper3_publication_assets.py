@@ -59,6 +59,89 @@ def _write_regret_table(df: pd.DataFrame, out: Path) -> None:
     out.write_text("\n".join(lines), encoding="utf-8")
 
 
+def _fmt_small(value: float) -> str:
+    value = float(value)
+    if abs(value) < 1e-12:
+        return r"$\approx 0$"
+    if abs(value) < 1e-3:
+        s = f"{value:.2e}"
+        mantissa, exponent = s.split("e")
+        exp = int(exponent)
+        return "$" + mantissa + rf"\times 10^{{{exp}}}$"
+    return f"{value:.6f}".rstrip("0").rstrip(".")
+
+
+def _write_scenario_ef_table(df: pd.DataFrame, out: Path) -> None:
+    labels = {
+        "E_decision_irrelevant_uncertainty": "E",
+        "F_decision_critical_uncertainty": "F",
+    }
+    d = df[df["planner"].isin(MECH_PLANNERS)].copy()
+    d["scenario_order"] = d["scenario"].map({
+        "E_decision_irrelevant_uncertainty": 0,
+        "F_decision_critical_uncertainty": 1,
+    })
+    d["planner_order"] = d["planner"].map({p: i for i, p in enumerate(MECH_PLANNERS)})
+    d = d.sort_values(["scenario_order", "planner_order"])
+    lines = [
+        r"\begin{tabular}{llrr}",
+        r"\toprule",
+        r"Scenario & Planner & Regret & Probe frac.\\",
+        r"\midrule",
+    ]
+    last = None
+    for row in d.itertuples(index=False):
+        scenario = labels[row.scenario]
+        if last is not None and scenario != last:
+            lines.append(r"\midrule")
+        lines.append(
+            f"{scenario} & {row.planner} & {row.regret:.6f} & {row.probe_fraction:.6f}" + r"\\"
+        )
+        last = scenario
+    lines += [r"\bottomrule", r"\end{tabular}", ""]
+    out.write_text("\n".join(lines), encoding="utf-8")
+
+
+def _write_distance_table(df: pd.DataFrame, out: Path) -> None:
+    d = df.set_index("planner").loc[PLANNER_ORDER].reset_index()
+    lines = [
+        r"\begin{tabular}{lrrr}",
+        r"\toprule",
+        r"Planner & Regret & Probe frac. & Param. error\\",
+        r"\midrule",
+    ]
+    for row in d.itertuples(index=False):
+        lines.append(
+            f"{row.planner} & {_fmt_small(row.mean_regret)} & "
+            f"{row.mean_probe_fraction:.6f} & {row.mean_parameter_error:.6f}" + r"\\"
+        )
+    lines += [r"\bottomrule", r"\end{tabular}", ""]
+    out.write_text("\n".join(lines), encoding="utf-8")
+
+
+def _write_support_table(df: pd.DataFrame, out: Path) -> None:
+    index = {(r.study, r.endpoint): r for r in df.itertuples(index=False)}
+    v = index[("V-VLC", "directional_minus_distance_only_abs_error_dB")]
+    p = index[("CICV5G", "persistence_delay_MAE_ms")]
+    h = index[("CICV5G", "h100_fusion_minus_persistence_MAE_ms")]
+    replay = index[("CICV5G", "replay_P2_minus_P1_measured_delay_ms")]
+    lines = [
+        r"\begin{tabular}{lll}",
+        r"\toprule",
+        r"Evidence & Quantity & Result\\",
+        r"\midrule",
+        f"V-VLC & directional $-$ distance error & {v.value_or_effect:+.6f} dB" + r"\\",
+        f"V-VLC & 95\% CI & [{v.ci95_low:.6f},{v.ci95_high:.6f}] dB" + r"\\",
+        f"CICV5G & persistence delay MAE & {p.value_or_effect:.6f} ms" + r"\\",
+        f"CICV5G & $H=100$ fusion delta & {h.value_or_effect:+.6f} ms" + r"\\",
+        f"CICV5G & replay P2$-$P1 delay & {replay.value_or_effect:+.6f} ms" + r"\\",
+        r"\bottomrule",
+        r"\end{tabular}",
+        "",
+    ]
+    out.write_text("\n".join(lines), encoding="utf-8")
+
+
 def _annotate_bars(ax, bars, fmt: str = ".3g") -> None:
     for bar in bars:
         value = float(bar.get_height())
@@ -100,8 +183,8 @@ def _overall_figure(summary: pd.DataFrame, out: Path) -> None:
 
 def _mechanism_figure(ef: pd.DataFrame, out: Path) -> None:
     scenario_map = {
-        "E_decision_irrelevant_uncertainty": "E: decision-irrelevant",
-        "F_decision_critical_uncertainty": "F: decision-critical",
+        "E_decision_irrelevant_uncertainty": "E",
+        "F_decision_critical_uncertainty": "F",
     }
     scenarios = list(scenario_map)
     x = np.arange(len(scenarios))
@@ -123,11 +206,13 @@ def _mechanism_figure(ef: pd.DataFrame, out: Path) -> None:
     labels = [scenario_map[s] for s in scenarios]
     axes[0].set_xticks(x, labels)
     axes[0].set_ylabel("Mean cumulative decision regret")
+    axes[0].set_xlabel("Scenario")
     axes[0].grid(axis="y", alpha=0.25)
     axes[0].legend(frameon=False, fontsize=8)
 
     axes[1].set_xticks(x, labels)
     axes[1].set_ylabel("Mean probe fraction")
+    axes[1].set_xlabel("Scenario")
     axes[1].grid(axis="y", alpha=0.25)
     axes[1].legend(frameon=False, fontsize=8)
 
@@ -155,9 +240,14 @@ def main() -> None:
     summary = pd.read_csv(args.input / "confirmatory_planner_summary.csv")
     effects = pd.read_csv(args.input / "primary_regret_effects.csv")
     ef = pd.read_csv(args.input / "scenario_EF.csv")
+    distance = pd.read_csv(args.input / "distance_only_summary.csv")
+    support = pd.read_csv(args.input / "support_studies_summary.csv")
 
     _write_planner_table(summary, args.out / "table_planner_means.tex")
     _write_regret_table(effects, args.out / "table_primary_regret_effects.tex")
+    _write_scenario_ef_table(ef, args.out / "table_scenario_ef.tex")
+    _write_distance_table(distance, args.out / "table_distance_only.tex")
+    _write_support_table(support, args.out / "table_support.tex")
     _overall_figure(summary, args.out)
     _mechanism_figure(ef, args.out)
 
