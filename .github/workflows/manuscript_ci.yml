@@ -4,7 +4,10 @@ on:
   pull_request:
     paths:
       - 'manuscripts/**'
+      - 'scripts/build_paper1_publication_assets.py'
       - 'scripts/build_paper2_publication_assets.py'
+      - 'scripts/build_paper3_publication_assets.py'
+      - 'scripts/build_submission_package.py'
       - '.github/workflows/manuscript_ci.yml'
   workflow_dispatch:
 
@@ -35,6 +38,11 @@ jobs:
           python scripts/build_paper1_publication_assets.py \
             --input manuscripts/paper1_pc_fmcw/results_archive/confirmatory_seed_level_effects.csv \
             --out manuscripts/paper1_pc_fmcw/generated/table_confirmatory_effects.tex
+      - name: Regenerate Paper 3 publication assets
+        run: |
+          python scripts/build_paper3_publication_assets.py \
+            --input manuscripts/paper3_active_self_calibration/results_archive \
+            --out manuscripts/paper3_active_self_calibration/generated
       - name: Compile all manuscript sources
         run: |
           set -euo pipefail

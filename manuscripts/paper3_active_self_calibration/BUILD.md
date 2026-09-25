@@ -2,6 +2,18 @@
 
 The canonical source is `paper3.tex` in generic IEEE journal format. Venue-specific formatting is intentionally deferred until a venue is selected.
 
+## Regenerate publication assets
+
+From the repository root:
+
+```bash
+python scripts/build_paper3_publication_assets.py \
+  --input manuscripts/paper3_active_self_calibration/results_archive \
+  --out manuscripts/paper3_active_self_calibration/generated
+```
+
+This generates vector PDF/SVG figures and LaTeX tables directly from the compact frozen evidence snapshots. Do not edit generated numerical tables by hand.
+
 ## Compile
 
 ```bash
@@ -9,7 +21,7 @@ cd manuscripts/paper3_active_self_calibration
 latexmk -pdf -interaction=nonstopmode -halt-on-error paper3.tex
 ```
 
-The repository-wide `.github/workflows/manuscript_ci.yml` discovers `paper3.tex` automatically and compiles it together with Papers 1 and 2.
+The repository-wide `.github/workflows/manuscript_ci.yml` regenerates Paper-3 assets and compiles `paper3.tex` together with Papers 1 and 2.
 
 ## Evidence checks
 
