@@ -199,17 +199,16 @@ class ActiveSelfCalibrationPlanner:
         return values
 
     def _belief_cost_matrix(self, candidates, target, reference_speed):
-        matrix = np.empty((len(candidates), len(self.belief.support)), dtype=float)
-        for i, candidate in enumerate(candidates):
-            for j, parameters in enumerate(self.belief.support):
-                matrix[i, j] = true_candidate_objective(
-                    self.link_model,
-                    candidate,
-                    target,
-                    parameters,
-                    reference_speed,
-                    self.connectivity_weight,
-                )
+        matrix=np.empty((len(candidates),len(self.belief.support)),dtype=float)
+        for i,candidate in enumerate(candidates):
+            n=min(len(candidate.states),len(target))
+            connectivity=self.link_model.connectivity_costs_hypotheses(
+                candidate,np.asarray(target,dtype=float)[:n],self.belief.support
+            )
+            matrix[i,:]=(
+                mobility_cost(candidate,reference_speed)
+                +self.connectivity_weight*connectivity
+            )
         return matrix
 
     def _probe_cost(self, candidate, baseline, reference_speed):
