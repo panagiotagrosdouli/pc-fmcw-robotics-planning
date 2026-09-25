@@ -16,16 +16,27 @@
 - Fit: field-measured V2X QoS, leakage-controlled prediction, and measured-replay planning.
 - Official venue guidance should be rechecked immediately before submission.
 
-## Paper 3 — venue not yet frozen
+## Paper 3 — IEEE Transactions on Intelligent Vehicles (T-IV), Regular Paper
 
-Paper 3 is scientifically distinct from Papers 1 and 2: it studies active self-calibration/dual-control behavior under modeled directional optical uncertainty rather than predictive-vs-reactive link scoring or measured V2X replay.
+**Venue freeze date:** 2026-09-25.
 
-A venue should be selected only after checking current scope, length, novelty expectations, and tolerance for a deliberately mixed result in which C3 strongly improves over unconditional C2 but does not beat passive C1. The repository does **not** infer a venue choice from topic similarity alone.
+Paper 3 is targeted to **IEEE Transactions on Intelligent Vehicles (T-IV)** as a **Regular Paper**. The choice was made after rechecking the current official scope and author guidance.
 
-The canonical Paper-3 source uses generic IEEE journal formatting (`IEEEtran`) so it can be reviewed and compiled before a venue is frozen. Venue-specific formatting changes must not alter scientific claims.
+The fit is direct rather than generic: T-IV explicitly covers automated vehicles, autonomous/intelligent robotic vehicles, information fusion, vehicle control, collision avoidance, and vehicle-environment perception. Paper 3 studies a safety-constrained vehicular motion planner that couples a modeled directional communication belief to vehicle-control decisions, which lies inside that scope.
+
+Current official T-IV author guidance lists a suggested length of 10 IEEE pages for Regular Papers and requires IEEE double-column formatting. The canonical Paper-3 source already uses `\documentclass[journal]{IEEEtran}`. The current compiled manuscript is shorter than the suggested Regular-Paper length; no scientific content is to be added merely to fill pages.
+
+The T-IV checklist also requires, among other submission metadata, conflict-of-interest disclosure and institutional email addresses for authors. For Regular Papers, short biographies are required. The manuscript abstract is currently 212 words, within the current T-IV 150–250-word abstract guidance.
+
+T-RO remains a plausible fallback because its scope includes intelligent vehicles, motion planning, identification, and calibration. It is not the primary target because T-RO explicitly frames Regular Papers as significant, high-impact advances in robotics; the present Paper-3 conclusion is intentionally narrower and includes a retained negative result against passive calibration.
+
+Official guidance verified on 2026-09-25:
+- T-IV scope/submission page: https://ieee-itss.org/pub/t-iv/
+- T-IV author information: https://ieee-itss.org/pub/t-iv/author/
+- T-RO information for authors: https://www.ieee-ras.org/publications/t-ro/t-ro-information-for-authors/
 
 ## Submission blockers that cannot be inferred
 
-The repository identifies Panagiota Grosdouli as author but does not establish a verified affiliation, postal address, institutional email, ORCID, acknowledgements, funding declaration, competing-interest declaration, author biography, or Paper-3 venue choice. These fields must be confirmed by the author before portal submission.
+The repository identifies Panagiota Grosdouli as author but does not establish a verified affiliation/postal address, institutional email, author biography, ORCID, acknowledgements/funding statement, or conflict-of-interest declaration. These fields must be confirmed by the author before portal submission.
 
-Venue fees, open-access selection, overlength charges, and submission order are author decisions and are not assumed by the repository.
+The repository also cannot choose the author's traditional-vs-open-access option, pay any publication/overlength charges, create/update the author's T-IV portal account, or make the final archival-release/DOI decision.

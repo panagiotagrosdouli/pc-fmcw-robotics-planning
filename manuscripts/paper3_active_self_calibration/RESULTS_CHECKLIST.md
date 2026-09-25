@@ -23,8 +23,8 @@
 - [x] C4 described only as a model-relative oracle.
 - [x] Safety wording limited to sampled benchmark outcomes.
 - [x] Compact result CSVs included.
-- [ ] Final venue selected by author.
-- [ ] Affiliation/contact/ORCID confirmed by author.
-- [ ] Funding/acknowledgements/competing-interest text confirmed by author.
-- [ ] Final PDF visually inspected for venue-specific length/format.
+- [x] Primary target frozen as IEEE Transactions on Intelligent Vehicles (T-IV), Regular Paper.
+- [ ] Affiliation/postal address, institutional email, short biography, and ORCID if used confirmed by author.
+- [ ] Funding/acknowledgements and T-IV conflict-of-interest disclosure confirmed by author.
+- [x] Generated Paper-3 PDF compiled and visually inspected for clipping, overlap, figure/table readability, and IEEE double-column layout.
 - [ ] Final archival release/tag/DOI decision made by repository owner.

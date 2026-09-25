@@ -1,6 +1,6 @@
 # Paper 3 build
 
-The canonical source is `paper3.tex` in generic IEEE journal format. Venue-specific formatting is intentionally deferred until a venue is selected.
+The canonical source is `paper3.tex`. The primary target is **IEEE Transactions on Intelligent Vehicles (T-IV), Regular Paper**, frozen on 2026-09-25. The source uses the required IEEE double-column journal class; final author biography/metadata must be inserted only after the author supplies verified details.
 
 ## Regenerate publication assets
 
@@ -37,3 +37,16 @@ Before submission, compare every numerical claim in `paper3.tex` against:
 The compact CSVs are manuscript traceability snapshots. The authoritative full evidence remains the immutable GitHub Actions artifacts recorded in `CLAIM_EVIDENCE.md`.
 
 Do not regenerate or retune the frozen primary study from post-confirmatory outcomes. Manual full-research workflows are reproducibility mechanisms, not an invitation to replace the archived confirmation.
+
+
+## T-IV submission QA
+
+Current venue-specific checks:
+- IEEE double-column journal class: satisfied.
+- Abstract length: 212 words, within current T-IV 150–250-word guidance.
+- Generated figures/tables: regenerated from frozen compact evidence before manuscript CI.
+- PDF visual QA: completed after publication-asset generation.
+- Author block: no affiliation/email is embedded under the title.
+- Remaining manual fields: affiliation/postal address, institutional email, short biography, conflict-of-interest disclosure, funding/acknowledgements, ORCID if used, and traditional-vs-open-access choice.
+
+See `TIV_SUBMISSION_CHECKLIST.md` for the portal-facing checklist.
