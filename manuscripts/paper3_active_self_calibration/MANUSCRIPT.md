@@ -1,3 +1,5 @@
+> **Companion narrative.** The canonical IEEE submission source is `paper3.tex`. This Markdown file preserves a compact human-readable account of the frozen evidence; when wording differs, `paper3.tex`, `CLAIM_EVIDENCE.md`, and the frozen machine-readable evidence govern submission text and numerical claims.
+
 # When Should a Vehicle Move to Learn the Channel?
 ## Decision-Triggered Active Self-Calibration for PC-FMCW-Informed Vehicular Optical Planning
 
