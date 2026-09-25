@@ -183,8 +183,8 @@ def _overall_figure(summary: pd.DataFrame, out: Path) -> None:
 
 def _mechanism_figure(ef: pd.DataFrame, out: Path) -> None:
     scenario_map = {
-        "E_decision_irrelevant_uncertainty": "E: decision-irrelevant",
-        "F_decision_critical_uncertainty": "F: decision-critical",
+        "E_decision_irrelevant_uncertainty": "E",
+        "F_decision_critical_uncertainty": "F",
     }
     scenarios = list(scenario_map)
     x = np.arange(len(scenarios))
@@ -206,11 +206,13 @@ def _mechanism_figure(ef: pd.DataFrame, out: Path) -> None:
     labels = [scenario_map[s] for s in scenarios]
     axes[0].set_xticks(x, labels)
     axes[0].set_ylabel("Mean cumulative decision regret")
+    axes[0].set_xlabel("Scenario")
     axes[0].grid(axis="y", alpha=0.25)
     axes[0].legend(frameon=False, fontsize=8)
 
     axes[1].set_xticks(x, labels)
     axes[1].set_ylabel("Mean probe fraction")
+    axes[1].set_xlabel("Scenario")
     axes[1].grid(axis="y", alpha=0.25)
     axes[1].legend(frameon=False, fontsize=8)
 
