@@ -1,10 +1,11 @@
 # Submission release manifest
 
-The repository now contains three canonical manuscript packages.
+The repository contains three canonical manuscript packages.
 
 - Paper 1 source: `manuscripts/paper1_pc_fmcw/paper1.tex`.
 - Paper 2 source: `manuscripts/paper2_real_v2x/paper2.tex`.
 - Paper 3 source: `manuscripts/paper3_active_self_calibration/paper3.tex`.
+- Paper 3 preferred venue: **IEEE Transactions on Intelligent Vehicles (T-IV), Regular Paper**, conditional pending clarification of the journal's public-repository checklist item.
 - Machine-generated/build assets are validated by `.github/workflows/manuscript_ci.yml`.
 - Supplementary reproducibility archives are produced by `scripts/build_submission_package.py` for `paper1`, `paper2`, and `paper3`.
 - Scientific status is governed by `PAPER_READINESS_AUDIT.md` plus the paper-specific frozen protocol/evidence files.
@@ -24,9 +25,17 @@ The repository now contains three canonical manuscript packages.
 
 Release work may correct wording, formatting, citation metadata, or reproducibility packaging. It may not change protocol choices, tune after confirmatory outcomes, omit negative results, relabel development/mechanism evidence as primary confirmation, or strengthen claims beyond archived evidence.
 
+## Publication-asset state
+
+The Paper-3 manuscript is generated from compact frozen evidence using `scripts/build_paper3_publication_assets.py`. Manuscript PDF CI has compiled the source successfully with generated vector figures and LaTeX tables, and the resulting PDF has been visually inspected for clipping/overlap/readability.
+
+## Venue-policy blocker
+
+T-IV is not yet frozen for portal submission. Its current official checklist states that the submitted work should not be deposited in a publicly accessible repository. Because the canonical Paper-3 manuscript already exists in this public GitHub history, written editorial clarification is required before treating T-IV as compliant. ORCID is also listed as required for all authors.
+
 ## Release/tag state
 
-The historical intended tag `paper-submission-v1.0` predates the Paper-3 package and should not be minted from an earlier two-paper state. A new final release tag should be chosen only after all three PDFs compile and the repository owner confirms the intended submission set.
+The historical intended tag `paper-submission-v1.0` predates the Paper-3 package and should not be minted from an earlier two-paper state. A new final release tag should be chosen only after author metadata is inserted and the repository owner confirms the intended submission set.
 
 ## Zenodo
 
