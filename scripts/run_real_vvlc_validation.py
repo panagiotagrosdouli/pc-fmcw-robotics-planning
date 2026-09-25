@@ -79,7 +79,7 @@ def load_raw(path: Path):
 
 def load_repository_validation(path: Path):
     """Parse repository-provided validation table (variables as rows, samples as columns)."""
-    a=pd.read_csv(path,sep=";",header=None)
+    a=pd.read_csv(path,sep=",",header=None)
     if a.shape[0]<6: raise ValueError("validation table must contain at least six rows")
     a=a.iloc[:6].T
     a.columns=["sunload","lane","angle_deg","distance_m","turbulence","path_loss_db"]

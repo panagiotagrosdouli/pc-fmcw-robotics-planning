@@ -1,0 +1,49 @@
+name: Measured V-VLC Validation
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/real-vvlc-validation.yml"
+      - "scripts/run_real_vvlc_validation.py"
+      - "scripts/plot_real_vvlc_validation.py"
+  workflow_dispatch:
+
+jobs:
+  real-vvlc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install numpy scipy matplotlib pandas scikit-learn
+      - name: Run measured vehicular optical validation
+        run: |
+          python scripts/run_real_vvlc_validation.py \
+            --output artifacts/active_self_calibration/real_vvlc \
+            --bootstrap 10000
+          python scripts/plot_real_vvlc_validation.py \
+            --input artifacts/active_self_calibration/real_vvlc
+      - name: Verify real validation contract
+        run: |
+          test ! -e artifacts/active_self_calibration/real_vvlc/_raw/rawPLdataset.csv
+          test -s artifacts/active_self_calibration/real_vvlc/manifest.json
+          test -s artifacts/active_self_calibration/real_vvlc/paired_effect.csv
+          test -s artifacts/active_self_calibration/real_vvlc/figures/real_vvlc_mae.png
+          python - <<'PY'
+          import pandas as pd
+          d=pd.read_csv('artifacts/active_self_calibration/real_vvlc/model_metrics.csv')
+          v=d[d.split=='repository_validation']
+          assert len(v)==2 and (v.n>0).all(), 'repository validation parser produced no valid rows'
+          print(v.to_string(index=False))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: asc-real-vvlc-corrected
+          path: artifacts/active_self_calibration/real_vvlc
+          retention-days: 90
