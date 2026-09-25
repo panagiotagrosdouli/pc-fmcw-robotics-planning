@@ -8,6 +8,10 @@ on:
       - "scripts/plot_real_vvlc_validation.py"
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   real-vvlc:
     runs-on: ubuntu-latest
