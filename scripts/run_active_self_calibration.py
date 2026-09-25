@@ -43,6 +43,10 @@ def _hyperparameters(config,phase,args):
         frozen=json.loads((ROOT/args.frozen_protocol).read_text(encoding="utf-8"))
         if frozen.get("protocol_version")!=config["protocol_version"]:raise SystemExit("frozen protocol version does not match config")
         if frozen.get("config_sha256")!=_sha256(ROOT/args.config):raise SystemExit("frozen protocol config digest does not match current config")
+        frozen_git=str(frozen.get("git_commit_sha",""))
+        current_git=_git_sha()
+        if not frozen_git or frozen_git=="unavailable":raise SystemExit("frozen protocol does not pin a usable git commit")
+        if current_git!=frozen_git:raise SystemExit(f"confirmatory code SHA {current_git} does not match frozen development SHA {frozen_git}")
         return dict(frozen["selected_hyperparameters"]),frozen
     for cli_name,key in (
         ("decision_threshold","decision_threshold"),("information_weight","information_weight"),
