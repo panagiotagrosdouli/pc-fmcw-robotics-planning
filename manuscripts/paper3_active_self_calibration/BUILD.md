@@ -1,6 +1,6 @@
 # Paper 3 build
 
-The canonical source is `paper3.tex`. The preferred target is **IEEE Transactions on Intelligent Vehicles (T-IV), Regular Paper**, but the target is conditional pending clarification of the journal's public-repository checklist item because this manuscript is already present in public GitHub history. The source uses the IEEE double-column journal class; final author biography/metadata must be inserted only after verified details are supplied.
+The canonical source is `paper3.tex`. It is maintained in standard IEEE journal double-column format. T-IV remains a preferred conditional target pending the repository-policy clarification recorded in `TIV_SUBMISSION_CHECKLIST.md`; the manuscript itself is written to be portable across IEEE journal venues.
 
 ## Regenerate publication assets
 
@@ -12,7 +12,16 @@ python scripts/build_paper3_publication_assets.py \
   --out manuscripts/paper3_active_self_calibration/generated
 ```
 
-This generates vector PDF/SVG figures and LaTeX tables directly from the compact frozen evidence snapshots. Do not edit generated numerical tables by hand.
+The builder generates:
+- `fig_overall.pdf/.svg`;
+- `fig_decision_relevance.pdf/.svg`;
+- `table_planner_means.tex`;
+- `table_primary_regret_effects.tex`;
+- `table_scenario_ef.tex`;
+- `table_distance_only.tex`;
+- `table_support.tex`.
+
+All numerical publication assets are derived from the committed compact frozen evidence snapshots. Do not edit generated numerical tables by hand.
 
 ## Compile
 
@@ -36,18 +45,10 @@ Before submission, compare every numerical claim in `paper3.tex` against:
 
 The compact CSVs are manuscript traceability snapshots. The authoritative full evidence remains the immutable GitHub Actions artifacts recorded in `CLAIM_EVIDENCE.md`.
 
+## Bibliography QA
+
+- `references.bib` contains the citations used by the manuscript.
+- `BIBLIOGRAPHY_NOTES.md` maps the literature families to the precise claims they support and records prohibited over-extensions.
+- `docs/BIBLIOGRAPHY_AUDIT.md` is the repository-wide metadata audit.
+
 Do not regenerate or retune the frozen primary study from post-confirmatory outcomes. Manual full-research workflows are reproducibility mechanisms, not an invitation to replace the archived confirmation.
-
-
-## T-IV submission QA
-
-Current venue-specific checks:
-- IEEE double-column journal class: satisfied.
-- Abstract length: 212 words, within current T-IV 150–250-word guidance.
-- Generated figures/tables: regenerated from frozen compact evidence before manuscript CI.
-- PDF visual QA: completed after publication-asset generation.
-- Author block: no affiliation/email is embedded under the title.
-- T-IV policy blocker: obtain written clarification for the already-public GitHub manuscript history before portal submission.
-- Remaining manual fields: affiliation/postal address, institutional email, short biography, conflict-of-interest disclosure, funding/acknowledgements, required ORCID, and traditional-vs-open-access choice.
-
-See `TIV_SUBMISSION_CHECKLIST.md` for the portal-facing checklist.
