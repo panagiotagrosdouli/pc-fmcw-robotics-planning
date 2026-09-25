@@ -49,6 +49,7 @@ def settings_from_config(c):
       hierarchical_clearance=bool(s["hierarchical_clearance"]),
       damped_lateral_prediction=bool(s["damped_lateral_prediction"]),
       endpoint_anchored_lateral=bool(s["endpoint_anchored_lateral"]),
+      prediction_min_history_steps=int(s.get("prediction_min_history_steps",3)),
     )
 
 def main():
@@ -72,80 +73,17 @@ def main():
     table=pd.DataFrame(rows).sort_values(["candidate_count","profile"],kind="stable")
     eligible=table[table.safety_pass]
     selected=None if eligible.empty else str(eligible.iloc[0].profile)
-
-    # If candidate-envelope expansion cannot fix the failure, diagnose whether
-    # Scenario A itself is an incidental near-collision stress case. A is meant
-    # to isolate angular identifiability, so we may increase only its initial
-    # longitudinal separation during DEVELOPMENT. Hard safety distances, vehicle
-    # limits, target lateral motion, latent parameters and confirmatory seeds are
-    # untouched. Select the smallest shift that clears the known failure seed,
-    # then require it to clear the entire declared development seed set.
-    shift_rows=[];selected_shift=None;verification=None
-    if selected is None:
-        from iscai.active_self_calibration.scenarios import CalibrationScenario
-        base_scenario=scenario[0]
-        for shift in (0.0,1.0,2.0,3.0,4.0,5.0,6.0):
-            target=base_scenario.scenario.target_states.copy();target[:,0]+=shift
-            shifted=CalibrationScenario(
-                name=base_scenario.name,
-                scenario=replace(base_scenario.scenario,target_states=target),
-                true_parameters=base_scenario.true_parameters,
-                prior_axes=base_scenario.prior_axes,
-                mechanism=base_scenario.mechanism,
-            )
-            result=run_study(seeds=[failure_seed],settings=base,scenarios=[shifted])
-            d=pd.DataFrame(result["episodes"])
-            row={"target_shift_m":shift,
-                 "collision_episodes":int((d.collision_indicator>0).sum()),
-                 "no_candidate_episodes":int((d.no_candidate_steps>0).sum()),
-                 "no_candidate_steps":int(d.no_candidate_steps.sum()),
-                 "static_violation_episodes":int((d.static_clearance_violation_steps>0).sum())}
-            row["safety_pass"]=row["collision_episodes"]==0 and row["no_candidate_episodes"]==0 and row["static_violation_episodes"]==0
-            shift_rows.append(row)
-            if row["safety_pass"] and selected_shift is None:
-                selected_shift=float(shift)
-        if selected_shift is not None:
-            target=base_scenario.scenario.target_states.copy();target[:,0]+=selected_shift
-            shifted=CalibrationScenario(
-                name=base_scenario.name,
-                scenario=replace(base_scenario.scenario,target_states=target),
-                true_parameters=base_scenario.true_parameters,
-                prior_axes=base_scenario.prior_axes,
-                mechanism=base_scenario.mechanism,
-            )
-            lo,hi=map(int,c["development"]["seed_range"])
-            dev_result=run_study(seeds=list(range(lo,hi+1)),settings=base,scenarios=[shifted])
-            vd=pd.DataFrame(dev_result["episodes"])
-            verification={
-                "seed_range":[lo,hi],"episodes":int(len(vd)),
-                "collision_episodes":int((vd.collision_indicator>0).sum()),
-                "no_candidate_episodes":int((vd.no_candidate_steps>0).sum()),
-                "no_candidate_steps":int(vd.no_candidate_steps.sum()),
-                "static_violation_episodes":int((vd.static_clearance_violation_steps>0).sum()),
-            }
-            verification["safety_pass"]=(
-                verification["collision_episodes"]==0
-                and verification["no_candidate_episodes"]==0
-                and verification["static_violation_episodes"]==0
-            )
-            if not verification["safety_pass"]:
-                selected_shift=None
-
     out=args.output;out.mkdir(parents=True,exist_ok=True)
     table.to_csv(out/"profile_safety.csv",index=False);pd.concat(episodes,ignore_index=True).to_csv(out/"episodes.csv",index=False)
-    if shift_rows: pd.DataFrame(shift_rows).to_csv(out/"scenario_a_shift_sweep.csv",index=False)
-    payload={"development_failure_case":{"seed":failure_seed,"scenario":"A_angular_bias"},
-             "candidate_selection_rule":"minimum candidate_count among profiles with zero collision/no-candidate/static-violation episodes for all C0-C4; no safety-distance relaxation",
+    payload={"development_failure_case":{"seed":failure_seed,"scenario":"A_angular_bias","step":2},
+             "root_cause":"two-point CV startup extrapolation can reverse apparent longitudinal motion under the declared 0.20 m observation noise",
+             "protocol_remediation":{"prediction_min_history_steps":base.prediction_min_history_steps,
+                                     "startup_behavior":"position-hold until minimum history is available"},
+             "selection_rule":"minimum candidate_count among profiles with zero collision/no-candidate/static-violation episodes for all C0-C4; no safety-distance relaxation",
              "selected_profile":selected,"profiles":PROFILES,
-             "scenario_remediation_rule":"if no candidate profile passes, choose smallest +x target translation in [0,1,2,3,4,5,6] m that clears the known development failure, then require zero collision/no-candidate/static-violation episodes across seeds 31000-31019 for C0-C4",
-             "selected_scenario_a_target_shift_m":selected_shift,
-             "development_verification":verification,
-             "scientific_boundary":"development-only removal of incidental near-collision confounding in Scenario A; no safety-distance relaxation and no confirmatory seeds used"}
+             "scientific_boundary":"development-only predictor warm-up correction; Scenario A geometry and all hard safety distances remain unchanged; no confirmatory seeds used"}
     (out/"selection.json").write_text(json.dumps(payload,indent=2))
-    print(table.to_string(index=False))
-    if shift_rows: print(pd.DataFrame(shift_rows).to_string(index=False))
-    print(json.dumps(payload,indent=2))
-    if selected is None and selected_shift is None:
-        raise SystemExit("no candidate-envelope or Scenario-A separation remediation passed the development safety diagnostic")
+    print(table.to_string(index=False));print(json.dumps(payload,indent=2))
+    if selected is None: raise SystemExit("warm-up guard plus candidate-envelope profiles did not clear the development safety diagnostic")
 
 if __name__=="__main__":main()
