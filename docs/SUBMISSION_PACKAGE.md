@@ -36,6 +36,9 @@ Evidence is field-measured 5G/V2N2V offline replay. The P2-P1 primary effect rem
 - `manuscripts/paper3_active_self_calibration/MANUSCRIPT.md`
 - `manuscripts/paper3_active_self_calibration/CLAIM_EVIDENCE.md`
 - `manuscripts/paper3_active_self_calibration/RESULTS_CHECKLIST.md`
+- `manuscripts/paper3_active_self_calibration/BIBLIOGRAPHY_NOTES.md`
+- `manuscripts/paper3_active_self_calibration/COVER_LETTER_DRAFT.md`
+- `manuscripts/paper3_active_self_calibration/PORTAL_METADATA_TEMPLATE.md`
 - `manuscripts/paper3_active_self_calibration/results_archive/`
 - `docs/ACTIVE_SELF_CALIBRATION_RESEARCH_PLAN.md`
 - `configs/experiments/active_self_calibration.yaml`

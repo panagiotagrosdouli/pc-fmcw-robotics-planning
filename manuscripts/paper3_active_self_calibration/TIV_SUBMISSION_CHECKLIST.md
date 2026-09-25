@@ -17,10 +17,10 @@ The current T-IV scope explicitly includes automated vehicles, autonomous/intell
 - [x] IEEE double-column journal format.
 - [x] Regular Paper is the preferred T-IV category.
 - [ ] T-IV target freeze pending public-repository-policy clarification.
-- [x] Current abstract length is 212 words; current T-IV guidance is 150–250 words.
+- [x] Current abstract length is 220 words; current T-IV guidance is 150–250 words.
 - [x] Figures and tables are embedded in the manuscript and generated from frozen evidence.
-- [x] Generated PDF compiled successfully in Manuscript PDF CI.
-- [x] Generated PDF visually inspected for clipping, overlap, broken glyphs, and figure/table readability.
+- [x] Final 8-page IEEE double-column PDF compiled successfully in Manuscript PDF CI.
+- [x] Final 8-page PDF visually inspected for clipping, overlap, broken glyphs, architecture routing, figure/table readability, and bibliography rendering.
 - [x] Author line contains the author name without affiliation or email under the title.
 - [x] Scientific claim/evidence boundaries remain unchanged by venue formatting.
 
