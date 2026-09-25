@@ -8,6 +8,10 @@ on:
       - "scripts/*active_self_calibration*.py"
   workflow_dispatch:
 
+concurrency:
+  group: active-self-calibration-research-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   development:
     name: "development t=${{ matrix.decision_threshold }} i=${{ matrix.information_weight }} p=${{ matrix.probe_weight }}"
@@ -108,7 +112,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: asc-development-frozen
-          path: .
+          path: artifacts/active_self_calibration
       - name: Run untouched frozen confirmatory seeds
         run: |
           python scripts/run_active_self_calibration.py             --phase confirmatory             --frozen-protocol artifacts/active_self_calibration/frozen_protocol.json             --output-dir artifacts/active_self_calibration/confirmatory
