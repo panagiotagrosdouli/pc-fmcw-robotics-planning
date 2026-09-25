@@ -1,0 +1,216 @@
+name: Active Self-Calibration Full Research
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/active-self-calibration-research.yml"
+      - "src/iscai/active_self_calibration/**"
+      - "configs/experiments/active_self_calibration.yaml"
+      - "scripts/*active_self_calibration*.py"
+      - "scripts/*real_vvlc*.py"
+  workflow_dispatch:
+
+jobs:
+  development:
+    name: "development t=${{ matrix.decision_threshold }} i=${{ matrix.information_weight }} p=${{ matrix.probe_weight }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      max-parallel: 12
+      matrix:
+        decision_threshold: [0.10, 0.25, 0.40]
+        information_weight: [0.25, 0.45, 0.70]
+        probe_weight: [0.10, 0.20, 0.40]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install numpy scipy matplotlib pandas pyyaml pytest scikit-learn
+      - name: Build deterministic setting id
+        id: setting
+        env:
+          T: ${{ matrix.decision_threshold }}
+          I: ${{ matrix.information_weight }}
+          P: ${{ matrix.probe_weight }}
+        run: |
+          ID=$(python - <<'PY'
+          import os
+          t=float(os.environ["T"]);i=float(os.environ["I"]);p=float(os.environ["P"])
+          print(f"dev_t{round(100*t):03d}_i{round(100*i):03d}_p{round(100*p):03d}")
+          PY
+          )
+          echo "id=$ID" >> "$GITHUB_OUTPUT"
+      - name: Run full declared development seeds
+        run: |
+          python scripts/run_active_self_calibration.py             --phase development             --decision-threshold ${{ matrix.decision_threshold }}             --information-weight ${{ matrix.information_weight }}             --probe-weight ${{ matrix.probe_weight }}             --output-dir artifacts/active_self_calibration/development_shards/${{ steps.setting.outputs.id }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: asc-dev-${{ steps.setting.outputs.id }}
+          path: artifacts/active_self_calibration/development_shards/${{ steps.setting.outputs.id }}
+          retention-days: 30
+
+  select-and-freeze:
+    needs: development
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install numpy scipy matplotlib pandas pyyaml
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: asc-dev-*
+          path: downloaded-development
+      - name: Apply predeclared selection rule
+        run: |
+          python scripts/select_active_self_calibration_development.py             --root downloaded-development             --output-dir artifacts/active_self_calibration/development
+      - name: Analyze selected development setting
+        run: |
+          SETTING=$(python -c "import json;print(json.load(open('artifacts/active_self_calibration/development/selection.json'))['selected_setting_id'])")
+          python scripts/analyze_active_self_calibration.py             --input artifacts/active_self_calibration/development/episodes.csv             --setting-id "$SETTING"             --output-dir artifacts/active_self_calibration/development/selected_analysis             --bootstrap-samples 10000
+          python scripts/plot_active_self_calibration.py             --episodes artifacts/active_self_calibration/development/selected_episodes.csv             --steps artifacts/active_self_calibration/development/selected_steps.csv             --output-dir artifacts/active_self_calibration/development/figures
+      - name: Freeze protocol before confirmatory seeds
+        run: |
+          SETTING=$(python -c "import json;print(json.load(open('artifacts/active_self_calibration/development/selection.json'))['selected_setting_id'])")
+          python scripts/freeze_active_self_calibration_protocol.py             --development-dir artifacts/active_self_calibration/development             --setting-id "$SETTING"             --output artifacts/active_self_calibration/frozen_protocol.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: asc-development-frozen
+          path: |
+            artifacts/active_self_calibration/development
+            artifacts/active_self_calibration/frozen_protocol.json
+          retention-days: 90
+
+  confirmatory:
+    needs: select-and-freeze
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install numpy scipy matplotlib pandas pyyaml scikit-learn
+      - uses: actions/download-artifact@v4
+        with:
+          name: asc-development-frozen
+          path: .
+      - name: Run untouched frozen confirmatory seeds
+        run: |
+          python scripts/run_active_self_calibration.py             --phase confirmatory             --frozen-protocol artifacts/active_self_calibration/frozen_protocol.json             --output-dir artifacts/active_self_calibration/confirmatory
+      - name: Confirmatory seed-level analysis
+        run: |
+          python scripts/analyze_active_self_calibration.py             --input artifacts/active_self_calibration/confirmatory/episodes.csv             --output-dir artifacts/active_self_calibration/confirmatory             --bootstrap-samples 10000
+          python scripts/plot_active_self_calibration.py             --episodes artifacts/active_self_calibration/confirmatory/episodes.csv             --steps artifacts/active_self_calibration/confirmatory/steps.csv             --output-dir artifacts/active_self_calibration/confirmatory/figures
+      - name: Verify full frozen evidence
+        run: |
+          python - <<'PY'
+          import json,pandas as pd
+          root='artifacts/active_self_calibration/confirmatory'
+          m=json.load(open(root+'/manifest.json'))
+          assert m['evidence_role']=='frozen_confirmatory_candidate_evidence'
+          assert m['seed_values']==list(range(32000,32050))
+          d=pd.read_csv(root+'/episodes.csv')
+          assert len(d)==50*6*5
+          assert not d.duplicated(['planner','scenario','seed']).any()
+          print('confirmatory evidence contract verified')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: asc-confirmatory
+          path: artifacts/active_self_calibration/confirmatory
+          retention-days: 90
+
+  real-vvlc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install numpy scipy matplotlib pandas scikit-learn
+      - name: Run measured vehicular optical validation
+        run: |
+          python scripts/run_real_vvlc_validation.py             --output artifacts/active_self_calibration/real_vvlc             --bootstrap 10000
+          python scripts/plot_real_vvlc_validation.py             --input artifacts/active_self_calibration/real_vvlc
+      - name: Verify no raw external measurements are retained
+        run: |
+          test ! -e artifacts/active_self_calibration/real_vvlc/_raw/rawPLdataset.csv
+          test -s artifacts/active_self_calibration/real_vvlc/manifest.json
+          test -s artifacts/active_self_calibration/real_vvlc/paired_effect.csv
+          test -s artifacts/active_self_calibration/real_vvlc/figures/real_vvlc_mae.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: asc-real-vvlc
+          path: artifacts/active_self_calibration/real_vvlc
+          retention-days: 90
+
+  real-cicv5g:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install numpy scipy matplotlib pandas pyyaml scikit-learn
+      - name: Download measured CICV5G W2S runs with provenance
+        run: python scripts/prepare_cicv5g.py --output data/raw/cicv5g
+      - name: Run measured QoS support study
+        run: |
+          python scripts/run_real_v2x_support_study.py             --data data/raw/cicv5g             --output artifacts/active_self_calibration/real_cicv5g/support             --seed 0
+      - name: Run grouped-split horizon and route-replay sensitivity
+        run: |
+          for SEED in 0 1 2 3 4; do
+            python scripts/run_real_v2x_horizon_study.py               --data data/raw/cicv5g               --output artifacts/active_self_calibration/real_cicv5g/horizon/seed_$SEED               --seed $SEED
+            python scripts/run_real_v2x_replay_planning.py               --data data/raw/cicv5g               --output artifacts/active_self_calibration/real_cicv5g/replay/seed_$SEED               --seed $SEED
+          done
+          python scripts/analyze_real_v2x_multisplit.py             --root artifacts/active_self_calibration/real_cicv5g/horizon
+          python scripts/analyze_real_v2x_replay_multisplit.py             --root artifacts/active_self_calibration/real_cicv5g/replay
+          python scripts/analyze_real_v2x_replay_planning.py             --input artifacts/active_self_calibration/real_cicv5g/replay/seed_0             --bootstrap 5000
+      - name: Record real-data claim boundary
+        run: |
+          python - <<'PY'
+          import json,pathlib
+          root=pathlib.Path('artifacts/active_self_calibration/real_cicv5g')
+          source=json.load(open('data/raw/cicv5g/manifest.json'))
+          manifest={
+            'schema_version':1,
+            'dataset':'CICV5G W2S measured vehicle/5G data',
+            'source_manifest':source,
+            'split_seeds':[0,1,2,3,4],
+            'claim_boundary':'REAL measured 5G V2X QoS and vehicle poses; offline route-constrained transfer/replay evidence only. Not optical PC-FMCW calibration and not closed-loop real-vehicle validation.',
+            'inference_note':'Repeated split seeds reuse the same finite measured drives and are descriptive robustness configurations, not independent replicates.'
+          }
+          (root/'manifest.json').write_text(json.dumps(manifest,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: asc-real-cicv5g
+          path: artifacts/active_self_calibration/real_cicv5g
+          retention-days: 90
