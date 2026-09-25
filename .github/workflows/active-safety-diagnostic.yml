@@ -1,0 +1,27 @@
+name: Active Calibration Safety Diagnostic
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/active-safety-diagnostic.yml"
+      - "scripts/diagnose_active_candidate_profiles.py"
+  workflow_dispatch:
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: python -m pip install numpy scipy pandas pyyaml scikit-learn
+      - name: Diagnose common no-candidate development failure
+        run: python scripts/diagnose_active_candidate_profiles.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: asc-safety-diagnostic
+          path: artifacts/active_self_calibration/safety_diagnostic
+          retention-days: 30
