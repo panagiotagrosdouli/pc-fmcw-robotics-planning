@@ -257,7 +257,7 @@ arrow/.style={-{Latex[length=1.8mm]},thick}
 \draw[arrow] (score) -- (exec);
 \draw[arrow] (exec) -- (obs);
 \draw[arrow] (obs.south) |- (update.east);
-\draw[arrow] (update.west) -| (score.south);
+\draw[arrow] (update.north) -- (score.south);
 \end{tikzpicture}
 \caption{Causal receding-horizon architecture. Every planner receives the same candidate set after common hard-safety filtering. C1--C3 update their link belief only after the selected action is executed and its modeled-SNR observation is realized.}
 \label{fig:architecture}
