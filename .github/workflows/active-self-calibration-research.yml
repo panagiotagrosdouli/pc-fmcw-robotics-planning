@@ -3,9 +3,7 @@ name: Active Self-Calibration Full Research
 on:
   pull_request:
     paths:
-      - "src/iscai/active_self_calibration/**"
-      - "configs/experiments/active_self_calibration.yaml"
-      - "scripts/*active_self_calibration*.py"
+      - ".github/workflows/active-self-calibration-research.yml"
   workflow_dispatch:
 
 concurrency:
