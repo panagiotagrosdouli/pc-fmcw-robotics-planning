@@ -36,7 +36,7 @@ def _write_planner_table(df: pd.DataFrame, out: Path) -> None:
     for row in d.itertuples(index=False):
         lines.append(
             f"{row.planner} & {row.mean_regret:.6f} & {row.mean_probe_fraction:.6f} & "
-            f"{row.mean_parameter_error:.6f} & {row.mean_outage:.6f}\\"
+            f"{row.mean_parameter_error:.6f} & {row.mean_outage:.6f}" + r"\\"
         )
     lines += [r"\bottomrule", r"\end{tabular}", ""]
     out.write_text("\n".join(lines), encoding="utf-8")
@@ -53,7 +53,7 @@ def _write_regret_table(df: pd.DataFrame, out: Path) -> None:
         ci = f"[{row.ci95_low:.6f},{row.ci95_high:.6f}]"
         lines.append(
             f"{row.comparison} & {row.mean_delta_b_minus_a:+.6f} & {ci} & "
-            f"{_fmt_p(float(row.holm_p))}\\"
+            f"{_fmt_p(float(row.holm_p))}" + r"\\"
         )
     lines += [r"\bottomrule", r"\end{tabular}", ""]
     out.write_text("\n".join(lines), encoding="utf-8")
