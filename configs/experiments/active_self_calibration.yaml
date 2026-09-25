@@ -50,6 +50,11 @@ development:
     probe_weight: 0.20
     min_expected_regret: 0.0
   use: tuning, debugging, and mechanism inspection only
+  selection_rule:
+    safety_gate: zero collision episodes, zero no-candidate episodes, and zero static-clearance-violation episodes across all C0-C4 development runs
+    ranking: lexicographically minimize C3 mean cumulative decision regret, then C3 mean cumulative probe cost, then C3 mean probe fraction, then setting_id
+    mechanism_diagnostics: E/F probe and regret summaries are reported but are not used for selection
+    failure_policy: if no setting passes the safety gate, do not open confirmatory seeds
 confirmatory:
   seed_range: [32000, 32049]
   requires_frozen_protocol: true
