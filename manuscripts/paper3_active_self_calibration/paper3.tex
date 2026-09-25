@@ -4,14 +4,14 @@
 \usetikzlibrary{arrows.meta,positioning}
 \usepackage[hidelinks]{hyperref}
 
-\title{When Should a Vehicle Move to Learn the Channel? Decision-Triggered Active Self-Calibration for PC-FMCW-Informed Vehicular Optical Planning}
+\title{Decision-Triggered Active Self-Calibration for PC-FMCW-Informed Vehicular Optical Planning}
 \author{Panagiota Grosdouli}
 
 \begin{document}
 \maketitle
 
 \begin{abstract}
-Communication-aware vehicle planners may benefit from adapting uncertain link models online, but aggressive information seeking can distort motion when additional knowledge would not change the selected trajectory. We study a decision-triggered active self-calibration strategy for a modeled directional optical link embedded in receding-horizon vehicular planning. Five planners share identical candidate generation, target prediction, and hard safety filtering: a fixed nominal model, passive Bayesian calibration, unconditional information seeking, decision-triggered information seeking, and a nondeployable true-parameter reference. A predeclared 27-setting development sweep on 20 seeds selected one setting before 50 untouched confirmatory seeds were opened. Across six declared scenarios, 1,500 confirmatory episodes and 45,000 timesteps recorded zero collisions, zero no-candidate steps, and zero static-clearance violations under the sampled benchmark. Unconditional information seeking increased cumulative decision regret by 0.083290 relative to passive calibration, whereas decision triggering recovered 0.082211 of that penalty and reduced probe fraction by 0.037444; both effects survived Holm correction. However, decision-triggered calibration did not establish superiority over passive calibration, and in the decision-critical scenario it probed without lowering regret. A distance-only development ablation eliminated nontrivial probing, while a measured vehicular visible-light study showed essentially null directional predictive gain. The evidence therefore supports decision relevance as a mechanism for suppressing unnecessary probing, not as proof that active calibration outperforms passive Bayesian updating or that the modeled optical parameters are physically calibrated.
+Uncertainty in a communication model can change which trajectory a connected vehicle should choose. Deliberately moving to learn that model, however, is useful only when the additional information can affect the decision. This paper studies a decision-triggered active self-calibration strategy for a modeled directional optical link embedded in receding-horizon vehicular planning. Five planners share the same candidate generation, target prediction, and hard safety filters, and differ only in how they use link-model uncertainty. A 27-setting development sweep on 20 seeds selected one setting before 50 untouched confirmatory seeds were evaluated across six scenarios. In confirmation, unconditional information seeking increased cumulative decision regret by 0.083290 relative to passive Bayesian calibration. Decision triggering recovered 0.082211 of that penalty and reduced probe fraction by 0.037444, with both effects surviving Holm correction. The benefit did not extend to superiority over passive calibration: C3 had higher descriptive regret than C1 overall, and in the decision-critical scenario it probed without reducing regret. A distance-only ablation suppressed nontrivial probing, while a measured vehicular visible-light study showed essentially no directional predictive gain. The results support decision relevance as a practical guard against unnecessary probing, while leaving the value of active calibration beyond passive Bayesian updating unresolved.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -19,47 +19,37 @@ active calibration, communication-aware motion planning, dual control, vehicular
 \end{IEEEkeywords}
 
 \section{Introduction}
-Connected and automated vehicles increasingly rely on communication quality as part of the decision context rather than as a passive networking metric. Communication-aware motion planning is well established: robot trajectories have been optimized to avoid poor connectivity regions \cite{ghaffarkhah2011}, modern radio-map estimates have been integrated directly into robot navigation \cite{gordon2026}, and vehicular trajectory planning has explicitly targeted communication quality-of-service requirements \cite{ullah2025}. Integrated sensing and communication (ISAC) further couples sensing, communication, and transportation objectives \cite{cheng2022,jin2026}. These developments motivate a harder question that appears when the communication model itself is uncertain: should vehicle motion be chosen partly to \emph{learn} the link?
+Communication-aware motion planning has moved from a networking concern to a planning concern. Mobile robots have long been routed around poor-connectivity regions \cite{ghaffarkhah2011}; more recent work incorporates online radio maps directly into navigation \cite{gordon2026}, while autonomous-vehicle planners have been designed around communication quality-of-service targets \cite{ullah2025}. Vehicular ISAC pushes the coupling further by treating sensing, communication, and motion as parts of the same decision process \cite{cheng2022,jin2026}.
 
-That question belongs to the broader dual-control problem. A control action can simultaneously direct the physical system and change what will be learned about uncertain dynamics or parameters \cite{barshalom1974,mesbah2018}. Active learning can therefore improve future decisions, but probing has an immediate cost. In constrained vehicular planning, that cost is especially important because an informative motion can still be strategically poor even when it is physically safe.
+A second layer of difficulty appears when the communication model itself is uncertain. In that case, vehicle motion does more than change geometry: it also changes what can be learned about the link. This is the familiar dual-control tension between acting for the task at hand and acting to improve future decisions \cite{barshalom1974,mesbah2018}. In a vehicle, that tradeoff is especially sharp. A maneuver can be informative and still be a poor motion decision.
 
-The central distinction in this paper is between \emph{parameter uncertainty} and \emph{decision-relevant uncertainty}. A posterior over channel parameters may remain broad while every plausible hypothesis selects the same safe trajectory. In that case, reducing posterior entropy can have little decision value. Conversely, a smaller uncertainty region may matter greatly if plausible hypotheses disagree about which candidate trajectory is best. This motivates the study question: \emph{When should safe ego motion also be used as an experiment for learning uncertain modeled optical-link parameters because the information can change the downstream motion decision?}
+The key idea in this paper is that parameter uncertainty alone is not enough to justify probing. A posterior may remain broad while every plausible model selects the same safe trajectory. Conversely, a relatively compact posterior can matter if its remaining hypotheses disagree about the best action. We therefore trigger active calibration from \emph{decision relevance}: whether model uncertainty changes the ranking of the available safe trajectories and whether choosing the belief-optimal trajectory carries expected regret under plausible parameter values.
 
-We study this question in a controlled PC-FMCW-informed analytical simulation. The latent optical quantities are simulator parameters, not measured calibration constants. Five planners, C0--C4, share the same candidate lattice, causal target prediction, and hard feasibility filters. They differ only in how they represent and exploit uncertainty in the modeled link. The experimental protocol separates development and confirmation, fixes the statistical unit at the independent seed, and retains null or negative findings rather than retuning them away.
+We study this idea in a controlled PC-FMCW-informed analytical simulation. The latent optical quantities are simulator parameters rather than measured calibration constants. Five planners, C0--C4, share the same candidate lattice, causal target prediction, and hard feasibility filters; they differ only in how they represent and use uncertainty in the modeled link. Development and confirmation use disjoint seed ranges, and the confirmatory analysis is performed at the independent seed level.
 
-The paper makes four bounded contributions:
+The contribution is threefold:
 \begin{enumerate}
-\item It implements an explicit \emph{decision-relevance gate} that enables information seeking only when posterior hypotheses disagree about the belief-optimal trajectory and that disagreement carries nonzero expected decision regret.
-\item It provides a causal C0--C4 decomposition that separates fixed nominal planning, passive Bayesian calibration, unconditional active information seeking, decision-triggered information seeking, and a model-relative true-parameter reference while preserving one common hard-safety interface.
-\item It evaluates the mechanism under a frozen seed-level confirmatory protocol with paired bootstrap intervals, paired Wilcoxon tests, effect sizes, and within-family Holm correction. The primary result is mixed: C3 strongly improves over unconditional C2, but does not establish superiority over passive C1.
-\item It bounds interpretation with a distance-only mechanism ablation and separately scoped measured-data studies. The measured vehicular visible-light comparison is essentially null for directional predictive gain, and the 5G V2X study is not relabeled as optical calibration.
+\item We introduce a decision-triggered active-calibration planner that enables information seeking only when posterior model uncertainty changes the downstream trajectory decision. The C0--C4 family isolates nominal planning, passive Bayesian calibration, unconditional probing, decision-triggered probing, and a model-relative oracle within one common safety interface.
+\item We evaluate the mechanism under a pre-specified development/confirmatory protocol with paired bootstrap intervals, paired Wilcoxon tests, effect sizes, and Holm correction. The central empirical result is asymmetric: C3 removes most of the large penalty introduced by unconditional C2, but it does not establish an advantage over passive C1.
+\item We examine why through two mechanism checks: a distance-only ablation that removes directional dependence and separately scoped measured-data studies for vehicular visible light and 5G V2X. These studies are used to bound the interpretation of the simulator results rather than to retrofit physical validation.
 \end{enumerate}
 
-No universal priority claim is made for dual control, informative motion, active calibration, communication-aware planning, ISAC-to-planning coupling, or optical communication-aware control. The novelty question addressed here is narrower: whether \emph{downstream decision disagreement} is a useful trigger for active calibration in this particular safe vehicular planning architecture.
-
+The resulting question is deliberately specific: can decision relevance tell a planner when \emph{not} to spend motion on calibration, and under what conditions does the remaining active probe actually help?
 \section{Related Work}
 \subsection{Dual Control and Active Uncertainty Reduction}
-The classical dual effect describes controls that influence both physical state and future uncertainty \cite{barshalom1974}. Modern reviews of stochastic model predictive control (MPC) emphasize the same exploration--exploitation coupling and the computational difficulty of exact dual control \cite{mesbah2018}. Approximate Bayesian dual-control formulations similarly reason about how actions change future information \cite{klenske2016}. Online experiment-design MPC has explicitly introduced excitation during normal control operation and has also emphasized avoiding unnecessary excitation once adequate information has been acquired \cite{heirung2015}.
+The dual effect formalizes the fact that a control action may influence both the physical state and the information available for future decisions \cite{barshalom1974}. Exact dual control is generally difficult, and modern stochastic-MPC work often relies on tractable approximations that retain some exploration--exploitation structure \cite{mesbah2018,klenske2016}. Online experiment-design MPC has similarly introduced deliberate excitation during normal control operation, with the important observation that excitation should disappear once it no longer has value \cite{heirung2015}.
 
-Recent work has brought these ideas closer to robotics. Li \emph{et al.} formulate dual control of exploration and exploitation with active learning for auto-optimization \cite{li2025}. Hu \emph{et al.} develop shielding-aware dual control for safe interactive motion planning and demonstrate it in autonomous-vehicle experiments \cite{hu2024}. Pashupathy \emph{et al.} combine active estimation and path planning for robotic assembly \cite{pashupathy2026}. These studies establish both the relevance of dual control to robotic motion and the importance of safety-aware exploration.
-
-The present method is not an exact dual controller. It uses a finite candidate lattice, a discrete Bayesian grid, a short-horizon predictive-information proxy, and a receding-horizon gate. Its specific design choice is to condition active information seeking on \emph{decision disagreement and expected decision regret}, rather than on posterior spread or information gain alone.
+Recent robotics work brings the same idea into motion planning. Active-learning dual control has been used for auto-optimization \cite{li2025}; shielding-aware dual control has been developed for safe interactive driving \cite{hu2024}; and active estimation has been coupled with path planning in robotic assembly \cite{pashupathy2026}. Our method belongs to this approximate dual-control family, but uses a simpler question to decide when exploration is warranted: do plausible link models actually disagree about the motion decision?
 
 \subsection{Informative Motion and Calibration}
-Informative path planning optimizes robot trajectories to collect measurements that improve a model of the environment \cite{hitz2017,popovic2020}. Calibration research likewise exploits motion geometry: observability-aware LiDAR--IMU calibration explicitly identifies informative and non-identifiable directions \cite{lv2022}, while optimal-experiment-design trajectory planning has been used to generate calibration motions for robotic camera systems \cite{amersdorfer2025}. These works show that robot motion can itself be an experiment.
+Informative path planning chooses trajectories partly for the measurements they generate \cite{hitz2017,popovic2020}. Calibration methods use a related idea, exploiting motion geometry to expose observable directions in the parameter space. Examples include observability-aware LiDAR--IMU calibration \cite{lv2022} and optimal-experiment-design trajectories for robotic camera calibration \cite{amersdorfer2025}.
 
-Our distinction is downstream. The objective is not to maximize calibration quality per se. The primary endpoint is trajectory-selection regret under the true simulator parameter, and the active mechanism is penalized when it learns parameters without improving the decision.
+The distinction here is the endpoint. We do not reward parameter accuracy for its own sake. Information is useful only if it improves the downstream trajectory decision, which is why the main metric is decision regret rather than calibration error alone.
 
-\subsection{Communication-Aware and ISAC-Aware Planning}
-Communication-aware planning has a long history in mobile networks \cite{ghaffarkhah2011}. Recent work uses online radio-map estimation to build service-aware risk maps for robot motion \cite{gordon2026}, while autonomous-vehicle trajectory planning has been designed around target communication QoS \cite{ullah2025}. In vehicular ISAC, sensing and communication are increasingly treated jointly \cite{cheng2022}; planning-oriented ISAC explicitly connects sensing uncertainty and resource allocation to autonomous-vehicle motion planning \cite{jin2026}. Optical communication constraints have also been embedded directly in nonlinear MPC for aerial robots \cite{silano2025}.
+\subsection{Communication-Aware Planning and Vehicular Optical Links}
+Communication-aware planning is established prior art \cite{ghaffarkhah2011}. Recent examples include navigation with online radio-map estimates \cite{gordon2026}, autonomous-vehicle trajectory planning around communication QoS \cite{ullah2025}, planning-oriented ISAC \cite{cheng2022,jin2026}, and optical-communication-aware NMPC for aerial robots \cite{silano2025}. Our setting adds uncertainty in the communication model itself, so motion can influence both link quality and the belief used to evaluate future motion.
 
-Accordingly, this paper does not claim that communication can influence motion, that ISAC can interact with planning, or that optical-link quality can enter a control objective. The narrower question is when uncertainty in a modeled directional link should justify \emph{intentional probing motion}.
-
-\subsection{Vehicular Optical Links and Channel Modeling}
-Optical V2V communication has been demonstrated with LED transmitters and camera receivers under outdoor and driving conditions \cite{takai2014}. Vehicular visible-light communication (V-VLC) models account for distance, lateral displacement, transmitter geometry, weather, and receiver properties \cite{karbalayghareh2020}. Measurement-driven work has used machine learning for V-VLC path-loss modeling \cite{turan2021}, characterized reflected non-line-of-sight channels \cite{turan2022nlos}, and quantified the effect of vertical displacement and oscillation for low-beam truck-to-truck links \cite{mohamed2023}. Adaptive field-of-view receivers further illustrate that directional receiver geometry is a practical design variable \cite{cailean2024}.
-
-These references motivate directional geometry and measured optical-link variability, but they do not calibrate the analytical PC-FMCW-informed surrogate used below. The simulator latent vector remains a deliberately small model-mismatch family.
-
+Vehicular optical communication provides the physical motivation for a directional link model. Outdoor optical V2V systems have been demonstrated with LED transmitters and camera receivers \cite{takai2014}; vehicular VLC models account for distance, lateral geometry, transmitter characteristics, weather, and receiver properties \cite{karbalayghareh2020}; and measurement-driven studies have examined path loss, non-line-of-sight propagation, vertical vehicle motion, and adaptive receiver field of view \cite{turan2021,turan2022nlos,mohamed2023,cailean2024}. These studies motivate the role of geometry, but they do not identify the simulator parameters used here. The latent vector below should therefore be read as a controlled model-mismatch family, not as a measured optical calibration.
 \section{System Model}
 \subsection{Receding-Horizon Planning and Common Safety Set}
 At planning step $k$, the ego vehicle state is
@@ -117,9 +107,9 @@ The candidate objective under parameter hypothesis $\phi$ is
 \begin{equation}
 J(\tau,\phi)=M(\tau)+\lambda_c C(\tau,\phi),
 \end{equation}
-where $M(\tau)$ is the common mobility cost and $\lambda_c=1$ in the frozen study.
+where $M(\tau)$ is the common mobility cost and $\lambda_c=1$ in this study.
 
-This model is \emph{PC-FMCW-informed} only in the sense that it reuses the repository's downstream analytical geometry-to-link abstraction. The latent quantities above are not measured optical calibration parameters and the equations are not presented as a complete physical channel model.
+In this study, PC-FMCW informs the downstream geometry-to-link abstraction rather than serving as a measured calibration source. The latent vector should therefore be interpreted as a controlled simulator mismatch model, not as a set of recovered physical calibration constants.
 
 \section{Bayesian Calibration and Information Value}
 \subsection{Discrete Belief and Causal Update}
@@ -156,7 +146,7 @@ G(\tau)
 \frac{1}{2}\log\!\left(1+\frac{V_j}{\sigma_z^2}\right),
 \qquad H_I\le 4.
 \end{equation}
-This is a Gaussian predictive-information approximation. It is not exact mutual information, does not integrate the future closed-loop posterior tree, and is not a physically calibrated Fisher-information measure.
+We use $G(\tau)$ as a tractable predictive-information proxy. It captures how strongly the candidate separates current parameter hypotheses over the short information horizon, but it does not solve the full future observation tree or represent a physically calibrated Fisher-information measure.
 
 \section{Decision-Triggered Active Self-Calibration}
 \subsection{Decision Diagnostics}
@@ -230,7 +220,7 @@ S_{C3}(\tau)=
 -
 I_k\,\lambda_I U_D G(\tau).
 \end{equation}
-The selected frozen setting is $\eta_D=0.10$, $\eta_R=0$, $\lambda_I=0.25$, and $\lambda_P=0.20$. A probe is recorded when information seeking is active and the selected candidate differs from the passive belief-optimal baseline.
+The development-selected setting is $\eta_D=0.10$, $\eta_R=0$, $\lambda_I=0.25$, and $\lambda_P=0.20$. A probe is recorded when information seeking is active and the selected candidate differs from the passive belief-optimal baseline.
 
 C4 receives the true simulator $\phi^\star$ only for connectivity scoring. It uses the same target prediction, candidate generator, and hard-safety filters as C0--C3. It therefore provides a model-relative parameter oracle, not privileged future motion truth and not a safety oracle.
 
@@ -263,12 +253,12 @@ arrow/.style={-{Latex[length=1.8mm]},thick}
 \label{fig:architecture}
 \end{figure*}
 
-\section{Frozen Experimental Protocol}
+\section{Experimental Protocol and Statistical Analysis}
 \subsection{Identifiability and Decision-Relevance Scenarios}
-Six scenarios were declared before confirmatory execution. Table~\ref{tab:scenarios} shows the simulator truth and intended mechanism. All latent values are modeled quantities.
+Six scenarios were specified before the confirmatory evaluation. Table~\ref{tab:scenarios} summarizes the simulator truth and intended mechanism. All latent values are modeled quantities.
 
 \begin{table*}[t]
-\caption{Declared scenarios. Broad denotes the $3\times3\times3$ support in Section IV; narrow denotes $\alpha\in\{0.97,1,1.03\}$, $\delta\in\{-0.01,0,0.01\}$ rad, and $k\in\{0.95,1,1.05\}$.}
+\caption{Study scenarios and intended mechanisms. Broad denotes the $3\times3\times3$ support in Section IV; narrow denotes $\alpha\in\{0.97,1,1.03\}$, $\delta\in\{-0.01,0,0.01\}$ rad, and $k\in\{0.95,1,1.05\}$.}
 \label{tab:scenarios}
 \centering
 \small
@@ -287,17 +277,17 @@ F & Lane choice & $(0.85,\ 0.04,\ 1.25)$ & Broad & Competing safe trajectories w
 \end{tabular}}
 \end{table*}
 
-During development, scenario A exposed incidental safety stress unrelated to the intended angular-identifiability mechanism. A preconfirmatory diagnostic tested the declared longitudinal translations and selected the smallest shift, $+1$~m, that removed the common no-candidate failure across all 20 development seeds without relaxing hard safety. This structural remediation was frozen before confirmatory seeds were opened.
+During development, scenario A revealed a safety failure that was unrelated to the intended angular-identifiability mechanism. We therefore ran the pre-specified longitudinal-shift diagnostic and selected the smallest shift, $+1$~m, that removed the common no-candidate failure across all 20 development seeds without relaxing the hard safety checks. This change was fixed before the confirmatory seeds were opened.
 
 \subsection{Simulation and Candidate Settings}
 The simulation timestep is 0.1~s and each scenario contains 31 states. The causal predictor uses eight history steps and produces a 16-step planning horizon after a three-observation startup guard. Target-position observation noise has standard deviation 0.20~m. The communication observation noise has standard deviation 1~dB. The information horizon is four steps.
 
 Static and dynamic stop-viability checks, bounded brake/steer dynamics, time-aligned target clearance, and hierarchical clearance handling are enabled for every planner. These implementation choices are inherited from the common planning infrastructure and are held fixed across C0--C4.
 
-\subsection{Development, Freeze, and Confirmation}
-Development seeds are 31000--31019. The predeclared grid contains three values each for decision threshold, information weight, and probe weight, giving 27 C2/C3 settings. C0, C1, and C4 are common controls. A setting is eligible only if all reconstructed C0--C4 development episodes satisfy zero collisions, zero no-candidate episodes, and zero static-clearance violations. Among eligible settings, the deterministic rule lexicographically minimizes C3 mean cumulative decision regret, C3 cumulative probe cost, C3 probe fraction, and finally the setting identifier.
+\subsection{Development and Confirmatory Design}
+Development seeds are 31000--31019. The development grid contains three values each for decision threshold, information weight, and probe weight, giving 27 C2/C3 settings. C0, C1, and C4 are common controls. A setting is eligible only if all reconstructed C0--C4 development episodes satisfy zero collisions, zero no-candidate episodes, and zero static-clearance violations. Among eligible settings, the deterministic rule lexicographically minimizes C3 mean cumulative decision regret, C3 cumulative probe cost, C3 probe fraction, and finally the setting identifier.
 
-The selected setting is \texttt{dev\_t010\_i025\_p020}. The protocol was frozen at 2026-09-25 07:28:10 UTC. Confirmatory seeds 32000--32049 were then opened without further tuning. The confirmatory artifact contains
+The selected setting is \texttt{dev\_t010\_i025\_p020}. At that point the protocol was frozen (2026-09-25 07:28:10 UTC), and confirmatory seeds 32000--32049 were evaluated without further tuning. The confirmatory artifact contains
 \[
 50\ \text{seeds}\times 6\ \text{scenarios}\times 5\ \text{planners}
 =1500
@@ -315,25 +305,25 @@ J(\tau,\phi^\star),
 \end{equation}
 and negative numerical roundoff is clipped at zero before accumulation. The oracle computation occurs only after candidate selection and cannot affect C0--C3 actions.
 
-Six scenarios are averaged within seed before inferential testing, so the independent confirmatory unit is the seed ($n=50$). The predeclared comparison families are C0--C1, C1--C2, C2--C3, and C3--C4. Seven metrics are analyzed within each family: cumulative regret, oracle-parameter agreement, probe fraction, cumulative probe cost, final normalized parameter error, progress, and mean outage probability.
+Six scenarios are averaged within seed before inferential testing, so the independent confirmatory unit is the seed ($n=50$). The pre-specified comparison families are C0--C1, C1--C2, C2--C3, and C3--C4. Seven metrics are analyzed within each family: cumulative regret, oracle-parameter agreement, probe fraction, cumulative probe cost, final normalized parameter error, progress, and mean outage probability.
 
 For each metric and comparison, the analysis reports a deterministic paired bootstrap 95\% interval with 10,000 resamples, a two-sided paired Wilcoxon test, Cohen's $d_z$, and rank-biserial effect size. Wilcoxon $p$-values are Holm adjusted across the seven metrics within each planner-comparison family. Scenario rows and timesteps are diagnostics and are never treated as independent confirmatory replicates.
 
 \section{Confirmatory Results}
 \subsection{Overall Decision Quality}
-All five planners completed 300 scenario-seed episodes. Table~\ref{tab:means} gives frozen planner means.
+All five planners completed 300 scenario-seed episodes. Table~\ref{tab:means} gives the confirmatory planner means.
 
 \begin{table}[t]
-\caption{Frozen confirmatory planner means.}
+\caption{Confirmatory planner means.}
 \label{tab:means}
 \centering
 \small
 \resizebox{\columnwidth}{!}{\input{generated/table_planner_means.tex}}
 \end{table}
 
-C1 reduced mean cumulative regret relative to C0 from 0.006432 to 0.004786. The paired seed-level delta was $-0.001646$ with 95\% bootstrap interval $[-0.003079,-0.000578]$. The raw paired Wilcoxon result was favorable, but the predeclared Holm-adjusted value was $p_H=0.05765$. We therefore do not describe C1--C0 regret as multiplicity-adjusted confirmatory significance.
+C1 reduced mean cumulative regret relative to C0 from 0.006432 to 0.004786. The paired seed-level delta was $-0.001646$ with 95\% bootstrap interval $[-0.003079,-0.000578]$. The raw paired Wilcoxon result was favorable, but the Holm-adjusted value was $p_H=0.05765$. We therefore do not describe C1--C0 regret as multiplicity-adjusted confirmatory significance.
 
-Unconditional information seeking was strongly harmful to the primary decision metric. C2 increased mean regret to 0.088076, giving C2--C1 delta $+0.083290$. Decision triggering removed most of that penalty: C3 mean regret was 0.005865 and the C3--C2 delta was $-0.082211$. Both comparisons remain strongly separated after Holm correction (Table~\ref{tab:regret}).
+Unconditional information seeking substantially increased the primary decision metric: C2 reached a mean regret of 0.088076, corresponding to a C2--C1 delta of $+0.083290$. Decision triggering removed most of that increase. C3 mean regret was 0.005865, with a C3--C2 delta of $-0.082211$; both differences remained statistically significant after Holm correction (Table~\ref{tab:regret}).
 
 \begin{table}[t]
 \caption{Primary seed-level cumulative-regret effects. Delta is planner B minus planner A.}
@@ -348,7 +338,7 @@ C4 has zero regret by construction because regret is defined relative to its tru
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{generated/fig_overall.pdf}
-\caption{Frozen confirmatory planner means for cumulative decision regret and probe fraction. C2 illustrates the cost of unconditional information seeking; C3 suppresses most of that burden.}
+\caption{Confirmatory planner means for cumulative decision regret and probe fraction. C2 illustrates the cost of unconditional information seeking; C3 suppresses most of that burden.}
 \label{fig:overall}
 \end{figure}
 
@@ -360,12 +350,12 @@ C3 moved in the opposite direction: relative to C2, its parameter error was 0.04
 C3 also reduced probe fraction by 0.037444 relative to C2 (95\% CI $[-0.039778,-0.035333]$, Holm-adjusted $p\approx3.10\times10^{-9}$) and reduced cumulative probe cost by 0.020332 (95\% CI $[-0.025588,-0.015622]$, same adjusted significance order).
 
 \subsection{Safety, Mobility, and Communication}
-Across all 1,500 confirmatory episodes, the sampled hard gate recorded zero collision episodes, zero no-candidate steps, and zero static-clearance-violation steps. The minimum recorded static-obstacle clearance was approximately 1.500003~m. This supports the statement that the declared benchmark completed without these failures; it is not a general safety guarantee.
+Across all 1,500 confirmatory episodes, no collisions, no-candidate steps, or static-clearance violations were recorded. The minimum static-obstacle clearance was approximately 1.500003~m. These are benchmark outcomes under the sampled scenarios, not a general safety guarantee.
 
 Mean progress was almost unchanged across planners, approximately 24.76~m overall. C2 gained only about 0.0198~m relative to C1 while incurring the much larger regret and probing burden above. Mean outage probability increased by about 0.005105 for C2 relative to C1 and decreased by about 0.006654 for C3 relative to C2; both effects survived Holm correction. C4 should not be interpreted as an outage-minimizing controller because it optimizes the same mixed mobility/connectivity objective using true model parameters.
 
 \section{Decision-Relevance Mechanism}
-Scenarios E and F were declared specifically to probe the decision-relevance mechanism. Their confirmatory summaries are generated directly from the frozen compact evidence.
+Scenarios E and F were included specifically to examine the decision-relevance mechanism.
 
 \begin{table}[t]
 \caption{Decision-relevance diagnostics for passive C1, unconditional-active C2, and decision-triggered C3.}
@@ -375,9 +365,9 @@ Scenarios E and F were declared specifically to probe the decision-relevance mec
 \resizebox{\columnwidth}{!}{\input{generated/table_scenario_ef.tex}}
 \end{table}
 
-In scenario E, broad parameter uncertainty exists but the mobility-dominant decision is common across plausible models. C3 behaves as intended: mean probe fraction and mean regret are both zero. C2 still probes and incurs regret. This is direct mechanism evidence that posterior uncertainty alone is not a sufficient reason to excite the vehicle.
+In scenario E, the posterior remains broad, but the plausible models agree on the mobility-dominant choice. C3 therefore stays passive: both mean probe fraction and mean regret are zero. C2 continues to probe and pays a regret cost. The contrast makes the intended mechanism visible—uncertainty by itself is not a reason to perturb the vehicle.
 
-Scenario F is deliberately decision critical. C3 recognizes that condition and activates probing, but the intervention does \emph{not} improve the primary metric over passive C1: mean regret is 0.028037 for C1 and 0.034416 for C3. This negative result is essential. It shows that detecting decision relevance does not guarantee that the available probe action, information proxy, and value scaling will produce a beneficial experiment.
+Scenario F provides the opposite case. The model uncertainty changes the candidate ranking, so C3 activates probing, yet the intervention does \emph{not} improve regret over passive C1: the means are 0.028037 for C1 and 0.034416 for C3. This is an important limit of the mechanism. Recognizing that uncertainty matters is not enough; the available probe must also be informative enough, cheap enough, and well aligned with the downstream decision.
 
 \begin{figure}[t]
 \centering
@@ -386,7 +376,7 @@ Scenario F is deliberately decision critical. C3 recognizes that condition and a
 \label{fig:decision-relevance}
 \end{figure}
 
-C1--C3 was not a predeclared primary confirmatory comparison, so we do not add a post-hoc superiority test. Descriptively, both the overall mean and the canonical F scenario favor C1 on regret.
+C1--C3 was not among the primary confirmatory comparison families, so we leave that contrast descriptive rather than adding a post-hoc superiority test. Both the overall mean and scenario F favor C1 on regret.
 
 \section{Directional Mechanism Ablation}
 A separate development-only ablation removes the angular-loss term while preserving the planner family, Bayesian update machinery, candidate generation, common hard safety, selected hyperparameters, and development seeds. In this model, $\delta_{\mathrm{beam}}$ and $k_{\mathrm{angular}}$ have no observation effect by construction.
@@ -401,10 +391,10 @@ A separate development-only ablation removes the angular-loss term while preserv
 
 Regret and probe fraction collapse to zero or numerical roundoff across C0--C4, and C1--C3 become behaviorally identical. Passive Bayesian updating can still reduce error in the remaining distance-loss degree of freedom, but learning that parameter does not change the candidate ranking in the evaluated scenarios.
 
-This is mechanism-specific evidence: nontrivial active-calibration behavior in the primary directional study depends on directional geometry. Because the ablation uses development seeds and a deliberately simplified model, it is not primary confirmatory evidence and does not establish physical optical identifiability.
+The ablation therefore supports a mechanistic interpretation: the nontrivial active-calibration behavior in the main study depends on directional geometry. Because this experiment uses development seeds and a deliberately simplified model, it remains a mechanism check rather than physical validation of optical identifiability.
 
 \section{Measured Support Studies}
-The simulator study is complemented by two separately scoped measured-data analyses. They are included to test whether related real measurements support the physical interpretation, not to retrofit calibration to the frozen simulation.
+Two measured-data analyses provide context for the simulator study. They answer narrower empirical questions and are kept separate from the confirmatory planner results.
 
 \begin{table}[t]
 \caption{Selected measured-support results and their interpretation.}
@@ -417,7 +407,7 @@ The simulator study is complemented by two separately scoped measured-data analy
 \subsection{Measured Vehicular Visible-Light Path Loss}
 The V-VLC study uses the public measurement data associated with Turan and Coleri's machine-learning channel-modeling work \cite{turan2021}. Distance-only held-out spatial-group MAE is 5.587261~dB and the directional model MAE is 5.580011~dB. The group-paired directional-minus-distance-only absolute-error effect is $-0.005031$~dB with 95\% CI $[-0.019734,0.010134]$ and Wilcoxon $p=0.375269$.
 
-That result is essentially null for a meaningful directional predictive advantage in the measured dataset. It therefore limits, rather than strengthens, physical claims about the synthetic directional latent family. Broader V-VLC literature shows that geometry, weather, reflections, vehicle motion, and receiver field of view can matter materially \cite{karbalayghareh2020,turan2022nlos,mohamed2023,cailean2024}; our measured comparison simply does not show that the particular added directional features improve this held-out regression task.
+The measured comparison is effectively null for a directional predictive advantage. That does not contradict the broader V-VLC literature, where geometry, weather, reflections, vehicle motion, and receiver field of view can matter \cite{karbalayghareh2020,turan2022nlos,mohamed2023,cailean2024}; it simply means that the directional features used in this support study did not improve the held-out regression task. We therefore avoid treating the synthetic directional latent family as experimentally calibrated.
 
 \subsection{Measured 5G V2X Prediction and Replay}
 The CICV5G support study uses the measured dataset of Zhang \emph{et al.} \cite{zhang2026}, comprising 38 W2S drives and 43,045 samples in the analyzed subset. Persistence is the strongest tested one-step delay baseline in the primary split with MAE 5.576288~ms. At longer horizons, route/horizon fusion improves delay prediction relative to persistence across five reused-drive grouped split assignments, and the offline replay produces a descriptive mean P2--P1 measured-delay effect of approximately $-0.501375$~ms.
@@ -425,46 +415,25 @@ The CICV5G support study uses the measured dataset of Zhang \emph{et al.} \cite{
 These results support measured QoS/pose transfer and offline replay methodology. The split assignments reuse the same finite drives and are not independent replications. Most importantly, 5G delay measurements do not calibrate an optical channel and do not validate the PC-FMCW-informed directional latent model.
 
 \section{Discussion}
-\subsection{What the Frozen Study Supports}
-The strongest result is not that active calibration beats passive calibration. It is that \emph{unconditional} information seeking can be highly damaging, and that downstream decision relevance is an effective guard against much of that damage. C2 learns the modeled parameter vector more aggressively, but pays for that information with higher regret, higher probing burden, and worse mean outage. C3 keeps most of the benefits of passive adaptation while largely refusing probes that do not alter the motion decision.
+Taken together, the experiments point to a narrower role for active calibration than a parameter-estimation view would suggest. C2 learns the modeled parameter vector more aggressively than C1, but that extra learning comes with a large increase in decision regret and probing burden. C3 changes the picture by asking whether the unresolved model uncertainty actually changes the motion decision. In scenario E, that question prevents a probe entirely; across the full confirmatory set, it removes most of the penalty introduced by C2.
 
-Scenario E makes this point especially cleanly. The posterior remains uncertain, yet C3 does nothing because that uncertainty does not change the preferred safe trajectory. This is precisely the distinction between parameter uncertainty and decision-relevant uncertainty.
+The result is not a general endorsement of active probing. Scenario F marks the clearest limit: C3 identifies genuine decision disagreement and still fails to improve on passive C1. Several explanations are plausible. The candidate lattice may not contain a low-cost maneuver that is informative in the right direction; the four-step information horizon may be too short; the predictive-variance proxy may emphasize measurements that do not resolve the relevant ranking ambiguity; or the cost scaling may be poorly matched to the value of the information. The confirmatory data cannot distinguish among these possibilities, so they are best treated as design hypotheses for future work.
 
-\subsection{Why Decision Relevance Was Not Sufficient}
-Scenario F provides the complementary boundary. C3 correctly identifies decision disagreement and does probe, but the probe does not improve regret relative to passive C1. Several explanations are plausible: the candidate lattice may not contain a sufficiently informative low-cost experiment; the four-step information horizon may be too short; the predictive-variance proxy may value measurements that do not resolve the particular ranking ambiguity; or the relative scaling between task cost, probe cost, and information reward may be imperfect. The frozen data do not identify which explanation dominates, so these remain hypotheses for future work rather than retrospective claims.
+This distinction between learning the model and improving the decision is also where the present work differs most from calibration-centric planning. Informative path planning and calibration trajectory design typically value measurements through information quality or observability \cite{hitz2017,lv2022,amersdorfer2025}. Here, the useful endpoint is whether the information changes a downstream trajectory choice. The same distinction extends to communication-aware and ISAC-aware planning \cite{ghaffarkhah2011,gordon2026,jin2026}: when the link model is uncertain, motion influences both communication performance and the belief used to evaluate future motion.
 
-This negative result is consistent with the broader dual-control literature: creating a useful dual effect requires more than simply adding an exploration bonus \cite{mesbah2018,hu2024}. The quality of the belief model, future-information approximation, action set, and safety mechanism determines whether exploration has positive decision value.
+\section{Limitations}
+The study deliberately uses a small analytical latent family and a discrete Bayesian grid. The optical equations and SNR observation noise are modeled, and the V-VLC data are not used to fit the three latent parameters. The distance-only ablation further shows that identifiability depends on the geometry exposed by the action set. A richer model, a different candidate lattice, or a longer horizon could change both posterior learning and decision disagreement.
 
-\subsection{Relation to Prior Calibration and Communication-Aware Planning}
-Informative path planning and calibration trajectory design often evaluate information quality or parameter observability directly \cite{hitz2017,lv2022,amersdorfer2025}. Our evaluation changes the endpoint: information is useful only insofar as it reduces downstream trajectory-selection loss. This does not replace observability analysis; rather, it highlights a decision layer above it.
+The information score is also approximate. It sums short-horizon predictive-variance terms under the current belief rather than solving the full Bayesian dual-control problem with future replanning and all possible observations. C3 should therefore be read as a decision-triggered active-calibration heuristic motivated by dual-control principles, not as an optimal dual controller.
 
-Likewise, communication-aware and ISAC-aware planners already adapt motion to link quality or sensing utility \cite{ghaffarkhah2011,gordon2026,jin2026}. Here the communication objective itself depends on an uncertain model, and motion can alter the future belief about that model. That additional coupling motivates the C1/C2/C3 decomposition.
-
-\section{Limitations and Threats to Validity}
-\subsection{Model Validity}
-The optical-link equations, latent parameters, and Gaussian SNR observation noise are modeled. No measured PC-FMCW calibration is claimed. The V-VLC support study is not used to fit the three latent parameters, and its null directional comparison argues against treating the simulator mechanism as experimentally validated.
-
-\subsection{Identifiability and Action Richness}
-Identifiability is conditional on the geometry exposed by the candidate lattice. A different set of safe maneuvers, a longer information horizon, or a richer latent family could change both posterior learning and decision disagreement. The distance-only ablation intentionally makes two angular latents non-identifiable and demonstrates that the planner does not force artificial convergence.
-
-\subsection{Approximate Information Value}
-$G(\tau)$ sums marginal predictive-variance terms under the current belief. It does not solve the exact Bayesian dual-control problem, propagate all possible future observations, or account for future replanning inside the information objective. Accordingly, C3 is best described as a decision-triggered active-calibration heuristic grounded in dual-control principles, not an optimal dual controller.
-
-\subsection{Statistical Generalization}
-The confirmatory unit is the independent simulator seed within six fixed mechanism scenarios. The absence of sampled safety failures is not a safety guarantee, and statistical conclusions apply only to the declared benchmark distribution. The C1--C3 comparison was not predeclared as a primary inferential family and is kept descriptive.
-
-\subsection{Measured-Support Scope}
-The V-VLC and CICV5G studies answer different empirical questions. The former tests measured vehicular optical path-loss prediction; the latter tests 5G QoS prediction and offline replay. Neither is a closed-loop real-vehicle validation of active optical self-calibration.
+Finally, the confirmatory statistics describe 50 independent simulator seeds over six fixed mechanism scenarios. The absence of sampled safety failures is not a safety guarantee, and the C1--C3 comparison was not part of the primary inferential families. The measured V-VLC and CICV5G studies address different empirical questions; neither constitutes closed-loop real-vehicle validation of active optical self-calibration.
 
 \section{Conclusion}
-We evaluated whether active calibration should be triggered by uncertainty in a modeled directional vehicular link or by the \emph{decision consequences} of that uncertainty. Under the frozen controlled benchmark, unconditional information seeking substantially worsened decision regret despite improving parameter estimation. Decision-triggered C3 removed most of that penalty, sharply reduced probing, and correctly remained inactive when uncertainty was decision irrelevant.
+The experiments show that the value of calibration depends on the decision it is meant to support. Unconditional information seeking improved parameter estimation but substantially worsened decision regret. Conditioning the information reward on decision disagreement removed most of that penalty and prevented probing when the remaining uncertainty had no effect on the selected trajectory.
 
-The result has an equally important negative boundary. C3 did not demonstrate a confirmatory advantage over passive C1, and in the decision-critical scenario F it probed without lowering regret. A distance-only development ablation eliminated the active mechanism, while measured V-VLC data provided essentially null support for directional predictive gain.
-
-The supported conclusion is therefore deliberately narrow: \emph{decision relevance is useful for preventing unnecessary active calibration, but the implemented probing policy does not yet demonstrate a confirmatory advantage over passive Bayesian calibration}. Future work should focus on richer safe probe actions and more faithful approximations of downstream value of information rather than simply increasing information gain.
-
+The same mechanism did not make active calibration uniformly better than passive Bayesian updating. In the decision-critical scenario, C3 probed but still had higher regret than C1. The most defensible conclusion is therefore practical rather than universal: decision relevance is useful for deciding when \emph{not} to probe. Demonstrating a positive advantage for active calibration will require better probe actions or a more faithful estimate of downstream value of information.
 \section*{Data and Code Availability}
-A frozen reproducibility package has been prepared with experiment configuration, analysis scripts, compact machine-readable evidence, generated publication assets, and immutable artifact provenance. Public-release details will follow the policy of the selected submission venue.
+The repository contains the frozen experiment configuration, analysis code, compact result summaries, generated publication assets, and identifiers for the full workflow artifacts. Public-release details will follow the policy of the selected submission venue.
 
 \bibliographystyle{IEEEtran}
 \bibliography{references}
