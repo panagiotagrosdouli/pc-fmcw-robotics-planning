@@ -14,6 +14,14 @@ import pandas as pd
 
 PLANNER_ORDER = ["C0", "C1", "C2", "C3", "C4"]
 MECH_PLANNERS = ["C1", "C2", "C3"]
+PLANNER_COLORS = {
+    "C0": "#B8B8B8",
+    "C1": "#7A7A7A",
+    "C2": "#D55E00",
+    "C3": "#0072B2",
+    "C4": "#3A3A3A",
+}
+PLANNER_HATCHES = {"C0": "", "C1": "//", "C2": "", "C3": "", "C4": ".."}
 
 
 def _fmt_p(value: float) -> str:
@@ -142,40 +150,61 @@ def _write_support_table(df: pd.DataFrame, out: Path) -> None:
     out.write_text("\n".join(lines), encoding="utf-8")
 
 
-def _annotate_bars(ax, bars, fmt: str = ".3g") -> None:
+def _clean_axis(ax) -> None:
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.grid(axis="y", linewidth=0.6, alpha=0.18)
+    ax.set_axisbelow(True)
+
+
+def _annotate_bars(ax, bars, fmt: str = ".3g", *, min_abs: float = 1e-12) -> None:
     for bar in bars:
         value = float(bar.get_height())
+        if abs(value) <= min_abs:
+            continue
         ax.annotate(
             format(value, fmt),
             xy=(bar.get_x() + bar.get_width() / 2, value),
-            xytext=(0, 3),
+            xytext=(0, 4),
             textcoords="offset points",
             ha="center",
             va="bottom",
-            fontsize=7,
+            fontsize=6.5,
         )
 
 
 def _overall_figure(summary: pd.DataFrame, out: Path) -> None:
     d = summary.set_index("planner").loc[PLANNER_ORDER].reset_index()
     x = np.arange(len(d))
-    fig, axes = plt.subplots(1, 2, figsize=(7.0, 2.7))
+    colors = [PLANNER_COLORS[p] for p in d["planner"]]
+    hatches = [PLANNER_HATCHES[p] for p in d["planner"]]
+    fig, axes = plt.subplots(1, 2, figsize=(7.0, 2.65))
 
-    bars = axes[0].bar(x, d["mean_regret"].to_numpy(float))
+    bars = axes[0].bar(
+        x, d["mean_regret"].to_numpy(float),
+        color=colors, edgecolor="black", linewidth=0.45
+    )
+    for bar, hatch in zip(bars, hatches):
+        bar.set_hatch(hatch)
     axes[0].set_xticks(x, d["planner"])
     axes[0].set_ylabel("Mean cumulative decision regret")
     axes[0].set_xlabel("Planner")
-    axes[0].grid(axis="y", alpha=0.25)
+    _clean_axis(axes[0])
     _annotate_bars(axes[0], bars)
 
-    bars = axes[1].bar(x, d["mean_probe_fraction"].to_numpy(float))
+    bars = axes[1].bar(
+        x, d["mean_probe_fraction"].to_numpy(float),
+        color=colors, edgecolor="black", linewidth=0.45
+    )
+    for bar, hatch in zip(bars, hatches):
+        bar.set_hatch(hatch)
     axes[1].set_xticks(x, d["planner"])
     axes[1].set_ylabel("Mean probe fraction")
     axes[1].set_xlabel("Planner")
-    axes[1].grid(axis="y", alpha=0.25)
+    _clean_axis(axes[1])
     _annotate_bars(axes[1], bars)
 
-    fig.tight_layout()
+    fig.tight_layout(pad=0.7)
     fig.savefig(out / "fig_overall.pdf", bbox_inches="tight")
     fig.savefig(out / "fig_overall.svg", bbox_inches="tight")
     plt.close(fig)
@@ -189,7 +218,7 @@ def _mechanism_figure(ef: pd.DataFrame, out: Path) -> None:
     scenarios = list(scenario_map)
     x = np.arange(len(scenarios))
     width = 0.24
-    fig, axes = plt.subplots(1, 2, figsize=(7.0, 2.8))
+    fig, axes = plt.subplots(1, 2, figsize=(7.0, 2.75))
 
     for i, planner in enumerate(MECH_PLANNERS):
         vals = []
@@ -199,24 +228,30 @@ def _mechanism_figure(ef: pd.DataFrame, out: Path) -> None:
             vals.append(float(row["regret"]))
             probes.append(float(row["probe_fraction"]))
         offset = (i - 1) * width
-        bars = axes[0].bar(x + offset, vals, width, label=planner)
+        bars = axes[0].bar(
+            x + offset, vals, width, label=planner,
+            color=PLANNER_COLORS[planner], edgecolor="black", linewidth=0.4
+        )
         _annotate_bars(axes[0], bars)
-        axes[1].bar(x + offset, probes, width, label=planner)
+        axes[1].bar(
+            x + offset, probes, width, label=planner,
+            color=PLANNER_COLORS[planner], edgecolor="black", linewidth=0.4
+        )
 
     labels = [scenario_map[s] for s in scenarios]
     axes[0].set_xticks(x, labels)
     axes[0].set_ylabel("Mean cumulative decision regret")
     axes[0].set_xlabel("Scenario")
-    axes[0].grid(axis="y", alpha=0.25)
-    axes[0].legend(frameon=False, fontsize=8)
+    _clean_axis(axes[0])
+    axes[0].legend(frameon=False, fontsize=7.5, ncol=3, loc="upper left")
 
     axes[1].set_xticks(x, labels)
     axes[1].set_ylabel("Mean probe fraction")
     axes[1].set_xlabel("Scenario")
-    axes[1].grid(axis="y", alpha=0.25)
-    axes[1].legend(frameon=False, fontsize=8)
+    _clean_axis(axes[1])
+    axes[1].legend(frameon=False, fontsize=7.5, ncol=3, loc="upper left")
 
-    fig.tight_layout()
+    fig.tight_layout(pad=0.7)
     fig.savefig(out / "fig_decision_relevance.pdf", bbox_inches="tight")
     fig.savefig(out / "fig_decision_relevance.svg", bbox_inches="tight")
     plt.close(fig)
