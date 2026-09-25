@@ -1,7 +1,7 @@
 # When Should a Vehicle Move to Learn the Channel?
 ## Decision-Triggered Active Self-Calibration for Vehicular Optical Planning
 
-> Manuscript status: frozen confirmatory experiment completed. Numerical claims below are restricted to the frozen synthetic study and the separately scoped measured-data support studies.
+> Manuscript status: post-confirmatory manuscript draft; frozen confirmatory experiment completed. Numerical claims below are restricted to the frozen synthetic study and the separately scoped measured-data support studies.
 
 ## 1. Introduction
 
@@ -20,30 +20,83 @@ No claim is made that dual control, active learning, communication-aware plannin
 
 ## 2. Related Work
 
-Discuss dual control, active perception/active learning, adaptive model-based planning, communication-aware robotics, optical/FSO/VLC planning, and ISAC/PC-FMCW context. State the narrower research gap at their intersection rather than asserting broad novelty.
+This study sits at the intersection of four established lines of work, and its contribution is deliberately framed more narrowly than any of them.
+
+**Communication-aware motion planning.** Communication quality has long been incorporated into robot motion decisions; for example, Ghaffarkhah and Mostofi formalized communication-aware motion planning in mobile networks (IEEE Transactions on Automatic Control, 2011, DOI `10.1109/TAC.2011.2164033`). The present study therefore does not claim novelty for using communication state in planning.
+
+**Informative motion and active calibration.** Robotics literature also shows that motion can be chosen to improve information quality rather than only to reach a task goal. Informative path planning has coupled robot trajectories to expected information gain, including active field mapping under localization uncertainty (ICRA 2020, DOI `10.1109/ICRA40945.2020.9197034`). Observability-aware LiDAR-IMU calibration uses information-theoretic data selection to retain informative motion segments and explicitly handles non-identifiable directions (IEEE Transactions on Robotics, 2022, DOI `10.1109/TRO.2022.3174476`). More recently, optimal-experiment-design trajectory planning has been used to generate calibration motions for robotic camera calibration (IEEE Transactions on Automation Science and Engineering, 2025, DOI `10.1109/TASE.2025.3632764`). These works establish the broader principle that robot motion can be an experiment for parameter estimation.
+
+**Communication/ISAC coupled to planning.** Planning-Oriented Integrated Sensing and Communication (PISAC) couples ISAC resource allocation, sensing uncertainty and vehicle motion planning (ICC 2026; DOI `10.1109/ICC59461.2026.11587040`; preprint `arXiv:2510.23021`). In optical robotics, communication-driven NMPC has incorporated free-space-optical link/alignment requirements directly into multirotor motion control (IEEE SMC 2025, DOI `10.1109/SMC58881.2025.11343117`). These studies rule out broad claims that ISAC-to-planning coupling or optical communication-aware control are themselves new.
+
+**Positioning of this study.** The narrower question here is not whether motion can gather information, whether communication can influence motion, or whether calibration trajectories can be planned. It is whether a safe vehicular planner should deliberately excite a **modeled directional optical link** only when posterior uncertainty changes the downstream trajectory decision. The experiment therefore separates passive Bayesian calibration (C1), unconditional information seeking (C2), decision-triggered information seeking (C3), and a model-relative oracle (C4), with a frozen paired-seed protocol. The contribution is this decision-relevance test and its negative boundary: the implemented gate strongly suppresses unnecessary probing, but the frozen study does not establish superiority over passive calibration.
+
+No priority or universal first-of-kind claim is made. The literature set above is used for positioning, not as a systematic novelty review.
 
 ## 3. PC-FMCW-Informed Planning Model
 
-Describe the existing downstream planning interface, candidate trajectories, common hard safety filter, target prediction and analytical optical-link quantities. Preserve the boundary that this is a PC-FMCW-informed model, not a measured optical calibration.
+The robotics extension begins after a target state/history is available from the upstream sensing/tracking chain. At planning step (k), the ego state is represented by position, yaw and speed, while a causal target predictor supplies a common future target-position sequence. For candidate ego trajectory (	au_i), the planner evaluates the future relative geometry between the candidate ego states and the predicted target states.
+
+A PC-FMCW-informed analytical link surrogate maps this relative geometry to modeled communication quantities including SNR, outage probability, BER and goodput. These quantities are simulation-model outputs; they are not measured PC-FMCW channel calibration.
+
+Candidate trajectories are generated by the common vehicle model and then passed through the same hard feasibility filters for every planner: road and speed limits, static-obstacle clearance, time-aligned dynamic-target clearance, and terminal stop-viability checks. Information gain or calibration value is evaluated **only after** this common hard-safety filter. Consequently, a candidate cannot become feasible merely because it is informative.
+
+Planning is receding-horizon and causal. Each planner selects a candidate, executes only its first control action, receives the resulting communication observation, updates its belief if applicable, and replans. Future simulator truth is unavailable to C0-C3; C4 receives the true latent link parameters only for the declared model-relative connectivity reference.
 
 ## 4. Latent Communication-Model Uncertainty
 
-Define `phi=[alpha_loss, delta_beam, k_angular]`, distinguish nominal model, simulator truth and planner belief, and state why three parameters are used. Describe where identifiability may fail.
+The modeled latent parameter vector is
+
+[
+phi=[alpha_{loss},delta_{beam},k_{angular}].
+]
+
+Here, (alpha_{loss}) scales the distance-loss exponent, (delta_{beam}) is a modeled boresight angular offset, and (k_{angular}) scales Gaussian angular attenuation. The nominal vector is ([1,0,1]). Three objects are kept distinct throughout the experiment: simulator truth, the nominal model, and the planner belief. C0-C3 never receive simulator truth.
+
+The directional model uses both distance and angular attenuation. A separate distance-only mechanism ablation removes angular attenuation while preserving the rest of the planner and safety machinery. In that ablation, (delta_{beam}) and (k_{angular}) are intentionally non-identifiable from link observations; only the remaining distance-dependent degree of freedom can be learned.
+
+The latent family is intentionally small and interpretable. It is not claimed to be a physically complete vehicular optical-channel model. Low estimation error inside this family therefore does not imply physical model validity, and posterior ambiguity is retained rather than forced into convergence when geometry is uninformative.
 
 ## 5. Passive and Active Calibration
 
-Define the modeled SNR observation, Bayesian grid update and causal information boundary. Introduce the predictive-information approximation and its limitations.
+The communication observation is modeled SNR corrupted by declared Gaussian observation noise. C1-C3 maintain a discrete Bayesian belief over the latent parameter hypotheses. The implementation uses a small (3	imes3	imes3) grid spanning distance-loss scaling, beam offset and angular attenuation scaling. After an action is executed and its SNR observation becomes available, the posterior is updated with a Gaussian likelihood. The update is therefore causal: an observation generated by an action cannot influence selection of that same action.
+
+For a candidate trajectory, the information score is the short-horizon predictive proxy
+
+[
+G(	au)=sum_j rac{1}{2}logleft(1+
+rac{mathrm{Var}_{phi}[mu_z(phi,	au,j)]}{sigma_z^2}ight),
+]
+
+where (mu_z) is the modeled SNR prediction under latent hypothesis (phi) and (sigma_z) is the observation-noise standard deviation. This score is deliberately described as a predictive-information approximation, not exact mutual information and not a physically calibrated Fisher-information matrix.
+
+Parameter uncertainty and decision uncertainty are treated separately. A posterior can remain broad while all plausible hypotheses prefer the same safe trajectory; in that case parameter learning may have little downstream value. Conversely, a smaller region of uncertainty can matter if it changes which candidate is optimal.
 
 ## 6. Decision-Triggered Dual-Control Planner
 
-Define posterior expected candidate cost, decision disagreement probability, expected decision regret, trigger threshold, probing cost and gated information term. State explicitly that hard safety precedes all scoring.
+Let (J(	au,phi)) denote the task-plus-connectivity cost of candidate (	au) under latent hypothesis (phi), and let (ar{	au}) be the candidate minimizing posterior-expected cost. Two diagnostics quantify whether uncertainty is decision-relevant:
 
-Contrast:
-- C0 nominal/no calibration;
-- C1 passive;
-- C2 always information-seeking;
-- C3 decision-triggered;
-- C4 oracle parameter reference.
+[
+U_D=P_{phi}[argmin_{	au}J(	au,phi)
+ear{	au}]
+]
+
+and
+
+[
+R_D=E_{phi}[J(ar{	au},phi)-min_{	au}J(	au,phi)].
+]
+
+C3 enables the information reward only when both the decision-disagreement probability and expected decision regret exceed their declared gates. When active, candidate scoring combines posterior-expected task/connectivity cost, probing-motion cost, and the decision-relevance-weighted information proxy. Hard safety is still evaluated first.
+
+The planner family isolates the mechanism:
+
+- **C0 — nominal/no calibration:** fixed nominal latent parameters and no Bayesian update.
+- **C1 — passive calibration:** posterior-expected task/connectivity cost with causal belief updates, but no information reward.
+- **C2 — unconditional active calibration:** the same Bayesian belief as C1, with information-seeking enabled whenever safe candidates are scored.
+- **C3 — decision-triggered active self-calibration:** information-seeking is gated by downstream decision disagreement and expected regret.
+- **C4 — oracle-parameter reference:** true simulator latent parameters are used only for model-relative connectivity scoring; C4 is non-deployable and receives no privileged safety information.
+
+This decomposition is essential to interpretation. C2-C1 isolates the cost of unconditional information seeking, C3-C2 tests whether decision relevance suppresses that cost, and C3-C4 reports the remaining model-relative oracle gap. C1-C3 was not a predeclared primary confirmatory comparison, so descriptive differences between them are not converted into a post-hoc superiority claim.
 
 ## 7. Experimental Protocol
 
