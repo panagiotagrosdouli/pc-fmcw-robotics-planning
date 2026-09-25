@@ -60,7 +60,7 @@ def main():
     if not shards:
         raise SystemExit(f"no development shards found under {args.root}")
 
-    episodes_all=[];settings=[];manifest_hashes={}
+    episodes_all=[];settings=[];manifest_hashes={};shard_dirs={}
     for setting_id,episodes_path,manifest_path,manifest in shards:
         if manifest.get("phase")!="development":
             raise SystemExit(f"{setting_id}: not a development manifest")
@@ -68,7 +68,7 @@ def main():
             raise SystemExit(f"{setting_id}: config digest mismatch")
         if list(manifest.get("seed_values",[]))!=expected_seeds:
             raise SystemExit(f"{setting_id}: development seed set is incomplete or reordered")
-        d=pd.read_csv(episodes_path)
+        d=pd.read_csv(episodes_path);shard_dirs[setting_id]=episodes_path.parent
         if d.duplicated(["planner","scenario","seed"]).any():
             raise SystemExit(f"{setting_id}: duplicate planner/scenario/seed rows")
         expected_rows=len(expected_seeds)*len(config["scenarios"])*len(config["planners"])
@@ -126,6 +126,11 @@ def main():
 
     out=args.output_dir;out.mkdir(parents=True,exist_ok=True)
     episodes.to_csv(out/"episodes.csv",index=False)
+    episodes[episodes.setting_id==setting_id].to_csv(out/"selected_episodes.csv",index=False)
+    selected_steps_path=shard_dirs[setting_id]/"steps.csv"
+    if not selected_steps_path.exists(): raise SystemExit(f"{setting_id}: missing steps.csv")
+    selected_steps=pd.read_csv(selected_steps_path);selected_steps.insert(0,"setting_id",setting_id)
+    selected_steps.to_csv(out/"selected_steps.csv",index=False)
     setting_table.to_csv(out/"development_settings.csv",index=False)
     diagnostics.to_csv(out/"selection_diagnostics.csv",index=False)
     selection={
