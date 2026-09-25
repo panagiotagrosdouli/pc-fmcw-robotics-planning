@@ -46,6 +46,7 @@ class CalibrationBenchmarkSettings:
     hierarchical_clearance: bool = True
     damped_lateral_prediction: bool = True
     endpoint_anchored_lateral: bool = True
+    prediction_min_history_steps: int = 3
 
     def __post_init__(self):
         if not np.isfinite(self.dt) or self.dt <= 0.0:
@@ -65,6 +66,8 @@ class CalibrationBenchmarkSettings:
             raise ValueError("communication_observation_sigma_db must be positive")
         if self.information_horizon_steps < 1:
             raise ValueError("information_horizon_steps must be >= 1")
+        if self.prediction_min_history_steps < 2:
+            raise ValueError("prediction_min_history_steps must be >= 2")
 
 
 def _episode_rng(seed: int, scenario_name: str):
@@ -117,6 +120,30 @@ def _consistent_match_step(agreements):
     return -1
 
 
+def _active_prediction(history, settings: CalibrationBenchmarkSettings):
+    """Causal target prediction with a guarded startup phase.
+
+    A two-point velocity estimate at dt=0.1 s is dominated easily by the declared
+    0.20 m position noise and can even reverse the apparent longitudinal motion.
+    Until prediction_min_history_steps observations are available, hold the
+    latest measured position rather than extrapolating an underdetermined noisy
+    velocity. Once the minimum history is available, reuse the existing frozen
+    benchmark predictor unchanged. This guard is scoped to the new active-
+    calibration study and does not alter prior Paper 1/Paper 2 protocols.
+    """
+    hist=np.asarray(history,dtype=float)
+    if hist.ndim!=2 or hist.shape[1]!=2 or len(hist)<1:
+        raise ValueError("history must have shape (N, 2) with N >= 1")
+    if len(hist)<settings.prediction_min_history_steps:
+        mean=np.repeat(hist[-1:, :],settings.horizon_steps,axis=0)
+        target=np.zeros((settings.horizon_steps,4),dtype=float)
+        target[:,:2]=mean
+        return target
+    return _prediction(
+        hist,settings.horizon_steps,settings.dt,
+        settings.damped_lateral_prediction,settings.endpoint_anchored_lateral,
+    )
+
 def _simulate_episode(calibration_scenario, planner_name, seed, settings, model):
     if planner_name not in CALIBRATION_PLANNERS:
         raise ValueError(f"unknown planner: {planner_name}")
@@ -144,10 +171,7 @@ def _simulate_episode(calibration_scenario, planner_name, seed, settings, model)
     for k in range(steps):
         history.append(observed_target[k])
         hist=np.asarray(history[-settings.history_steps:],dtype=float)
-        pred=_prediction(
-            hist,settings.horizon_steps,settings.dt,
-            settings.damped_lateral_prediction,settings.endpoint_anchored_lateral,
-        )
+        pred=_active_prediction(hist,settings)
 
         # No future target truth or latent link truth is passed to C0-C3 planning.
         result=planner.plan(

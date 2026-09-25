@@ -43,6 +43,10 @@ def _hyperparameters(config,phase,args):
         frozen=json.loads((ROOT/args.frozen_protocol).read_text(encoding="utf-8"))
         if frozen.get("protocol_version")!=config["protocol_version"]:raise SystemExit("frozen protocol version does not match config")
         if frozen.get("config_sha256")!=_sha256(ROOT/args.config):raise SystemExit("frozen protocol config digest does not match current config")
+        frozen_git=str(frozen.get("git_commit_sha",""))
+        current_git=_git_sha()
+        if not frozen_git or frozen_git=="unavailable":raise SystemExit("frozen protocol does not pin a usable git commit")
+        if current_git!=frozen_git:raise SystemExit(f"confirmatory code SHA {current_git} does not match frozen development SHA {frozen_git}")
         return dict(frozen["selected_hyperparameters"]),frozen
     for cli_name,key in (
         ("decision_threshold","decision_threshold"),("information_weight","information_weight"),
@@ -71,13 +75,14 @@ def _settings(config,hyper):
         hierarchical_clearance=bool(s["hierarchical_clearance"]),
         damped_lateral_prediction=bool(s["damped_lateral_prediction"]),
         endpoint_anchored_lateral=bool(s["endpoint_anchored_lateral"]),
+        prediction_min_history_steps=int(s.get("prediction_min_history_steps",3)),
     )
 
-def _one_run(config,args,hyper,seed_values,link_model,setting_id=None):
+def _one_run(config,args,hyper,seed_values,link_model,setting_id=None,planners=None):
     settings=_settings(config,hyper)
     scenario_steps=int(args.scenario_steps or config["simulation"]["scenario_steps"])
     scenarios=make_identifiability_scenarios(steps=scenario_steps,dt=settings.dt)
-    result=run_study(seeds=seed_values,settings=settings,scenarios=scenarios,link_model=link_model)
+    result=run_study(seeds=seed_values,settings=settings,scenarios=scenarios,planners=planners or tuple(config["planners"]),link_model=link_model)
     episodes=pd.DataFrame(result["episodes"]);steps=pd.DataFrame(result["steps"])
     if setting_id is not None:
         episodes.insert(0,"setting_id",setting_id);steps.insert(0,"setting_id",setting_id)
@@ -106,8 +111,15 @@ def main():
     p.add_argument("--probe-weight",type=float,default=None);p.add_argument("--min-expected-regret",type=float,default=None)
     p.add_argument("--frozen-protocol",type=Path,default=None);p.add_argument("--sweep-development-grid",action="store_true")
     p.add_argument("--link-model",choices=("directional","distance_only"),default="directional")
+    p.add_argument("--planners",default=None,help="Comma-separated development/smoke planner subset; confirmatory always runs all C0-C4")
     args=p.parse_args()
     config_path=ROOT/args.config;config=yaml.safe_load(config_path.read_text(encoding="utf-8"));phase=args.phase
+    planner_subset=tuple(x.strip() for x in args.planners.split(",") if x.strip()) if args.planners else tuple(config["planners"])
+    unknown=[x for x in planner_subset if x not in config["planners"]]
+    if unknown:raise SystemExit(f"unknown planner(s) in --planners: {unknown}")
+    if not planner_subset:raise SystemExit("--planners must contain at least one planner")
+    if phase=="confirmatory" and planner_subset!=tuple(config["planners"]):
+        raise SystemExit("confirmatory execution must run the complete declared C0-C4 planner family")
     if phase=="confirmatory" and args.link_model!="directional":
         raise SystemExit("distance_only is a declared mechanism ablation, not part of the primary frozen confirmatory protocol")
     if phase=="confirmatory" and any(x is not None for x in (
@@ -123,13 +135,13 @@ def main():
             hyper={"decision_threshold":float(values[0]),"information_weight":float(values[1]),"probe_weight":float(values[2]),
                    "min_expected_regret":float(config["development"]["default_hyperparameters"].get("min_expected_regret",0.0))}
             setting_id=f"dev_{idx:03d}"
-            settings,episodes,step_rows=_one_run(config,args,hyper,seed_values,link_model,setting_id)
+            settings,episodes,step_rows=_one_run(config,args,hyper,seed_values,link_model,setting_id,planner_subset)
             episodes_all.append(episodes);steps_all.append(step_rows);setting_records.append({"setting_id":setting_id,**hyper})
         episodes=pd.concat(episodes_all,ignore_index=True);steps=pd.concat(steps_all,ignore_index=True)
         out.mkdir(parents=True,exist_ok=True);pd.DataFrame(setting_records).to_csv(out/"development_settings.csv",index=False);selected_hyper=None
     else:
         hyper,frozen=_hyperparameters(config,phase,args)
-        settings,episodes,steps=_one_run(config,args,hyper,seed_values,link_model);selected_hyper=hyper
+        settings,episodes,steps=_one_run(config,args,hyper,seed_values,link_model,planners=planner_subset);selected_hyper=hyper
     evidence_role={"smoke":"engineering_smoke_not_scientific_evidence","development":"development_only_not_confirmatory_evidence",
                    "confirmatory":"frozen_confirmatory_candidate_evidence"}[phase]
     if args.link_model=="distance_only":evidence_role="development_mechanism_ablation_not_primary_confirmatory_evidence"
@@ -140,6 +152,7 @@ def main():
         "config_sha256":_sha256(config_path),"seed_values":seed_values,"seed_count":len(seed_values),
         "scenario_steps":int(args.scenario_steps or config["simulation"]["scenario_steps"]),"settings":asdict(settings),
         "selected_hyperparameters":selected_hyper,"development_grid_sweep":bool(args.sweep_development_grid),
+        "planner_subset":list(planner_subset),
         "frozen_protocol":frozen,"link_geometry_model":args.link_model,
         "latent_parameter_generation_policy":"declared modeled truth per A-F scenario; never exposed to C0-C3",
         "planner_oracle_boundary":"C4 receives latent link parameters only; all planners use the same causal target prediction and hard safety filters",

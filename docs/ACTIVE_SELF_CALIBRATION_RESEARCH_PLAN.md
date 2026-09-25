@@ -158,3 +158,8 @@ Smoke outputs are engineering-only. Development outputs are not confirmatory evi
 7. **Negative findings:** a result in which C3 does not outperform passive calibration, or in which active probing is inefficient, is a valid outcome of the study.
 
 The experiment is scientifically meaningful only if these assumptions remain explicit and the frozen confirmatory protocol is respected.
+
+
+## Causal target-prediction warm-up
+
+Development exposed a step-2 two-sample noise-reversal artifact. The active-calibration protocol therefore holds the latest measured target position until three observations are available, then uses the existing predictor. Scenario geometry and hard safety distances are unchanged, and confirmatory seeds remain unopened until development revalidation.

@@ -52,6 +52,45 @@ class ParameterizedPCFMCWLinkModel:
             raise ValueError("trajectory/state array must have shape (N, >=3)")
         return array
 
+    @staticmethod
+    def _parameter_matrix(parameters):
+        values=tuple(parameters)
+        if not values:
+            raise ValueError("parameters cannot be empty")
+        return np.asarray([p.as_array() for p in values],dtype=float)
+
+    def snr_hypotheses(self,ego_states,target_states,parameters):
+        """Vectorized modeled SNR for M parameter hypotheses over N states."""
+        ego=self._states(ego_states);target=np.asarray(target_states,dtype=float)
+        if target.ndim!=2 or target.shape[1]<2:
+            raise ValueError("target_states must have shape (N, >=2)")
+        n=min(len(ego),len(target));phi=self._parameter_matrix(parameters)
+        if n==0:return np.empty((len(phi),0),dtype=float)
+        ego=ego[:n];target=target[:n];delta=target[:,:2]-ego[:,:2]
+        distance=np.maximum(np.linalg.norm(delta,axis=1),0.1)
+        g=self.geometry
+        distance_base=10.0*g.pathloss_exponent*np.log10(distance/g.reference_distance_m)
+        distance_loss=phi[:,0,None]*distance_base[None,:]
+        if self.directional:
+            bearing=np.arctan2(delta[:,1],delta[:,0])
+            raw=bearing[None,:]-ego[:,2][None,:]-phi[:,1,None]
+            angle=np.arctan2(np.sin(raw),np.cos(raw))
+            angular_gain=np.exp(-0.5*phi[:,2,None]*(angle/max(g.beam_sigma_rad,1e-12))**2)
+            angular_loss=-10.0*np.log10(np.maximum(angular_gain,1e-12))
+        else:
+            angular_loss=np.zeros_like(distance_loss)
+        return g.reference_snr_db-distance_loss-angular_loss
+
+    def connectivity_costs_hypotheses(self,ego_states,target_states,parameters):
+        """Vectorized connectivity_cost-equivalent values for M hypotheses."""
+        snr=self.snr_hypotheses(ego_states,target_states,parameters)
+        if snr.shape[1]==0:return np.zeros(snr.shape[0],dtype=float)
+        g=self.geometry
+        z=np.clip((g.outage_threshold_db-snr)/max(g.outage_softness_db,1e-12),-60.0,60.0)
+        outage=1.0/(1.0+np.exp(-z))
+        survival=np.prod(1.0-np.clip(outage,0.0,1.0),axis=1)
+        return 0.7*np.mean(outage,axis=1)+0.3*(1.0-survival)
+
     def predict(self,ego_trajectory,target_prediction,parameters=None,link_history=None):
         del link_history
         phi=parameters or NOMINAL_LATENT_PARAMETERS

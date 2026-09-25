@@ -28,6 +28,9 @@ def main():
     if manifest.get("phase")!="development": raise SystemExit("freeze input must be a development run")
     if manifest.get("config_sha256")!=_sha256(config_path):
         raise SystemExit("development manifest was generated from a different config")
+    development_git_sha=str(manifest.get("git_commit_sha",""))
+    if not development_git_sha or development_git_sha=="unavailable":
+        raise SystemExit("development manifest must pin a usable git_commit_sha")
     settings=pd.read_csv(settings_path);selected=settings[settings.setting_id==args.setting_id]
     if len(selected)!=1: raise SystemExit(f"setting_id must identify exactly one row: {args.setting_id}")
     row=selected.iloc[0]
@@ -42,6 +45,7 @@ def main():
         "frozen_utc":datetime.now(timezone.utc).isoformat(),
         "config_sha256":_sha256(config_path),
         "development_manifest_sha256":_sha256(manifest_path),
+        "git_commit_sha":development_git_sha,
         "development_seed_values":manifest.get("seed_values"),
         "selected_setting_id":args.setting_id,"selected_hyperparameters":hyper,
         "confirmatory_seed_range":config["confirmatory"]["seed_range"],

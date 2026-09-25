@@ -1,6 +1,6 @@
 import pandas as pd
 
-from iscai.active_self_calibration.benchmark import CalibrationBenchmarkSettings,_make_planner,run_study
+from iscai.active_self_calibration.benchmark import CalibrationBenchmarkSettings,_active_prediction,_make_planner,run_study
 from iscai.active_self_calibration.link_model import ParameterizedPCFMCWLinkModel
 from iscai.active_self_calibration.scenarios import CalibrationScenario,make_identifiability_scenarios
 from iscai.planning.dynamics import VehicleParams
@@ -47,3 +47,22 @@ def test_small_study_is_deterministic_and_updates_only_calibrating_planners():
     assert episodes.loc["C3","calibration_updates"]==episodes.loc["C3","steps"]
     assert episodes.loc["C4","final_parameter_error_normalized"]==0.0
     assert (episodes["measured_optical_calibration"]==False).all()  # noqa: E712
+
+
+def test_active_prediction_holds_position_until_three_observations():
+    settings=CalibrationBenchmarkSettings(horizon_steps=4,prediction_min_history_steps=3)
+    history=[[16.0809584,0.0054],[15.9659921,0.0200]]
+    pred=_active_prediction(history,settings)
+    assert pred.shape==(4,4)
+    assert (pred[:,:2]==pred[0,:2]).all()
+    assert abs(pred[0,0]-15.9659921)<1e-9
+
+
+def test_active_prediction_switches_to_existing_predictor_at_minimum_history():
+    settings=CalibrationBenchmarkSettings(dt=0.1,horizon_steps=3,prediction_min_history_steps=3,
+                                          damped_lateral_prediction=False,
+                                          endpoint_anchored_lateral=False)
+    history=[[0.0,0.0],[0.5,0.0],[1.0,0.0]]
+    pred=_active_prediction(history,settings)
+    assert pred.shape==(3,4)
+    assert pred[0,0]>1.0

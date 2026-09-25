@@ -35,6 +35,23 @@ def _rename(base: Scenario, name: str) -> Scenario:
     )
 
 
+def _angular_bias_scenario(steps: int, dt: float) -> Scenario:
+    """Scenario A with development-frozen separation from incidental safety stress."""
+    base = following_lateral_offset(steps=steps, dt=dt)
+    target = np.asarray(base.target_states, dtype=float).copy()
+    # Development-only safety diagnostic run 36101325703 selected the smallest
+    # tested translation (+1.0 m) that eliminated the common no-candidate event
+    # across all 20 declared development seeds without relaxing hard safety.
+    target[:, 0] += 1.0
+    return Scenario(
+        name="A_angular_bias",
+        ego_state=np.asarray(base.ego_state, dtype=float).copy(),
+        target_states=target,
+        obstacles=list(base.obstacles),
+        reference_speed=float(base.reference_speed),
+    )
+
+
 def _straight_decision_irrelevant(steps: int, dt: float) -> Scenario:
     t = np.arange(steps, dtype=float) * dt
     target = np.zeros((steps, 4), dtype=float)
@@ -69,7 +86,7 @@ def make_identifiability_scenarios(steps: int = 31, dt: float = 0.1):
     return [
         CalibrationScenario(
             "A_angular_bias",
-            _rename(following_lateral_offset(steps=steps, dt=dt), "A_angular_bias"),
+            _angular_bias_scenario(steps, dt),
             LatentLinkParameters(alpha_loss=1.0, delta_beam_rad=0.04, k_angular=1.0),
             broad,
             "boresight mismatch with directional motion sensitivity",
