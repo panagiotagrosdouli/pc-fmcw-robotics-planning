@@ -1,0 +1,9 @@
+study,endpoint,value_or_effect,ci95_low,ci95_high,p_or_note,claim_boundary
+V-VLC,distance_only_spatial_test_MAE_dB,5.587261,,,held-out spatial groups,measured vehicular VLC path-loss support only
+V-VLC,directional_spatial_test_MAE_dB,5.580011,,,held-out spatial groups,measured vehicular VLC path-loss support only
+V-VLC,directional_minus_distance_only_abs_error_dB,-0.005031,-0.019734,0.010134,Wilcoxon p=0.375269,null directional predictive effect; not PC-FMCW calibration
+CICV5G,persistence_delay_MAE_ms,5.576288,,,primary held-out split,measured 5G QoS prediction
+CICV5G,h20_fusion_minus_persistence_MAE_ms,-1.459700,,,improved in 5/5 reused-drive split assignments,descriptive sensitivity only
+CICV5G,h50_fusion_minus_persistence_MAE_ms,-2.506047,,,improved in 5/5 reused-drive split assignments,descriptive sensitivity only
+CICV5G,h100_fusion_minus_persistence_MAE_ms,-2.622277,,,improved in 5/5 reused-drive split assignments,descriptive sensitivity only
+CICV5G,replay_P2_minus_P1_measured_delay_ms,-0.501375,,,negative in 5/5 reused-drive split assignments,offline route-constrained replay; not independent replication
