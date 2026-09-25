@@ -320,34 +320,49 @@ Six scenarios are averaged within seed before inferential testing, so the indepe
 For each metric and comparison, the analysis reports a deterministic paired bootstrap 95\% interval with 10,000 resamples, a two-sided paired Wilcoxon test, Cohen's $d_z$, and rank-biserial effect size. Wilcoxon $p$-values are Holm adjusted across the seven metrics within each planner-comparison family. Scenario rows and timesteps are diagnostics and are never treated as independent confirmatory replicates.
 
 \section{Confirmatory Results}
-The confirmatory artifact contains 1,500 planner/scenario/seed episodes and 45,000 timestep rows. The sampled hard gate recorded zero collision episodes, zero no-candidate steps, and zero static-clearance-violation steps.
+\subsection{Overall Decision Quality}
+All five planners completed 300 scenario-seed episodes. Table~\ref{tab:means} gives frozen planner means.
 
 \begin{table}[t]
 \caption{Frozen confirmatory planner means.}
 \label{tab:means}
 \centering
 \small
-\input{generated/table_planner_means.tex}
+\resizebox{\columnwidth}{!}{\input{generated/table_planner_means.tex}}
 \end{table}
+
+C1 reduced mean cumulative regret relative to C0 from 0.006432 to 0.004786. The paired seed-level delta was $-0.001646$ with 95\% bootstrap interval $[-0.003079,-0.000578]$. The raw paired Wilcoxon result was favorable, but the predeclared Holm-adjusted value was $p_H=0.05765$. We therefore do not describe C1--C0 regret as multiplicity-adjusted confirmatory significance.
+
+Unconditional information seeking was strongly harmful to the primary decision metric. C2 increased mean regret to 0.088076, giving C2--C1 delta $+0.083290$. Decision triggering removed most of that penalty: C3 mean regret was 0.005865 and the C3--C2 delta was $-0.082211$. Both comparisons remain strongly separated after Holm correction (Table~\ref{tab:regret}).
 
 \begin{table}[t]
 \caption{Primary seed-level cumulative-regret effects. Delta is planner B minus planner A.}
 \label{tab:regret}
 \centering
 \small
-\input{generated/table_primary_regret_effects.tex}
+\resizebox{\columnwidth}{!}{\input{generated/table_primary_regret_effects.tex}}
 \end{table}
+
+C4 has zero regret by construction because regret is defined relative to its true-parameter candidate ranking. C4--C3 nevertheless quantifies the remaining model-relative oracle gap of $-0.005865$.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{generated/fig_overall.pdf}
-\caption{Frozen confirmatory planner means for cumulative decision regret (left) and probe fraction (right). C2 illustrates the cost of unconditional information seeking; C3 suppresses most of that probing burden.}
+\caption{Frozen confirmatory planner means for cumulative decision regret and probe fraction. C2 illustrates the cost of unconditional information seeking; C3 suppresses most of that burden.}
 \label{fig:overall}
 \end{figure}
 
-Passive C1 lowers parameter error relative to C0. C2 learns parameters somewhat more aggressively than C1 but incurs much greater decision regret. C3 accepts higher parameter error than C2 while dramatically reducing regret and probing. Thus parameter learning and decision quality are not interchangeable endpoints.
+\subsection{Learning More Did Not Mean Deciding Better}
+The calibration metrics expose the main mechanism. C1 reduced normalized parameter error relative to C0 by 0.393495 (95\% CI $[-0.423885,-0.363191]$, Holm-adjusted $p\approx1.24\times10^{-14}$). C2 reduced parameter error by a further 0.053484 relative to C1 (95\% CI $[-0.079561,-0.026464]$, Holm-adjusted $p\approx1.30\times10^{-4}$), but incurred dramatically larger decision regret.
 
-C1 and C3 were not a predeclared primary pair. Descriptively, C1 has lower overall mean regret than C3, so no post-hoc C3-over-C1 superiority claim is made.
+C3 moved in the opposite direction: relative to C2, its parameter error was 0.046795 higher (95\% CI $[0.020566,0.072209]$, Holm-adjusted $p\approx4.24\times10^{-4}$) while its decision regret was 0.082211 lower. Thus better parameter estimation and better downstream decisions are empirically distinct outcomes in this benchmark.
+
+C3 also reduced probe fraction by 0.037444 relative to C2 (95\% CI $[-0.039778,-0.035333]$, Holm-adjusted $p\approx3.10\times10^{-9}$) and reduced cumulative probe cost by 0.020332 (95\% CI $[-0.025588,-0.015622]$, same adjusted significance order).
+
+\subsection{Safety, Mobility, and Communication}
+Across all 1,500 confirmatory episodes, the sampled hard gate recorded zero collision episodes, zero no-candidate steps, and zero static-clearance-violation steps. The minimum recorded static-obstacle clearance was approximately 1.500003~m. This supports the statement that the declared benchmark completed without these failures; it is not a general safety guarantee.
+
+Mean progress was almost unchanged across planners, approximately 24.76~m overall. C2 gained only about 0.0198~m relative to C1 while incurring the much larger regret and probing burden above. Mean outage probability increased by about 0.005105 for C2 relative to C1 and decreased by about 0.006654 for C3 relative to C2; both effects survived Holm correction. C4 should not be interpreted as an outage-minimizing controller because it optimizes the same mixed mobility/connectivity objective using true model parameters.
 
 \section{Decision-Relevance Diagnostics}
 Scenario E was designed so that parameter uncertainty should be decision irrelevant. C3 has zero mean probe fraction and zero mean regret, whereas C2 still probes (0.004667) and incurs regret (0.008610).
