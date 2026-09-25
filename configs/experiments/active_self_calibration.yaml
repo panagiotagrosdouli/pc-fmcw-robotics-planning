@@ -53,6 +53,13 @@ development:
   use: tuning, debugging, and mechanism inspection only
   startup_prediction_guard: position-hold until 3 causal target observations are available; added during development after a two-sample noise reversal caused a common step-2 feasibility failure
   execution_sharding: C0/C1/C4 are run once as deterministic common controls; each of 27 grid settings runs C2/C3 and the complete paired C0-C4 table is reconstructed and validated before selection
+  scenario_a_structural_remediation:
+    reason: remove incidental near-collision/no-candidate confounding from the angular-identifiability scenario without relaxing hard safety
+    tested_target_x_shifts_m: [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
+    selected_minimum_shift_m: 1.0
+    validation: zero collision, no-candidate, and static-clearance-violation episodes across C0-C4 and development seeds 31000-31019
+    github_actions_run_id: 36101325703
+    status: frozen_before_confirmatory
   selection_rule:
     safety_gate: zero collision episodes, zero no-candidate episodes, and zero static-clearance-violation episodes across all C0-C4 development runs
     ranking: lexicographically minimize C3 mean cumulative decision regret, then C3 mean cumulative probe cost, then C3 mean probe fraction, then setting_id
