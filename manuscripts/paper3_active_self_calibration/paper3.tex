@@ -403,10 +403,26 @@ Regret and probe fraction collapse to zero or numerical roundoff across C0--C4, 
 
 This is mechanism-specific evidence: nontrivial active-calibration behavior in the primary directional study depends on directional geometry. Because the ablation uses development seeds and a deliberately simplified model, it is not primary confirmatory evidence and does not establish physical optical identifiability.
 
-\section{Measured Support and Claim Boundaries}
-The measured V-VLC support study uses the dataset associated with Turan and Coleri \cite{turan2021}. On held-out spatial groups, distance-only MAE is 5.587261 dB and directional MAE is 5.580011 dB. The directional-minus-distance-only absolute-error effect is -0.005031 dB (95\% CI [-0.019734,0.010134], Wilcoxon $p=0.375269$), effectively null evidence for a meaningful directional gain.
+\section{Measured Support Studies}
+The simulator study is complemented by two separately scoped measured-data analyses. They are included to test whether related real measurements support the physical interpretation, not to retrofit calibration to the frozen simulation.
 
-A separate CICV5G analysis uses the measured dataset of Zhang \emph{et al.} \cite{zhang2026}. It supports measured 5G QoS/pose prediction and route-constrained offline replay, not optical calibration or closed-loop real-vehicle validation.
+\begin{table}[t]
+\caption{Selected measured-support results and their interpretation.}
+\label{tab:support}
+\centering
+\small
+\resizebox{\columnwidth}{!}{\input{generated/table_support.tex}}
+\end{table}
+
+\subsection{Measured Vehicular Visible-Light Path Loss}
+The V-VLC study uses the public measurement data associated with Turan and Coleri's machine-learning channel-modeling work \cite{turan2021}. Distance-only held-out spatial-group MAE is 5.587261~dB and the directional model MAE is 5.580011~dB. The group-paired directional-minus-distance-only absolute-error effect is $-0.005031$~dB with 95\% CI $[-0.019734,0.010134]$ and Wilcoxon $p=0.375269$.
+
+That result is essentially null for a meaningful directional predictive advantage in the measured dataset. It therefore limits, rather than strengthens, physical claims about the synthetic directional latent family. Broader V-VLC literature shows that geometry, weather, reflections, vehicle motion, and receiver field of view can matter materially \cite{karbalayghareh2020,turan2022nlos,mohamed2023,cailean2024}; our measured comparison simply does not show that the particular added directional features improve this held-out regression task.
+
+\subsection{Measured 5G V2X Prediction and Replay}
+The CICV5G support study uses the measured dataset of Zhang \emph{et al.} \cite{zhang2026}, comprising 38 W2S drives and 43,045 samples in the analyzed subset. Persistence is the strongest tested one-step delay baseline in the primary split with MAE 5.576288~ms. At longer horizons, route/horizon fusion improves delay prediction relative to persistence across five reused-drive grouped split assignments, and the offline replay produces a descriptive mean P2--P1 measured-delay effect of approximately $-0.501375$~ms.
+
+These results support measured QoS/pose transfer and offline replay methodology. The split assignments reuse the same finite drives and are not independent replications. Most importantly, 5G delay measurements do not calibrate an optical channel and do not validate the PC-FMCW-informed directional latent model.
 
 \section{Discussion and Limitations}
 The frozen result supports decision relevance as a guard against unnecessary information seeking. It does not establish that the implemented active probing policy is better than passive Bayesian calibration. Scenario F suggests that detecting decision relevance is insufficient by itself; limited probing actions, the short-horizon information proxy, or value scaling may matter, but the frozen study does not identify which explanation dominates.
