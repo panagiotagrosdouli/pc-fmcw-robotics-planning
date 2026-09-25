@@ -38,6 +38,7 @@ simulation:
   hierarchical_clearance: true
   damped_lateral_prediction: true
   endpoint_anchored_lateral: true
+  prediction_min_history_steps: 3
 development:
   seed_range: [31000, 31019]
   hyperparameter_grid:
@@ -50,6 +51,7 @@ development:
     probe_weight: 0.20
     min_expected_regret: 0.0
   use: tuning, debugging, and mechanism inspection only
+  startup_prediction_guard: position-hold until 3 causal target observations are available; added during development after a two-sample noise reversal caused a common step-2 feasibility failure
   selection_rule:
     safety_gate: zero collision episodes, zero no-candidate episodes, and zero static-clearance-violation episodes across all C0-C4 development runs
     ranking: lexicographically minimize C3 mean cumulative decision regret, then C3 mean cumulative probe cost, then C3 mean probe fraction, then setting_id
