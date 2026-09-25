@@ -126,11 +126,15 @@ These results support measured 5G V2X QoS/pose transfer and offline replay analy
 
 ## 11. Directional vs Distance-Only Mechanism Ablation
 
-A standalone development-only mechanism ablation removes angular attenuation while preserving the same planner and hard-safety machinery. In this ablation, `delta_beam_rad` and `k_angular` are intentionally non-identifiable from link observations.
+A standalone **development-only** mechanism ablation removed angular attenuation while preserving the same planner family, candidate generation, Bayesian update machinery, hard-safety constraints, frozen-selected hyperparameters, and development seeds `31000..31019`. Its manifest explicitly labels the run `development_mechanism_ablation_not_primary_confirmatory_evidence`; it is not part of the frozen confirmatory evidence.
 
-The ablation is executed separately from the frozen primary confirmatory protocol and cannot change the selected hyperparameters or any primary conclusion.
+Under the distance-only link model, all five planners had effectively zero cumulative decision regret (C0/C4 exactly `0`; C1/C2/C3 at numerical roundoff, approximately `1.85e-18`) and all planners had probe fraction `0`. Progress and mean outage were identical across C0-C4. All 600 episode rows were collision-free and had zero no-candidate steps.
 
-[RESULTS TO BE INSERTED FROM THE STANDALONE DISTANCE-ONLY ABLATION ARTIFACT.]
+C1, C2 and C3 were behaviorally identical in this ablation. Relative to C0, C1 reduced normalized parameter error by `-0.160375` (95% CI `[-0.183166, -0.134407]`, Holm-adjusted `p=1.34e-5`), reflecting learning of the remaining distance-loss degree of freedom. C2-C1 and C3-C2 differences were exactly zero for regret, probing, progress, outage, and parameter error.
+
+Scenario-level results showed the same collapse: regret and probe fraction were zero in A-F for every planner. The angular-bias and combined-ambiguity scenarios therefore cease to induce distinct planning behavior when angular attenuation is removed. The angular latent parameters `delta_beam_rad` and `k_angular` are intentionally non-identifiable under this model, while `alpha_loss` can still be updated from distance-dependent observations.
+
+This ablation supports a **mechanism-specific**, not confirmatory, conclusion: the nontrivial active-calibration behavior observed in the directional study depends on directional geometry. Removing that geometry eliminates both decision-relevant disagreement and the incentive to probe under the implemented action set and information proxy. It does not establish physical identifiability or real-world optical validity.
 
 ## 12. Limitations
 
