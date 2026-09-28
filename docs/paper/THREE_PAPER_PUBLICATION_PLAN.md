@@ -66,9 +66,10 @@ P3 consistently reduces unsupported selections but does not show a stable additi
 ### Current branch / review package
 
 - branch: paper2-decision-validity-reframe
-- draft PR: **#39**
-- manuscript PDF CI: **passed**
-- repository CI: **passed**
+- core reframe PR **#39: merged**
+- follow-up submission/layout PR **#43: open draft**
+- manuscript PDF CI: **passed**, including the table-width correction
+- CI-generated 7-page PDF: **visually inspected; no remaining clipping/overlap detected**
 
 ### Venue fit
 
@@ -155,7 +156,8 @@ The paper therefore owns **suppression of unnecessary probing**, not active-cali
 - draft PR: **#41**
 - novelty audit updated against RMWorld
 - upstream PC-FMCW citation added
-- final CI status must be confirmed before moving PR out of draft
+- manuscript PDF CI: **passed**
+- CI-generated 9-page PDF: **visually inspected; no clipping/overlap detected**
 
 ### Venue fit
 
@@ -232,7 +234,8 @@ The upstream configuration contains a 193.4-THz carrier/frequency entry while th
 
 - branch: paper1-pc-fmcw-mechanism-reframe
 - draft PR: **#40**
-- manuscript PDF CI: **passed**
+- manuscript PDF CI: **passed** after positioning-table correction
+- CI-generated 5-page PDF: **visually inspected; no remaining clipping/overlap detected**
 - novelty and claim-evidence audits added
 
 ### Venue fit
@@ -295,7 +298,7 @@ A paper is ready only when all of the following are true:
 6. numerical claims map to frozen machine-readable evidence;
 7. bibliography has no missing/unused keys;
 8. manuscript PDF builds in clean CI;
-9. PDF is visually inspected;
+9. CI-generated PDF is visually inspected, and re-inspected after any venue-template conversion;
 10. author metadata and declarations are confirmed;
 11. cover letter and venue-specific source package are prepared;
 12. a final immutable release/archive is created.
