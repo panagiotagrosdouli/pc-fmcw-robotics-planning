@@ -1,0 +1,119 @@
+name: Submission Bundles
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'manuscripts/**'
+      - 'docs/paper/**'
+      - 'scripts/build_paper1_publication_assets.py'
+      - 'scripts/build_paper2_publication_assets.py'
+      - 'scripts/build_paper3_publication_assets.py'
+      - 'scripts/build_submission_package.py'
+      - '.github/workflows/submission_bundles.yml'
+  workflow_dispatch:
+
+jobs:
+  build-submission-bundles:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            latexmk texlive-latex-base texlive-latex-extra \
+            texlive-fonts-recommended texlive-publishers texlive-science
+          python -m pip install --upgrade pip
+          python -m pip install pandas matplotlib jinja2
+
+      - name: Regenerate publication assets
+        run: |
+          if [ -f manuscripts/paper2_real_v2x/results_archive/predictor_metrics.csv ]; then
+            python scripts/build_paper2_publication_assets.py \
+              manuscripts/paper2_real_v2x/results_archive \
+              --out manuscripts/paper2_real_v2x/generated
+          fi
+
+          python scripts/build_paper1_publication_assets.py \
+            --input manuscripts/paper1_pc_fmcw/results_archive/confirmatory_seed_level_effects.csv \
+            --out manuscripts/paper1_pc_fmcw/generated/table_confirmatory_effects.tex
+
+          python scripts/build_paper3_publication_assets.py \
+            --input manuscripts/paper3_active_self_calibration/results_archive \
+            --out manuscripts/paper3_active_self_calibration/generated
+
+      - name: Compile canonical manuscript PDFs
+        run: |
+          set -euo pipefail
+          for tex in \
+            manuscripts/paper1_pc_fmcw/paper1.tex \
+            manuscripts/paper2_real_v2x/paper2.tex \
+            manuscripts/paper3_active_self_calibration/paper3.tex
+          do
+            dir=$(dirname "$tex")
+            file=$(basename "$tex")
+            (cd "$dir" && latexmk -pdf -interaction=nonstopmode -halt-on-error "$file")
+          done
+
+      - name: Build deterministic reproducibility archives
+        run: |
+          rm -rf submission_bundles/build
+          mkdir -p submission_bundles/build
+          python scripts/build_submission_package.py --out submission_bundles/build
+
+      - name: Create venue-labelled submission bundles
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd submission_bundles/build
+
+          mv paper1_supplementary_reproducibility.zip \
+            paper1_OJVT_submission_bundle_2026-09-28.zip
+          mv paper2_supplementary_reproducibility.zip \
+            paper2_TVT_submission_bundle_2026-09-28.zip
+          mv paper3_supplementary_reproducibility.zip \
+            paper3_TIV_submission_bundle_2026-09-28.zip
+
+          cat > PUBLICATION_SNAPSHOT_MANIFEST.txt <<EOF
+          Repository: panagiotagrosdouli/pc-fmcw-robotics-planning
+          Commit: $GITHUB_SHA
+          Built by: .github/workflows/submission_bundles.yml
+          Date label: 2026-09-28
+
+          Paper 1 target: IEEE Open Journal of Vehicular Technology
+          Bundle: paper1_OJVT_submission_bundle_2026-09-28.zip
+
+          Paper 2 target: IEEE Transactions on Vehicular Technology
+          Bundle: paper2_TVT_submission_bundle_2026-09-28.zip
+
+          Paper 3 target: IEEE Transactions on Intelligent Vehicles
+          Bundle: paper3_TIV_submission_bundle_2026-09-28.zip
+          EOF
+
+          sha256sum \
+            paper1_OJVT_submission_bundle_2026-09-28.zip \
+            paper2_TVT_submission_bundle_2026-09-28.zip \
+            paper3_TIV_submission_bundle_2026-09-28.zip \
+            PUBLICATION_SNAPSHOT_MANIFEST.txt \
+            > SHA256SUMS.txt
+
+          ls -lh
+
+      - name: Upload GitHub submission bundles
+        uses: actions/upload-artifact@v4
+        with:
+          name: submission-bundles-2026-09-28
+          path: |
+            submission_bundles/build/paper1_OJVT_submission_bundle_2026-09-28.zip
+            submission_bundles/build/paper2_TVT_submission_bundle_2026-09-28.zip
+            submission_bundles/build/paper3_TIV_submission_bundle_2026-09-28.zip
+            submission_bundles/build/PUBLICATION_SNAPSHOT_MANIFEST.txt
+            submission_bundles/build/SHA256SUMS.txt
+          retention-days: 90
