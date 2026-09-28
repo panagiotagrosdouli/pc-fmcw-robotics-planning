@@ -1,6 +1,6 @@
 # Paper 3 annotated bibliography and citation map
 
-Audit date: 2026-09-25
+Audit date: 2026-09-28
 
 Purpose: provide a reviewer-facing literature structure while preserving claim boundaries. The references below position the study or document measured-data provenance; they are not evidence for the frozen C0-C4 numerical results unless explicitly identified as measured-support data.
 
@@ -41,6 +41,7 @@ Paper 3 evaluates information by downstream trajectory-selection regret rather t
 | `cheng2022` | Cheng et al., IEEE IoT Journal 9(23), 23441-23451. DOI `10.1109/JIOT.2022.3191386` | Vehicular ISAC context and sensing/communication coupling. | Broad context, not planner evidence. |
 | `jin2026` | Jin et al., ICC 2026. DOI `10.1109/ICC59461.2026.11587040` | Planning-oriented ISAC connects sensing uncertainty/resource allocation to vehicle planning. | Different physical-layer problem and uncertainty model. |
 | `silano2025` | Silano et al., IEEE SMC 2025, 6641-6646. DOI `10.1109/SMC58881.2025.11343117` | Optical-communication-driven NMPC in robotics. | Aerial FSO control, not vehicular PC-FMCW calibration. |
+| `wang2026rmworld` | Wang, Cheng & Huan, RMWorld, arXiv:2608.20126, 2026. | Very close 2026 neighbor: task-aware value-of-information channel calibration and credibility-filtered counterfactual radio-world-model learning. | Rules out a broad first claim for decision-relevant channel calibration; Paper 3 must own only the safe-motion probing gate and its frozen empirical boundary. |
 
 ## 4. Vehicular optical / visible-light communication
 
@@ -70,3 +71,18 @@ The repository previously associated the 2024 Sensors paper *Driving toward Conn
 3. Measured V-VLC and CICV5G references are explicitly separated from simulator confirmation.
 4. No citation is used to imply a real-road safety guarantee, measured PC-FMCW calibration, or universal first-of-kind status.
 5. This is a targeted reviewer-oriented literature audit, not a systematic review or exhaustive priority search.
+
+
+## 6. Upstream PC-FMCW architecture
+
+| Key | Reference / DOI | Role | Claim boundary |
+|---|---|---|---|
+| `liu2026` | Liu et al., *Phase-Coded FMCW Laser Headlamp for Integrated Sensing, Communication, and Illumination*, IEEE Photonics Technology Letters 38(14), 1032-1035. DOI `10.1109/LPT.2025.3649597` | Upstream architectural context for PC-FMCW sensing/communication/illumination. | Paper-3 latent parameters are additional simulator quantities; this reference does not physically calibrate them. |
+
+### 2026 novelty consequence
+
+RMWorld materially narrows the novelty space. The manuscript must no longer imply that valuing channel information by downstream decision/task relevance is unique. The defensible contribution is:
+
+> A frozen C1/C2/C3 experiment in which the vehicle's own safe motion is used as the information-gathering action, and probing is gated by posterior trajectory-ranking disagreement plus expected decision regret.
+
+The negative boundary is part of that contribution: the gate suppresses harmful unconditional probing but does not establish superiority over passive calibration.

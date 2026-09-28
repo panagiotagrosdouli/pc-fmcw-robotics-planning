@@ -11,9 +11,11 @@ We study when safe vehicle motion should also act as an experiment for learning 
 
 ## 1. Introduction
 
-Communication-aware motion planning is established, as are informative path planning, calibration-oriented trajectory design, ISAC-to-planning coupling, and optical communication-aware control. The narrower question here is whether a vehicle should deliberately excite a modeled directional communication channel only when parameter uncertainty is **decision relevant**.
+Communication-aware motion planning is established, as are informative path planning, calibration-oriented trajectory design, ISAC-to-planning coupling, optical communication-aware control, and—since August 2026—task-aware value-of-information channel calibration in RMWorld. The narrower question here is whether a vehicle should deliberately excite a modeled directional communication channel through its **own safe motion** only when posterior uncertainty changes the downstream trajectory decision.
 
-The study separates parameter learning from downstream decision quality. Better parameter estimation need not improve motion choice, and broad posterior uncertainty need not justify probing when all plausible models prefer the same safe trajectory.
+The PC-FMCW context is downstream of Liu et al.'s phase-coded FMCW laser-headlamp ISCAI architecture. The latent calibration parameters in this paper are additional simulator quantities; they are not measured constants from that upstream work.
+
+The study separates parameter learning from downstream decision quality. Better parameter estimation need not improve motion choice, and broad posterior uncertainty need not justify probing when all plausible models prefer the same safe trajectory. The new literature boundary is explicit: decision-relevant channel learning itself is not claimed as novel. The paper studies a specific online **motion-probing gate** based on trajectory-ranking disagreement and expected regret, and evaluates it against passive and unconditional calibration under a frozen protocol.
 
 ## 2. Model and uncertainty
 
@@ -66,6 +68,8 @@ A separate CICV5G study used 38 measured W2S runs and 43,045 samples. It provide
 ## 9. Discussion
 
 The strongest supported result is not that active calibration beats passive calibration. It is that decision relevance prevents a large amount of unnecessary information seeking. C2 learns aggressively but degrades decisions. C3 largely suppresses that cost and correctly stays inactive in Scenario E. Yet Scenario F shows that detecting decision relevance is insufficient by itself to guarantee useful probing.
+
+Relative to RMWorld, the contribution is narrower and operationally different: RMWorld values channel labels and counterfactual rollouts according to downstream task risk in a radio-world-model framework, whereas C3 decides whether a safe **vehicle motion candidate itself** should be used as a physical information-gathering intervention. The overlap is acknowledged rather than hidden.
 
 Possible causes include limited probing actions, the short-horizon information proxy, and the value/scaling of information relative to task cost. These are hypotheses for future work, not explanations established by the frozen data.
 
