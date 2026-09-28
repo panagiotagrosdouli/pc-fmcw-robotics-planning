@@ -65,9 +65,9 @@ P3 consistently reduces unsupported selections but does not show a stable additi
 
 ### Current branch / review package
 
-- branch: paper2-decision-validity-reframe
+- canonical manuscript changes are now on `main`
 - core reframe PR **#39: merged**
-- follow-up submission/layout PR **#43: open draft**
+- follow-up submission/layout PR **#43: merged**
 - manuscript PDF CI: **passed**, including the table-width correction
 - CI-generated 7-page PDF: **visually inspected; no remaining clipping/overlap detected**
 
@@ -152,8 +152,8 @@ The paper therefore owns **suppression of unnecessary probing**, not active-cali
 
 ### Current branch / review package
 
-- branch: paper3-decision-relevance-literature-update
-- draft PR: **#41**
+- canonical manuscript changes are now on `main`
+- PR **#41: merged**
 - novelty audit updated against RMWorld
 - upstream PC-FMCW citation added
 - manuscript PDF CI: **passed**
@@ -232,8 +232,8 @@ The upstream configuration contains a 193.4-THz carrier/frequency entry while th
 
 ### Current branch / review package
 
-- branch: paper1-pc-fmcw-mechanism-reframe
-- draft PR: **#40**
+- canonical manuscript changes are now on `main`
+- PR **#40: merged**
 - manuscript PDF CI: **passed** after positioning-table correction
 - CI-generated 5-page PDF: **visually inspected; no remaining clipping/overlap detected**
 - novelty and claim-evidence audits added
@@ -309,14 +309,16 @@ Scientific retuning after frozen confirmation is not a submission-readiness step
 
 ## Immediate submission sequence
 
-### 1. Finish Paper 2 operational packaging
-It has the strongest external evidence and the cleanest standalone methodological story.
+The repository-side scientific and manuscript packaging work is complete and merged.
 
-### 2. Finish Paper 3 operational packaging
-Its mechanism/negative-result story is strong, but the RMWorld comparison must remain explicit.
+### 1. Paper 2
+First external submission candidate. Remaining work is author-specific metadata, final TVT-format conversion/check, release/archive, and portal submission.
 
-### 3. Finish Paper 1 operational packaging
-The controlled evidence is statistically strong, but the absence of physical optical calibration creates the highest external-validity reviewer risk.
+### 2. Paper 3
+Second external submission candidate. Remaining work is author-specific metadata, T-IV short biographies, final venue-format conversion/check, release/archive, and portal submission.
+
+### 3. Paper 1
+Third external submission candidate. Remaining work is author-specific metadata, OJVT ORCID/APC confirmation, final venue-format conversion/check, release/archive, and portal submission. The absence of measured optical calibration remains the principal scientific limitation.
 
 ---
 
