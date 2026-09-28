@@ -1,70 +1,241 @@
 \documentclass[journal]{IEEEtran}
 \usepackage{amsmath,amssymb,booktabs,graphicx,url}
 \usepackage[hidelinks]{hyperref}
-\title{Predictive Connectivity-Aware Motion Planning with a PC-FMCW-Informed Analytical Link Model}
+
+\title{Predictive Motion Planning Downstream of a PC-FMCW Laser-Headlamp ISCAI:\\
+A Controlled Directional-Connectivity Mechanism Study}
+
 \author{Panagiota Grosdouli%
 \thanks{Affiliation and corresponding-author contact must be confirmed before submission.}}
+
 \begin{document}
 \maketitle
 
 \begin{abstract}
-We study whether trajectory-conditioned future connectivity estimates improve autonomous motion decisions relative to reactive connectivity scoring in a controlled PC-FMCW-informed simulation. Five planners share candidate generation, vehicle and road limits, static filtering, and predicted dynamic-target safety. Only a nondeployable reference receives simulator future truth, and only for connectivity forecasting. A frozen development rule selected a 0.5-m planning buffer before 50 independent confirmatory seeds were opened. The confirmatory hard gate recorded no collision, no-candidate, or modeled static-violation episodes. Relative to reactive scoring, predictive scoring reduced mean modeled outage by 0.01740 (95\% deterministic-bootstrap interval, 0.01434--0.02029 in magnitude) and improved all five declared communication endpoints after Holm correction. The evaluated uncertainty-aware variant was worse than prediction alone on all five endpoints; the connectivity-only oracle did not differ significantly from the practical predictor. A separately authorized directional-versus-distance-only study supports directional geometry as the operative simulated mechanism, but contains one no-candidate episode and is not safety evidence. These results support predictive connectivity utility under the evaluated analytical model; they do not validate an optical channel or real-road safety.
+Phase-coded frequency-modulated continuous-wave (PC-FMCW) laser-headlamp architectures have recently been proposed to integrate sensing, communication, and illumination for intelligent vehicles. This paper studies a downstream question that is not addressed by the waveform architecture itself: whether future target motion should be used to score candidate vehicle trajectories according to predicted communication geometry before connectivity degrades. The study is deliberately model based. A PC-FMCW-informed analytical connectivity surrogate maps future relative distance and direction to modeled SNR, BER, outage, and goodput; it is not an experimentally calibrated optical channel. Five planners share the same candidate generator, road and vehicle constraints, static filtering, predicted dynamic-target safety, and receding-horizon execution. They differ only in how communication information is used: mobility-only, reactive, predictive, uncertainty-aware predictive, and a nondeployable connectivity-only oracle. After a frozen development rule selected a 0.5-m planning buffer, 50 untouched confirmatory seeds were opened. The confirmatory hard gate recorded zero collision episodes, zero no-candidate episodes, and zero modeled static-clearance violations in the sampled scenarios. Relative to reactive scoring, predictive scoring reduced mean modeled outage by 0.01740, increased mean SNR by 0.2799 dB, increased minimum SNR by 2.0097 dB, reduced modeled BER by 0.003045, and increased modeled goodput by 3.045 Mbit/s; all five paired seed-level effects remained significant after Holm correction. The uncertainty-aware variant was worse than prediction alone on all five communication endpoints, while the oracle did not differ significantly from the practical predictive planner. In a separately authorized 20-seed mechanism study, the predictive-over-reactive outage effect was present under the directional model but collapsed under a distance-only ablation. The supported conclusion is narrow: under this controlled analytical model, future trajectory-conditioned directional connectivity changes motion decisions beneficially relative to reactive scoring. The study does not validate PC-FMCW optical propagation, real-road safety, or a physical laser-headlamp channel.
 \end{abstract}
 
 \begin{IEEEkeywords}
-communication-aware planning, intelligent vehicles, predictive connectivity, PC-FMCW, model-based evaluation
+PC-FMCW, integrated sensing and communication, optical wireless communication, communication-aware planning, autonomous vehicles, predictive connectivity, mechanism ablation
 \end{IEEEkeywords}
 
 \section{Introduction}
-Communication-aware motion planning is established prior art \cite{ghaffarkhah2011}, including proactive radio-map planning \cite{gordon2026} and vehicular QoS-aware trajectory selection \cite{ullah2025}. Optical vehicle-to-vehicle links and directional receivers have also been demonstrated independently \cite{takai2014,avatamanitei2024}. We therefore make no generic novelty claim for communication-aware planning, optical vehicle links, or directional receivers.
+Integrated sensing and communication (ISAC) seeks to reuse physical-layer resources for both environmental perception and data exchange. In vehicular systems, the coupling is especially strong because sensing quality, communication geometry, and motion evolve together \cite{cheng2022}. Liu et al. recently proposed a phase-coded FMCW laser-headlamp architecture that combines FMCW sensing, embedded phase-coded communication, and adaptive illumination in one optical system \cite{liu2026}. Their contribution is primarily at the waveform, sensing, communication, and illumination layers.
 
-Our narrower question is whether candidate-dependent future connectivity estimates can improve decisions relative to a reactive score when motion generation and safety information are held constant. We evaluate that question downstream of a PC-FMCW sensing/tracking concept using a controlled analytical link model. The study contributes (i) a common planner interface that isolates connectivity forecasting from collision avoidance, (ii) a frozen seed-level confirmatory comparison of reactive and predictive scoring, and (iii) a gated directional-mechanism analysis. All conclusions are model-based.
+The present paper starts \emph{after} that upstream sensing/tracking chain. Its question is not whether PC-FMCW can communicate and sense simultaneously, nor whether communication-aware motion planning is new. Rather, it asks whether target-motion prediction can be converted into a useful downstream motion decision by evaluating how each candidate ego trajectory changes future relative optical geometry.
 
-\section{System and Analytical Model}
-The simulator supplies target motion, while noisy observations feed a common endpoint-anchored damped-lateral and constant-velocity forecast. One bounded dynamics lattice generates candidate ego trajectories. The analytical link maps relative distance and direction to modeled signal-to-noise ratio (SNR), bit-error rate (BER), outage probability, and goodput.
+That distinction matters because several neighboring ideas are already established. Communication-aware robot motion planning has a long literature \cite{ghaffarkhah2011,muralidharan2021}, including obstacle-aware planning \cite{hurst2021}, joint motion--communication--sensing optimization \cite{cai2022}, proactive radio-map planning \cite{gordon2026}, and QoS-aware autonomous-vehicle route selection \cite{ullah2025}. Optical communication constraints have also been incorporated directly into nonlinear model predictive control for mobile robots \cite{silano2025}. Most recently, planning-oriented ISAC explicitly couples sensing uncertainty and resource allocation to vehicle motion \cite{jin2026}. Therefore neither communication affects motion nor ISAC affects planning is a defensible novelty claim.
 
-Upstream waveform and contextual parameters remain distinct from downstream geometry-to-link assumptions. In particular, the reported 193.4-THz carrier is retained as an upstream simulation parameter and is not physically reconciled with the laser-headlamp/blue-light interpretation. The analytical geometry model is not calibrated against optical measurements. Existing optical V2V results \cite{takai2014,avatamanitei2024} establish relevant prior art but do not calibrate this surrogate.
+The narrower gap studied here is a controlled \emph{perception-to-action mechanism}: an upstream PC-FMCW sensing/tracking architecture provides target-state information; a downstream planner predicts future target motion; candidate ego trajectories induce different future target-relative distances and angles; and those geometries are scored using an explicitly declared analytical connectivity surrogate. The experimental design then isolates the value of using the \emph{future} geometry rather than only the current geometry while keeping the motion generator and safety information fixed.
 
-\section{Planner Interfaces and Information Boundaries}
-Five planners share candidate generation, vehicle limits, road bounds, static-obstacle filtering, physical target clearance, stopping checks, and fallback behavior:
+This paper makes four scoped contributions:
+\begin{enumerate}
+\item It defines a downstream interface from the PC-FMCW sensing/tracking concept of Liu et al. \cite{liu2026} to receding-horizon motion planning without claiming to redesign the waveform or sensing front end.
+\item It constructs a controlled planner family in which reactive and predictive connectivity scoring share candidate generation, motion constraints, and dynamic-safety information, so the P2--P1 comparison isolates the use of future communication geometry rather than different collision-avoidance logic.
+\item It evaluates the comparison with a frozen development/confirmation protocol and seed-level paired inference, while retaining protocol failures and negative results.
+\item It performs a directional-versus-distance-only ablation that tests whether the predictive effect depends on the directional geometry introduced by the analytical optical-link model rather than merely on generic distance-aware motion.
+\end{enumerate}
+
+The claims remain algorithmic and model-relative. The analytical link model is not calibrated against optical measurements, and the upstream carrier/headlamp interpretation contains an unresolved physical inconsistency discussed explicitly below.
+
+\section{Related Work and Non-Overlap Positioning}
+\subsection{Communication-aware robotics}
+Ghaffarkhah and Mostofi established probabilistic communication-aware motion planning in which robot motion is optimized using learned wireless-channel structure \cite{ghaffarkhah2011}. The broader field now covers motion as a communication resource, connectivity-constrained navigation, online mapping of communication quality, and joint sensing/communication/motion objectives \cite{muralidharan2021,hurst2021,cai2022,gordon2026}. These works rule out any novelty claim based solely on adding connectivity to a trajectory objective.
+
+Ullah et al. directly study autonomous-vehicle trajectory selection using network QoS information in a simulated 6G/mmWave environment \cite{ullah2025}. Thus, vehicle trajectory optimization for network quality is also prior art.
+
+\subsection{Optical and vehicular communication geometry}
+Vehicular optical communication is likewise established. Camera-based optical V2V systems have been demonstrated experimentally \cite{takai2014}, and analytical/measurement-driven vehicular visible-light channel models capture the importance of geometry, orientation, oscillation, and field of view \cite{karbalayghareh2020,turan2021,mohamed2023,avatamanitei2024}. These works motivate the relevance of directional geometry, but they do not calibrate the particular surrogate used in this paper.
+
+Silano et al. integrate free-space-optical alignment and communication constraints directly into an NMPC framework for aerial robots \cite{silano2025}. This is particularly close conceptually: optical link geometry can already influence motion control. The distinction here is not optical communication-aware control itself, but the controlled reactive-versus-predictive comparison downstream of a PC-FMCW vehicular sensing/tracking architecture, together with a directional mechanism ablation and frozen confirmatory protocol.
+
+\subsection{Planning-oriented ISAC}
+Vehicular ISAC literature increasingly closes the loop from sensing to planning. Planning-Oriented ISAC allocates ISAC resources according to obstacles that are important to the vehicle's motion plan and couples sensing uncertainty to trajectory feasibility \cite{jin2026}. That work addresses resource allocation and sensing uncertainty upstream of planning. In contrast, the present study freezes the upstream sensing/communication concept and asks whether a downstream planner should use predicted future target/link geometry when choosing ego motion.
+
+\begin{table*}[t]
+\caption{Representative positioning. The table identifies close methodological axes; it is not a systematic review.}
+\label{tab:positioning}
+\centering
+\small
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lccccc}
+\toprule
+Work & Communication-aware motion & Vehicle/robot & Optical link & ISAC coupling & Predictive-vs-reactive directional mechanism test \\
+\midrule
+Ghaffarkhah--Mostofi \cite{ghaffarkhah2011} & \checkmark & robot & -- & -- & -- \\
+Ullah et al. \cite{ullah2025} & \checkmark & vehicle & -- & -- & -- \\
+Gordon et al. \cite{gordon2026} & \checkmark & robot & -- & -- & -- \\
+Silano et al. \cite{silano2025} & \checkmark & aerial robot & \checkmark & -- & -- \\
+Jin et al. \cite{jin2026} & \checkmark & vehicle & -- & \checkmark & -- \\
+Liu et al. \cite{liu2026} & -- & vehicle context & \checkmark & \checkmark & -- \\
+\textbf{This work} & \textbf{\checkmark} & \textbf{vehicle} & \textbf{modeled} & \textbf{downstream PC-FMCW} & \textbf{\checkmark} \\
+\bottomrule
+\end{tabular}
+}
+\end{table*}
+
+
+\section{System Boundary and PC-FMCW-Informed Link Model}
+\subsection{Upstream system boundary}
+The upstream PC-FMCW laser-headlamp architecture embeds phase-coded communication into an FMCW waveform while using the same optical system for ranging/tracking and illumination \cite{liu2026}. In this study, that upstream block is treated as conceptually frozen. The robotics extension begins once a target-state history is available.
+
+At planning step $k$, the ego state is
+\begin{equation}
+x_e(k)=[p_x(k),p_y(k),\psi(k),v(k)].
+\end{equation}
+A causal target predictor supplies a common future target-position sequence
+\begin{equation}
+\hat p_t(k+j),\qquad j=1,\ldots,H.
+\end{equation}
+For candidate ego trajectory $\tau_i$,
+\begin{equation}
+r_i(k+j)=\hat p_t(k+j)-p_{e,i}(k+j)
+\end{equation}
+defines candidate-conditioned future relative geometry.
+
+\subsection{Analytical connectivity surrogate}
+The planner maps relative geometry to modeled communication quantities:
+\begin{equation}
+\mathcal{L}:r_i(k+j)\mapsto
+\{\widehat{\mathrm{SNR}},\widehat{\mathrm{BER}},
+\widehat P_{\mathrm{out}},\widehat G\}.
+\end{equation}
+Distance attenuation and angular/beam attenuation are represented separately. The default directional model therefore penalizes both increasing separation and angular misalignment, while the mechanism ablation removes the angular term and preserves distance dependence.
+
+This mapping is intentionally described as a \emph{PC-FMCW-informed analytical connectivity surrogate}. The upstream configuration includes a 193.4-THz carrier/frequency entry, 10-GHz chirp bandwidth, 10-$\mu$s chirp period, and 1-Gbit/s embedded communication rate. These values may be traceable to the upstream simulation context, but the downstream geometry-to-SNR/path-loss parameters are additional modeling assumptions.
+
+A specific physical ambiguity must be retained. The upstream study is framed as a laser-headlamp/illumination system, yet 193.4 THz corresponds to approximately 1550 nm in free space rather than visible blue light. The available evidence does not establish whether this reflects a distinct coherent communication carrier, a simplified simulation parameter, an unmodeled conversion stage, or a manuscript inconsistency. We therefore do not interpret 193.4 THz as a calibrated visible-headlamp propagation frequency and do not use it to justify the downstream optical channel.
+
+\section{Planner Family and Information Boundaries}
+All planner variants share the same bounded vehicle-dynamics candidate lattice, vehicle limits, road constraints, static-obstacle filtering, time-aligned dynamic-target clearance, stopping checks, and fallback logic.
+
+\paragraph{P0: mobility only}
+Connectivity is excluded from the objective. The common predicted target trajectory is still used for dynamic safety.
+
+\paragraph{P1: reactive connectivity}
+Connectivity scoring uses the current/myopic target state, while dynamic safety still uses the common target forecast. P1 therefore asks what action looks favorable if future relative communication geometry is not anticipated.
+
+\paragraph{P2: predictive connectivity}
+Each candidate is scored using the common predicted future target sequence and its resulting future relative geometry. P2 is the primary deployable predictive method.
+
+\paragraph{P3: uncertainty-aware predictive connectivity}
+P3 uses the same mean predictor and link surrogate as P2 but propagates declared target-prediction uncertainty by Monte Carlo sampling and adds the implemented risk-sensitive score.
+
+\paragraph{P4: connectivity-only oracle reference}
+P4 may use simulator future target truth only when forecasting connectivity. Its dynamic-safety filter still receives the same predicted target sequence as P0--P3. Thus, P4 is not allowed an oracle collision-avoidance advantage.
+
+At each planning step only the first control action of the selected trajectory is executed. The system then observes again and replans. Future simulator truth is never exposed to P0--P3.
+
+This decomposition gives three interpretable comparisons:
 \begin{itemize}
-\item P0 excludes connectivity from its objective.
-\item P1 repeats the current target state for reactive connectivity scoring.
-\item P2 scores candidate-dependent future connectivity using the common forecast.
-\item P3 propagates forecast uncertainty through Monte Carlo risk scoring.
-\item P4 uses future simulator target truth only for connectivity scoring.
+\item P2--P1: value of future trajectory-conditioned connectivity under shared safety information;
+\item P3--P2: incremental value or cost of the implemented uncertainty/risk treatment;
+\item P4--P2: remaining model-relative gap to perfect future connectivity geometry.
 \end{itemize}
-All planners receive the same predicted dynamic-target information for safety. P4 cannot use future truth to bypass a safety rejection. Thus, P2--P1 is the primary causal comparison; P3--P2 tests the chosen uncertainty/risk propagation; and P4--P2 is a nondeployable connectivity-only oracle comparison.
 
 \section{Frozen Experimental Protocol}
-Protocol versions V3--V5 failed development gates, and V6 failed its independent confirmatory gate. Those negative results remain in the record. V7 changed one predeclared endpoint-anchoring estimator detail before its seeds were inspected. Development used seeds 18000--18019 over seven safety margins; the minimum-passing rule selected 0.5 m. Confirmatory seeds 19000--19049 were opened only after selection. Geometry seeds 20000--20019 were opened only after the confirmatory hard gate passed.
+The study uses multiple scenario families, including following, lateral/cut-in, crossing, geometry-driven degradation, prediction mismatch, and combined safety/connectivity conflict. Scenarios and observation perturbations are seeded so planners can be compared on matched realizations.
 
-The independent statistical unit is the seed. Scenario rows are paired within seed and averaged to one seed-level effect. Deterministic percentile-bootstrap intervals use 100,000 resamples. Two-sided paired Wilcoxon tests are Holm-adjusted across the five endpoints within each declared comparison family. Candidate evaluations, scenarios, and timesteps are not treated as independent replicates.
+The publication evidence comes from protocol V7. Earlier versions are not hidden. V3--V5 produced valid development-gate failures. V6 selected a 0.5-m planning margin during development but failed independent confirmation because one untouched seed produced no-candidate steps for several planners. V7 corrected one estimator continuity issue: the damped lateral prediction is anchored at the latest observation while retaining the pre-existing estimated slope and decay. That correction was frozen before new V7 seed ranges were opened.
 
-\section{Results}
-The confirmatory artifact contains 1,250 planner-scenario rows: 50 seeds, five scenarios, and five planners. The hard gate passed with zero collision episodes, zero no-candidate episodes, and zero modeled static-clearance-violation episodes.
+V7 uses disjoint seed ranges:
+\begin{itemize}
+\item development: 18000--18019;
+\item confirmation: 19000--19049;
+\item mechanism/geometry: 20000--20019.
+\end{itemize}
+Development evaluated seven planning margins. A predeclared minimum-passing rule selected 0.5 m. Only then were the 50 confirmatory seeds opened. The geometry study was authorized only after the confirmatory hard gate passed.
+
+The hard gate requires zero realized collision episodes, zero no-candidate episodes, and zero modeled static-envelope violations. Passing this gate establishes only that those failures were absent in the sampled modeled conditions; it is not a formal safety guarantee.
+
+\section{Statistical Analysis}
+The independent confirmatory unit is the simulation seed. The five declared scenarios are first aggregated within seed so repeated scenarios from one seed are not treated as independent observations.
+
+For each endpoint, paired seed-level effects are summarized by a deterministic 95\% percentile-bootstrap interval using 100,000 resamples. Two-sided paired Wilcoxon signed-rank tests are also reported. Holm correction is applied across the five predeclared communication endpoints within each comparison family.
+
+The declared endpoints are mean outage probability, mean SNR, minimum SNR, modeled BER, and modeled goodput. Collision indicators, no-candidate events, clearance, rejection counts, and related feasibility quantities are reported separately rather than merged into a single composite score.
+
+\section{Confirmatory Results}
+The confirmatory artifact contains 1,250 planner--scenario rows: 50 seeds $\times$ five scenarios $\times$ five planners. No duplicate planner/scenario/seed rows are present.
+
+The hard gate passed with zero collision episodes, zero no-candidate episodes, and zero modeled static-clearance-violation episodes.
 
 \begin{table}[t]
-\caption{Confirmatory seed-level effects. CI denotes the deterministic 95\% bootstrap interval; $p_H$ is Holm adjusted.}
+\caption{Confirmatory P2--P1 seed-level effects. CI denotes the deterministic 95\% bootstrap interval; $p_H$ is Holm adjusted.}
 \label{tab:confirmatory}
 \centering
 \small
 \resizebox{\columnwidth}{!}{\input{generated/table_confirmatory_effects.tex}}
 \end{table}
 
-P2 improved all five modeled communication endpoints relative to P1 (Table~\ref{tab:confirmatory}). P3 was worse than P2 on every endpoint after correction, which rules out a claim that the evaluated uncertainty penalty improved communication utility. P4--P2 intervals included zero and all adjusted $p$-values equaled 1.0; under these conditions the practical forecast captured most of the modeled connectivity-only oracle value.
+Table~\ref{tab:confirmatory} shows the primary P2--P1 effects. Predictive scoring reduced mean modeled outage by 0.0173955, increased mean SNR by 0.2799 dB, increased minimum SNR by 2.0097 dB, reduced modeled BER by 0.003045, and increased modeled goodput by approximately 3.045 Mbit/s. Every bootstrap interval excluded zero and every Holm-adjusted $p$-value was below $10^{-10}$.
 
-\section{Directional Mechanism Analysis}
-The authorized 20-seed study held planner and seeds fixed while comparing the directional model with a distance-only variant. The directional P2--P1 outage effect was $-0.01803$; the distance-only effect was approximately zero. This interaction supports directional geometry as a mechanism in the simulator, not physical optical-channel validity. One directional/P2 episode contained one no-candidate step; consequently the mechanism study does not extend the confirmatory safety statement.
+These endpoints are correlated outputs of one analytical model and should not be interpreted as five independent physical demonstrations. Their value is consistency: the same predictive-vs-reactive change moves all declared model outputs in the communication-favorable direction.
 
-\section{Negative Results, Limitations, and Threats}
-Earlier protocol failures, the V6 confirmatory stop, V7 P3 underperformance, and the geometry no-candidate episode are retained as negative evidence. The link is analytical and uncalibrated; target and ego motion are simulated. The sampled hard gate demonstrates only absence of specified failures in the evaluated scenarios and is not a safety guarantee. The endpoint-anchoring change followed diagnosis of a prior failure; protection against outcome-driven tuning comes from freezing it before fresh V7 development and confirmation. P3 conclusions depend on the chosen uncertainty and risk model. The unresolved carrier/headlamp interpretation limits physical interpretation.
+\subsection{Negative P3 result}
+P3 was worse than P2 on all five endpoints after Holm correction. Mean outage increased by approximately 0.00636, mean SNR decreased by 0.120 dB, minimum SNR decreased by 0.553 dB, modeled BER increased, and modeled goodput decreased.
 
-\section{Discussion and Conclusion}
-Under the frozen controlled simulation, future trajectory-conditioned scoring improved modeled communication outcomes relative to reactive scoring while planners shared the same safety interface. Neither uncertainty propagation nor privileged future connectivity truth yielded a further supported improvement. These findings support a narrow algorithmic conclusion under the evaluated model. They do not establish measured PC-FMCW performance, optical calibration, real-road validity, or a safety guarantee.
+This is an important boundary. The study does not support the common intuition that adding uncertainty propagation necessarily improves a predictive planner. Under the implemented risk score and uncertainty model, it degraded the communication objective.
 
-\section*{Data and Code Availability}
-Configuration, workflows, compact machine-readable evidence, statistical analysis, and regeneration instructions are archived with the repository release. The authoritative protocol is \texttt{part\_b\_final\_v7.yaml}; full workflow-artifact provenance and digests are recorded in the repository.
+\subsection{Oracle gap}
+P4 did not differ significantly from P2 after Holm correction on any of the five endpoints. For example, the P4--P2 outage effect was approximately $-0.00139$ with a bootstrap interval spanning zero. The oracle is not a universal upper bound on every mixed objective; it is a model-relative connectivity reference. The result suggests that, under the tested conditions, the practical forecast captured most of the communication value available from perfect future target geometry.
+
+\section{Directional Mechanism Study}
+A predictive planner can outperform a reactive one for many generic reasons. To test whether the observed effect depends on the directional optical geometry introduced by this model, the authorized mechanism study compares
+\begin{equation}
+\text{directional model}
+=
+\text{distance loss}+\text{angular/beam loss}
+\end{equation}
+against
+\begin{equation}
+\text{distance-only model}
+=
+\text{distance loss}.
+\end{equation}
+
+Planner settings, scenarios, and mechanism seeds are held fixed. In the directional model, the P2--P1 mean-outage effect was approximately $-0.01803$. Under the distance-only model, the corresponding effect collapsed to approximately zero.
+
+This interaction is the strongest technology-specific mechanism evidence in the current study: predictive benefit is not reproduced when angular geometry is removed from the implemented link surrogate. It does \emph{not} establish that the angular model is physically calibrated.
+
+One directional/P2 mechanism episode contained one no-candidate step. Consequently the mechanism study is not additional confirmatory safety evidence; its purpose is mechanism isolation only.
+
+\section{Discussion}
+\subsection{What the result adds}
+The study does not add a new generic principle that connectivity should influence motion. Instead, it shows that a specific downstream design choice matters inside a PC-FMCW-informed vehicular architecture: when relative optical geometry is directional, scoring the \emph{future} geometry along candidate trajectories produces different and more favorable modeled communication outcomes than scoring only present geometry, even when the planners share motion candidates and safety information.
+
+The directional ablation strengthens that interpretation. If P2 merely benefited from generic distance awareness, a similar effect would be expected in the distance-only model. Instead, the P2--P1 outage effect collapses when angular attenuation is removed.
+
+\subsection{Why the oracle result matters}
+The absence of a supported P4--P2 gap argues against a story in which P2 succeeds only because the tested predictor is accidentally close to simulator truth on one endpoint. Under the tested scenario distribution, the deployable forecast retains most of the modeled communication value of perfect future geometry. This conclusion remains model-relative and should not be generalized to harder motion, sensing, or optical conditions.
+
+\subsection{Why the P3 result matters}
+P3 provides a useful negative control. More sophisticated uncertainty treatment is not automatically better. The result motivates future risk formulations that distinguish uncertainty relevant to safety, uncertainty relevant to communication utility, and uncertainty that changes the candidate ranking.
+
+\section{Threats to Validity}
+The principal limitation is physical fidelity. The connectivity mapping is analytical and not calibrated to a measured PC-FMCW optical channel. Vehicular VLC literature demonstrates that orientation, oscillation, receiver field of view, blockage, and environment-specific effects can materially change link quality \cite{karbalayghareh2020,turan2021,mohamed2023,avatamanitei2024}. The present surrogate captures only a controlled subset of those mechanisms.
+
+Second, the upstream carrier/headlamp interpretation is unresolved, so upstream frequency entries are treated as provenance metadata rather than proof of visible-light propagation realism.
+
+Third, ego and target motion are simulated. The zero-failure hard gate is therefore evidence only for the sampled benchmark, not real-road safety.
+
+Fourth, the mechanism ablation is authorized after the confirmatory gate but contains one no-candidate event and uses only 20 seeds. It is mechanism evidence, not a second independent confirmation.
+
+Fifth, P3 conclusions are specific to the implemented uncertainty distribution, Monte Carlo sample count, and risk scoring. A different uncertainty representation could produce different behavior.
+
+Finally, the current study does not compare against every contemporary nonlinear optimal-control formulation. Its scientific target is not planner architecture superiority but the isolated predictive-versus-reactive connectivity mechanism under a common motion/safety interface.
+
+\section{Reproducibility}
+The authoritative experiment configuration is \texttt{configs/experiments/part\_b\_final\_v7.yaml}. The frozen workflow is \texttt{.github/workflows/part\_b\_v7.yml}. Development evidence is archived under \texttt{results\_archive/part\_b\_v7\_development/}; compact confirmatory evidence is included with this manuscript; and workflow provenance/digests are recorded in the repository.
+
+The publication table is generated from the archived seed-level effects rather than manually edited. Protocol failures from V3--V6 are retained in the repository record.
+
+\section{Conclusion}
+A PC-FMCW laser-headlamp ISCAI architecture supplies a natural sensing/communication context for motion planning, but the general idea of communication-aware or ISAC-aware planning is already established. The contribution of this study is therefore narrower and testable.
+
+Under a frozen controlled simulation with a PC-FMCW-informed directional connectivity surrogate, predictive trajectory-conditioned scoring improved all five declared modeled communication endpoints relative to reactive scoring while both planners shared the same candidate generator and safety information. The implemented uncertainty-aware extension degraded those endpoints, and a connectivity-only oracle did not provide a supported additional benefit. A directional-versus-distance-only ablation further indicates that the predictive effect depends on angular geometry in the implemented model.
+
+The result should be read as a downstream algorithmic mechanism study. It does not validate optical propagation, the physical carrier/headlamp interpretation, real-road deployment, or autonomous-driving safety.
 
 \section*{Declarations}
 Author affiliation, acknowledgements, funding, and competing-interest declarations must be confirmed by the author before submission; no statement is inferred from repository contents.
