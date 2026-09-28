@@ -39,6 +39,8 @@
 
 **IEEE Open Journal of Vehicular Technology (OJVT)** for the current model-based mechanism manuscript.
 
+Current manuscript length: **5 IEEE-style pages**. Current OJVT instructions allow up to **14 pages for an initial submission**, so the current manuscript is well inside the limit. OJVT also requires a registered **ORCID** for submission/proof handling.
+
 Higher-risk alternative:
 - IEEE Transactions on Vehicular Technology.
 
@@ -50,7 +52,7 @@ A measured optical calibration/hardware experiment would materially strengthen t
 2. Confirm affiliations and corresponding email.
 3. Confirm funding/conflict statements.
 4. Confirm target-journal disclosure requirements for related manuscripts/preprints.
-5. Apply current venue template/page requirements.
+5. Apply the current OJVT article template and confirm the corresponding author's ORCID.
 6. Re-run one final visual inspection after venue-template conversion.
 7. Build final source/supplementary archive and immutable release.
 8. Approve the wording of the 193.4-THz physical limitation.
