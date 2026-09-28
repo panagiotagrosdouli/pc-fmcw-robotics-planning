@@ -40,6 +40,8 @@
 
 **IEEE Transactions on Vehicular Technology (TVT).**
 
+Current manuscript length: **7 IEEE-style pages**. Current TVT instructions allow up to **14 pages for an initial regular-paper submission**, so the present manuscript is within the initial page limit.
+
 Alternative paths:
 - IEEE Open Journal of Vehicular Technology for a fully open-access route.
 - IEEE Transactions on Intelligent Vehicles if the final editorial emphasis shifts toward decision methodology.
@@ -50,7 +52,7 @@ Alternative paths:
 2. Confirm affiliations and corresponding-author email.
 3. Confirm funding and conflict-of-interest statements.
 4. Confirm whether any related manuscript/preprint must be disclosed to the target journal.
-5. Apply the target journal's current submission template and page rules.
+5. Apply the current TVT submission template; preserve the manuscript within the current 14-page initial regular-paper limit.
 6. Re-run one final visual inspection after venue-template conversion.
 7. Produce final source/supplementary archive and immutable release tag.
 8. Approve the cover letter and declarations.
