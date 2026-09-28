@@ -1,46 +1,103 @@
 # Paper 2 — Verified Literature Backbone
 
-This is a claim-audit bibliography for the manuscript, not yet the final venue-formatted reference list. Entries below were verified against publisher/author/institutional metadata before inclusion.
+This bibliography is a novelty and claim audit for the decision-validity manuscript. The canonical BibTeX is `references.bib`.
 
-## Foundational communication-aware motion planning
+## A. Communication-aware motion planning is established
 
-**A. Ghaffarkhah and Y. Mostofi, “Communication-Aware Motion Planning in Mobile Networks,” IEEE Transactions on Automatic Control, vol. 56, no. 10, pp. 2478–2485, 2011. DOI: 10.1109/TAC.2011.2164033.**
+**Ghaffarkhah & Mostofi (2011), IEEE TAC. DOI 10.1109/TAC.2011.2164033.**  
+Establishes communication-aware motion planning with learned/probabilistic channel structure.
 
-Use for: establishing that communication-aware motion planning and channel-learning-aware navigation are long-standing prior art. Do not claim that adding a communication objective to robot motion is novel.
+**Muralidharan & Mostofi (2021), Annual Review of Control, Robotics, and Autonomous Systems. DOI 10.1146/annurev-control-071420-080708.**  
+Use as the broad review establishing motion/communication co-optimization as a mature field.
 
-## Contemporary radio-map-aware predictive planning
+**Hurst, Cai & Mostofi (2021), IEEE ICC. DOI 10.1109/ICC42927.2021.9500912.**  
+Establishes obstacle-aware communication-aware RRT* planning.
 
-**D. Gordon, M. B. Khan, T. Zugno, Y. Wu, M. Boban, X. An, and F. Dressler, “Communication-aware Robot Motion Planning via Online Estimation of Radio Maps,” IEEE INFOCOM 2026, NetRobiCS, pp. 1–6, 2026. DOI: 10.1109/INFOCOM59046.2026.11571354.**
+**Cai & Mostofi (2022), IEEE TCNS. DOI 10.1109/TCNS.2022.3158746.**  
+Establishes joint motion, communication, and sensing optimization in real wireless channel environments.
 
-Use for: showing that radio-map estimation, service-aware QoS risk maps, and proactive communication-aware motion planning already exist. Their evaluation is simulation-based and uses ray-tracing-derived radio maps; this helps distinguish our field-measurement support-audit contribution.
+**Implication for our manuscript:** never claim novelty for adding connectivity to a motion objective.
 
-## Autonomous-vehicle QoS-aware trajectory planning
+## B. Field-measured predictive QoS is established
 
-**I. Ullah, H. El Sayed, A. A. Dowhuszko, M. A. Khan, and J. Hämäläinen, “Trajectory Planning of Autonomous Vehicles to Ensure Target QoS Requirements in 6G Mobile Networks,” IEEE Access, vol. 13, pp. 37361–37369, 2025. DOI: 10.1109/ACCESS.2025.3543204.**
+**Sliwa et al. (2018), IEEE VTC-Fall. DOI 10.1109/VTCFall.2018.8690856.**  
+Uses mobility prediction and ML connectivity maps for context-predictive car-to-cloud communication with field evaluation.
 
-Use for: establishing prior art on vehicle trajectory selection from network QoS maps. Their Manhattan-grid study optimizes trajectory using spectral-efficiency information and reports gains in simulated network performance. Therefore generic “QoS-aware AV trajectory planning” is not our novelty.
+**Hernangómez et al. (2023), Berlin V2X, VTC2023-Spring. DOI 10.1109/VTC2023-Spring57618.2023.10200750.**  
+Provides GPS-located multi-vehicle/multi-RAT measurements for ML and proactive V2X studies.
 
-## Primary field-measurement dataset
+**Palaios et al. (2023), IEEE Access. DOI 10.1109/ACCESS.2023.3303528.**  
+Important for our methodology: shows strong sensitivity of vehicular QoS prediction to data splitting and warns that random splits can overestimate performance.
 
-**X. Zhang, L. Xiong, P. Zhang, et al., “5G communication delay dataset for cloud-based vehicle planning and control,” Scientific Data, vol. 13, article 878, 2026. DOI: 10.1038/s41597-026-07239-7.**
+**Partani et al. (2025), VTC2025-Spring. DOI 10.1109/VTC2025-SPRING65109.2025.11174805.**  
+Establishes further predictive QoS modeling on Berlin V2X data using lead-vehicle and historical information.
 
-Dataset archive: Zenodo DOI 10.5281/zenodo.17475688.
+**Implication for our manuscript:** never claim novelty for PQoS or for using field measurements to predict vehicular QoS.
 
-Use for: CICV5G provenance, field-measured V2N2V delay, synchronized RSRP/SINR/Cell ID and vehicle motion data, public/private networks, and the intended use for communication-delay modeling and delay-aware planning/control research.
+## C. QoS-aware vehicle/robot planning is established
 
-Important wording: during acquisition, the cloud service used for delay measurement did not run a planning/control solver; it performed immediate echo-back processing for delay measurement. Our planner is downstream research built on the released measurements.
+**Ullah et al. (2025), IEEE Access. DOI 10.1109/ACCESS.2025.3543204.**  
+Optimizes autonomous-vehicle trajectories over a simulated 6G/mmWave coverage graph using QoS/spectral-efficiency information.
 
-## Related-work positioning text to preserve
+**Gordon et al. (2026), IEEE INFOCOM/NetRobiCS. DOI 10.1109/INFOCOM59046.2026.11571354.**  
+Builds online radio maps, converts them to service-specific communication-risk maps, and uses them in robot motion planning.
 
-A defensible manuscript sentence is:
+**Kim, Kim & Suh (2026), Sensors. DOI 10.3390/s26133981.**  
+Combines Gaussian-process radio-map prediction with adaptive tube MPC and explicitly handles communication/motion uncertainty.
 
-> Communication-aware motion planning, radio-map-aware navigation, and QoS-based vehicle trajectory optimization are established research directions. Our contribution is therefore not the use of predicted connectivity in a motion objective. We instead study the validity of counterfactual planner queries when the predictor is learned from field measurements, combining whole-run anti-leakage evaluation, horizon-dependent prediction, explicit empirical measurement-support auditing, and route-constrained measured replay.
+**Implication for our manuscript:** never claim novelty for proactive radio-map navigation, uncertainty-aware communication planning, or QoS-aware vehicle trajectory optimization.
 
-## Citation audit rules
+## D. Predictive radio maps and task-aware counterfactual models are established
 
-- Cite Ghaffarkhah & Mostofi when stating that communication-aware motion planning predates this work.
-- Cite Gordon et al. when discussing modern radio-map/risk-map robot planning.
-- Cite Ullah et al. when discussing network-QoS-aware autonomous-vehicle trajectory optimization.
-- Cite Zhang et al. for all CICV5G acquisition, variables, scale, testbed, license, and intended-use facts.
-- Do not use any of these references to claim that the exact combination of our four methodological controls is formally unique unless a broader systematic review supports that claim.
-- Do not infer physical optical/PC-FMCW validation from CICV5G.
+**Cheng et al. (2026), RadioMapMotion, IEEE TCCN. DOI 10.1109/TCCN.2026.3685413.**  
+Establishes proactive spatio-temporal radio-map prediction as a dedicated benchmark problem.
+
+**Wang, Cheng & Huan (2026), RMWorld, arXiv:2608.20126.**  
+Very close conceptual comparison point. Explicitly studies task-aware radio world models, value-of-information-guided channel calibration, and credibility of counterfactual communication rollouts.
+
+**Implication for our manuscript:** do not claim novelty for decision relevance, counterfactual communication modeling, or credible model rollouts in general.
+
+## E. Distribution shift and uncertainty
+
+**Zou & Liu (2024), AAAI. DOI 10.1609/aaai.v38i15.29673.**  
+Shows that ordinary split-conformal validity depends on exchangeability and can fail in OOD settings.
+
+**Implication for our manuscript:** conformal residual intervals are reported as empirical diagnostics, not as universal calibrated probabilities under drive-level distribution shift.
+
+## F. Primary measured dataset
+
+**Zhang et al. (2026), Scientific Data. DOI 10.1038/s41597-026-07239-7.**  
+CICV5G field-measured 5G/V2N2V delay dataset with synchronized radio and vehicle context. The repository study uses a 38-run / 43,045-sample subset.
+
+Archive DOI: 10.5281/zenodo.17475688.
+
+## What is left for this paper to own
+
+The manuscript is intentionally positioned in the intersection left after acknowledging all of the prior art above:
+
+1. future QoS must be evaluated against a strong causal baseline at the motion-decision horizon;
+2. empirical training-measurement support is audited separately from predictive uncertainty;
+3. logged counterfactual decisions are evaluated only where a future measured outcome exists;
+4. that future measured outcome is withheld until after the planner chooses;
+5. repeated grouped splits are used as dependent sensitivity checks rather than pseudoreplication.
+
+The core protocol name is **measurement-supported counterfactual replay (MSCR)**.
+
+## Safe novelty sentence
+
+> Rather than proposing another predictive communication-aware planner, we study the evidential boundary between QoS prediction and motion decisions under logged field measurements, separating causal predictive value, empirical measurement support, and measured post-selection evaluability.
+
+## Phrases to reject during manuscript editing
+
+Reject or rewrite any sentence that says or implies:
+
+- first communication-aware planner;
+- first predictive QoS planner;
+- first field-measured vehicular QoS prediction;
+- first radio-map-aware vehicle planner;
+- first uncertainty-aware communication planner;
+- first task-aware counterfactual radio model;
+- first decision-relevant channel-learning method;
+- real-world closed-loop validation;
+- statistically significant P2 superiority after Holm correction;
+- CICV5G validates PC-FMCW optical propagation.
