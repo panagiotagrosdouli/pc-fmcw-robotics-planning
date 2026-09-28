@@ -56,6 +56,8 @@ RMWorld is cited as a close contemporary comparison and prevents a broad first-o
 
 **IEEE Transactions on Intelligent Vehicles (T-IV).**
 
+Current manuscript length: **9 IEEE-style pages**. Current T-IV author guidance lists **10 pages as the suggested length for a Regular Paper**, so the current manuscript is within that suggested length.
+
 Alternative:
 - IEEE Transactions on Automation Science and Engineering if reframed more toward dual control/active estimation.
 - IEEE Open Journal of Vehicular Technology as a vehicular open-access alternative.
@@ -66,7 +68,7 @@ Alternative:
 2. Confirm affiliations and corresponding email.
 3. Confirm funding and conflicts.
 4. Confirm related-paper/preprint disclosure.
-5. Apply the journal's current submission format/page policy.
+5. Apply the current T-IV submission format and prepare the **short biographies required for all authors**.
 6. Re-run one final visual inspection only after venue-template conversion.
 7. Build final supplementary archive and immutable release.
 8. Approve wording that C3 does not beat passive C1.
