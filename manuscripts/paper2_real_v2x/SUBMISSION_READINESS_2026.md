@@ -28,7 +28,8 @@
 - Bibliography: 15 entries, all cited.
 - Missing citation keys: none.
 - Unused citation keys: none.
-- Manuscript PDF CI: passed on PR #39.
+- Manuscript PDF CI: passed on the Paper-2 branch, including the post-merge layout-fix build.
+- CI-generated 7-page PDF rendered and visually inspected: the previously overflowing positioning table now fits within the page; no remaining clipping/overlap was detected.
 - General repository CI: passed on PR #39.
 - Novelty audit: present.
 - Claim-evidence matrix: present.
@@ -50,7 +51,7 @@ Alternative paths:
 3. Confirm funding and conflict-of-interest statements.
 4. Confirm whether any related manuscript/preprint must be disclosed to the target journal.
 5. Apply the target journal's current submission template and page rules.
-6. Visually inspect the final rendered PDF page by page.
+6. Re-run one final visual inspection after venue-template conversion.
 7. Produce final source/supplementary archive and immutable release tag.
 8. Approve the cover letter and declarations.
 
