@@ -75,7 +75,7 @@ P3 consistently reduces unsupported selections but does not show a stable additi
 
 **Primary target: IEEE Transactions on Vehicular Technology (TVT).**
 
-Rationale: the paper lies directly at the intersection of vehicular wireless communication and connected/autonomous-vehicle decision algorithms.
+Rationale: the paper lies directly at the intersection of vehicular wireless communication and connected/autonomous-vehicle decision algorithms. The current manuscript is 7 IEEE-style pages; current TVT instructions allow up to 14 pages for an initial regular-paper submission.
 
 **Alternative: IEEE Open Journal of Vehicular Technology (OJVT)** if open-access funding and a fully OA route are preferred.
 
@@ -163,7 +163,7 @@ The paper therefore owns **suppression of unnecessary probing**, not active-cali
 
 **Primary target: IEEE Transactions on Intelligent Vehicles (T-IV).**
 
-Rationale: the scientific object is vehicle decision-making under uncertainty, with communication-model learning embedded in the motion planner.
+Rationale: the scientific object is vehicle decision-making under uncertainty, with communication-model learning embedded in the motion planner. The current manuscript is 9 IEEE-style pages, within T-IV's current suggested 10-page length for Regular Papers; short biographies for all authors are required before submission.
 
 **Alternative: IEEE Transactions on Automation Science and Engineering (T-ASE)** if the paper is positioned more strongly around dual control, active estimation, and calibration methodology.
 
@@ -242,7 +242,7 @@ The upstream configuration contains a 193.4-THz carrier/frequency entry while th
 
 **Primary target: IEEE Open Journal of Vehicular Technology (OJVT)** for the present model-based mechanism version.
 
-Rationale: OJVT explicitly accepts theoretical work in vehicular technology, while the current external-validity boundary should remain transparent.
+Rationale: OJVT explicitly accepts theoretical work in vehicular technology, while the current external-validity boundary should remain transparent. The current manuscript is 5 IEEE-style pages versus the current 14-page initial-submission limit. OJVT requires a registered ORCID.
 
 **Higher-risk alternative: IEEE Transactions on Vehicular Technology (TVT)** if the final manuscript is judged sufficiently strong as a connected/autonomous-vehicle algorithmic contribution.
 
