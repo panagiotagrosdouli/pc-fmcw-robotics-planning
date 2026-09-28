@@ -45,7 +45,8 @@ RMWorld is cited as a close contemporary comparison and prevents a broad first-o
 - Bibliography: 26 entries, all cited.
 - Missing citation keys: none.
 - Unused citation keys: none.
-- Manuscript PDF CI: passed on PR #41 before submission packaging updates.
+- Manuscript PDF CI: passed on PR #41.
+- CI-generated 9-page PDF visually inspected after the literature update: no clipping, overlap, broken figures, or broken table layout detected.
 - Novelty audit: present.
 - Claim-evidence map: updated.
 - Annotated bibliography: updated.
@@ -66,7 +67,7 @@ Alternative:
 3. Confirm funding and conflicts.
 4. Confirm related-paper/preprint disclosure.
 5. Apply the journal's current submission format/page policy.
-6. Visually inspect every final PDF page.
+6. Re-run one final visual inspection only after venue-template conversion.
 7. Build final supplementary archive and immutable release.
 8. Approve wording that C3 does not beat passive C1.
 
