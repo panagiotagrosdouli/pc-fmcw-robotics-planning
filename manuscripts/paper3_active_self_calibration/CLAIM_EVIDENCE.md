@@ -12,6 +12,8 @@
 | Measured V-VLC supports directional gain | Directional-minus-distance-only absolute-error delta -0.005031 dB, CI crosses zero, p=0.375269 | **Not supported / null** | Do not claim measured directional advantage |
 | CICV5G validates optical calibration | Different measured 5G modality | **Not supported** | QoS/pose/replay support only |
 | Hard safety is guaranteed | Zero sampled failures in frozen benchmark | **Not established** | No real-world safety guarantee |
+| Decision-relevant channel learning is first introduced here | RMWorld (arXiv:2608.20126) uses task-aware value-of-information channel calibration | **Not supported as a broad novelty claim** | Position C3 as a specific motion-probing gate with frozen passive/unconditional comparisons |
+| PC-FMCW latent parameters are inherited measured constants from Liu et al. | Paper-3 latents are downstream simulator quantities | **Not supported** | Cite upstream architecture but keep calibration claims model-relative |
 
 ## Authoritative artifacts
 
