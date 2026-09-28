@@ -75,6 +75,7 @@ Table~\ref{tab:positioning} summarizes the intended non-overlap. The table is no
 \label{tab:positioning}
 \centering
 \small
+\resizebox{\textwidth}{!}{%
 \begin{tabular}{lccccc}
 \toprule
 Work & Field communication data & Future QoS/radio prediction & Motion decision & Support/OOD audit & Measured outcome replay \\
@@ -89,7 +90,9 @@ RMWorld \cite{wang2026rmworld} & simulated/DeepMIMO & \checkmark & \checkmark & 
 \textbf{This work} & \textbf{\checkmark} & \textbf{\checkmark} & \textbf{\checkmark} & \textbf{\checkmark} & \textbf{\checkmark} \\
 \bottomrule
 \end{tabular}
+}
 \end{table*}
+
 
 \section{Data and Leakage-Controlled Experimental Design}
 \subsection{CICV5G field measurements}
