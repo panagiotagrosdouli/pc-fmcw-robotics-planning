@@ -1,0 +1,53 @@
+{
+  "seed": 20260930,
+  "directions": ["w2s"],
+  "train_fraction": 0.4,
+  "donor_fraction": 0.4,
+  "speeds_kmh": [30.0, 50.0],
+  "caliper_m": 2.0,
+  "k_donors": 5,
+  "query_spacing_m": 5.0,
+  "eligible_query_locations": 1029,
+  "margin_training_rows": 858,
+  "margin_model_status": "fit",
+  "margin_knn_neighbors": 25,
+  "margin_lower_quantile": 0.1,
+  "split": {
+    "group_cols": ["network", "direction", "nominal_speed_kmh"],
+    "train_runs": [
+      "w2s_n78_v30_run05",
+      "w2s_n78_v30_run06",
+      "w2s_n78_v50_run01",
+      "w2s_n78_v50_run03",
+      "w2s_n8_v30_run02",
+      "w2s_n8_v30_run05",
+      "w2s_n8_v30_run07",
+      "w2s_n8_v50_run03",
+      "w2s_n8_v50_run05"
+    ],
+    "donor_runs": [
+      "w2s_n78_v30_run01",
+      "w2s_n78_v30_run03",
+      "w2s_n78_v50_run02",
+      "w2s_n78_v50_run05",
+      "w2s_n8_v30_run01",
+      "w2s_n8_v30_run04",
+      "w2s_n8_v30_run09",
+      "w2s_n8_v50_run02",
+      "w2s_n8_v50_run04"
+    ],
+    "query_runs": [
+      "w2s_n78_v30_run02",
+      "w2s_n78_v30_run04",
+      "w2s_n78_v50_run04",
+      "w2s_n78_v50_run06",
+      "w2s_n8_v30_run03",
+      "w2s_n8_v30_run06",
+      "w2s_n8_v30_run10",
+      "w2s_n8_v50_run01",
+      "w2s_n8_v50_run06"
+    ],
+    "excluded_strata": {}
+  },
+  "claim_boundary": "Cross-run matched field replay under exact network/direction/speed and spatial-caliper overlap. Donor outcomes are measured and hidden during selection, but runs are observational/repeated experiments rather than randomized speed interventions; causal speed effects are not claimed."
+}
