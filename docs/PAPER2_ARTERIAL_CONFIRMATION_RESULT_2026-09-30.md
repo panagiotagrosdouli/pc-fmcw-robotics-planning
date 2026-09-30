@@ -2,7 +2,8 @@
 
 **Date:** 2026-09-30  
 **Frozen branch:** `research/paper2-arterial-confirmation`  
-**Frozen code SHA:** `5a98d2e8ea1a948d5cc1d0586d4d63b402a715a7`  
+**Workflow head SHA (frozen branch):** `5a98d2e8ea1a948d5cc1d0586d4d63b402a715a7`  
+**Executed checkout SHA (artifact provenance):** `3df3a7b4479f7b1e9d6019497b4a5e9ecbb12586`  
 **Workflow:** Paper 2 Arterial Confirmation  
 **Workflow run:** `36749176921`  
 **Result:** success  
