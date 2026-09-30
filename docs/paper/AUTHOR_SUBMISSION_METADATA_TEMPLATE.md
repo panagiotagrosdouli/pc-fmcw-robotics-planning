@@ -106,7 +106,7 @@ Record:
 ## Paper-specific operational requirements
 
 ### Paper 2 — target TVT
-- Current manuscript length: 7 IEEE-style pages.
+- Current manuscript length: 5 IEEE-style pages.
 - Current initial regular-paper limit: 14 pages.
 - Confirm journal portal author metadata.
 - Confirm related-paper disclosure for Papers 1 and 3 where appropriate.
