@@ -1,5 +1,7 @@
 # Paper 2 — Submission Readiness 2026
 
+**Last submission pass:** 2026-09-30
+
 ## Scientific status
 
 **Research question:** stable.
@@ -28,34 +30,60 @@
 - Bibliography: 15 entries, all cited.
 - Missing citation keys: none.
 - Unused citation keys: none.
-- Manuscript PDF CI: passed on the Paper-2 branch, including the post-merge layout-fix build.
-- CI-generated 7-page PDF rendered and visually inspected: the previously overflowing positioning table now fits within the page; no remaining clipping/overlap was detected.
-- General repository CI: passed on PR #39.
+- Manuscript PDF CI: previously passed, including the post-merge layout-fix build.
+- CI-generated 7-page PDF was previously rendered and visually inspected with no remaining clipping/overlap after the positioning-table correction.
 - Novelty audit: present.
 - Claim-evidence matrix: present.
 - Formal mathematical formulation: present.
 - Cover-letter draft: present.
+- Abstract tightened on 2026-09-30 from approximately 273 words to approximately 218 words, preserving the frozen evidence and explicitly stating that the primary P2-P1 paired comparison does not remain significant after Holm correction.
 
 ## Recommended first target
 
 **IEEE Transactions on Vehicular Technology (TVT).**
 
-Current manuscript length: **7 IEEE-style pages**. Current TVT instructions allow up to **14 pages for an initial regular-paper submission**, so the present manuscript is within the initial page limit.
+Current manuscript length before the 2026-09-30 abstract edit: **7 IEEE-style pages**.
+
+Current TVT instructions require initial regular-paper submissions to use IEEE-style double-column formatting with font no smaller than 10 pt and allow up to **14 pages** for an initial regular paper. References and biographies count toward the page limit. The journal currently uses the IEEE Author Portal for new submissions.
+
+Current official sources checked 2026-09-30:
+
+- https://vtsociety.org/publication/ieee-transactions-vehicular-technology/guidelines-authors
+- https://vtsociety.org/publication/ieee-transactions-vehicular-technology/guidelines-authors/instructions
+- https://vtsociety.org/publication/ieee-transactions-vehicular-technology/guidelines-authors/frequently-asked-questions
+- https://vtsociety.org/publication/ieee-transactions-vehicular-technology/guidelines-authors/instructions/page-charges
+
+The current paper is comfortably inside the initial page limit. TVT currently applies a mandatory overlength charge beyond 10 printed pages for regular papers, so there is no reason to add material merely to fill the available 14-page initial-submission allowance.
 
 Alternative paths:
+
 - IEEE Open Journal of Vehicular Technology for a fully open-access route.
 - IEEE Transactions on Intelligent Vehicles if the final editorial emphasis shifts toward decision methodology.
+
+## TVT-specific editorial compliance
+
+TVT's current author instructions state that AI tools may be used to modify author-generated text for purposes such as grammar/language improvement, but such use must be disclosed in the acknowledgments.
+
+Because the 2026-09-30 submission pass used AI-assisted language editing of existing manuscript text, the final author-approved manuscript should include a disclosure consistent with the journal's policy.
+
+Suggested disclosure after author review:
+
+> OpenAI ChatGPT was used to assist with language editing and clarity of author-prepared manuscript text. The author reviewed the final wording and remains responsible for the scientific content, analysis, interpretation, and conclusions.
+
+Do not insert the sentence as a factual acknowledgment until the author has reviewed and approved the final manuscript wording.
 
 ## Genuine blockers before external submission
 
 1. Confirm complete author list and ordering.
 2. Confirm affiliations and corresponding-author email.
 3. Confirm funding and conflict-of-interest statements.
-4. Confirm whether any related manuscript/preprint must be disclosed to the target journal.
-5. Apply the current TVT submission template; preserve the manuscript within the current 14-page initial regular-paper limit.
-6. Re-run one final visual inspection after venue-template conversion.
-7. Produce final source/supplementary archive and immutable release tag.
-8. Approve the cover letter and declarations.
+4. Confirm ORCID/IEEE Author Portal metadata required for the final author list.
+5. Confirm whether any related manuscript, public manuscript version, or preprint must be disclosed to TVT.
+6. Add the required AI-assisted language-editing disclosure after final author review.
+7. Rebuild the manuscript after the 2026-09-30 abstract edit and confirm that it remains within the page limit.
+8. Re-run final PDF visual inspection.
+9. Produce the final source/supplementary archive and immutable release tag.
+10. Approve the cover letter and all portal declarations.
 
 ## What must not be changed merely to improve acceptance odds
 
@@ -63,3 +91,5 @@ Alternative paths:
 - Do not treat five grouped assignments as five independent experiments.
 - Do not remove the negative P3 result.
 - Do not expand MSCR into a claim of real physical intervention.
+- Do not add experiments solely to manufacture statistical significance.
+- Do not broaden the novelty claim to generic PQoS, radio-map planning, or communication-aware motion planning.
