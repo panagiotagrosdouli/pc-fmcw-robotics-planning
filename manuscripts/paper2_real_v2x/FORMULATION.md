@@ -1,258 +1,210 @@
 # Paper 2 — Formal Mathematical Formulation
 
-This file freezes the notation for the decision-validity version of the measured-V2X paper. It is aligned with the implemented pipeline and archived evidence.
+**Updated:** 2026-09-30
 
-## 1. Logged field measurements
+This file freezes the notation for the canonical support-bounded matched field replay paper.
 
-For acquisition run \(r\) and chronological sample \(t\),
+## 1. Field observations
 
-\[
-z_{r,t}=(x_{r,t},c_{r,t},y_{r,t}),
-\]
+For acquisition run (r) and sample (t),
 
-where \(x_{r,t}\in\mathbb{R}^2\) is position, \(c_{r,t}\) is causally available vehicle/network context, and \(y_{r,t}\) is measured communication delay.
+[
+z_{r,t}=(x_{r,t},c_{r,t},a_r,y_{r,t}),
+]
 
-At horizon \(h\),
+where:
 
-\[
-y^{(h)}_{r,t}=y_{r,t+h}.
-\]
+- (x_{r,t}inmathbb{R}^2) is position;
+- (c_{r,t}) is communication/context information;
+- (a_r) is the nominal motion action represented by the run speed;
+- (y_{r,t}) is measured communication delay.
 
-No feature generated after time \(t\) may be used by a deployable query evaluated at \(t\).
+## 2. Disjoint evidence roles
 
-## 2. Whole-run anti-leakage partition
+Within network × direction × speed strata,
 
-\[
-\mathcal R=
-\mathcal R_{\mathrm{tr}}
-\dot\cup
-\mathcal R_{\mathrm{cal}}
-\dot\cup
-\mathcal R_{\mathrm{te}}.
-\]
+[
+mathcal R=
+mathcal R_{mathrm{tr}}
+dotcup
+mathcal R_{mathrm{don}}
+dotcup
+mathcal R_{mathrm{qry}}.
+]
 
-All samples from one acquisition run inherit the same partition.
+- (mathcal R_{mathrm{tr}}): predictive-model fitting.
+- (mathcal R_{mathrm{don}}): measured action-outcome donation.
+- (mathcal R_{mathrm{qry}}): decision contexts.
 
-- \(\mathcal R_{\mathrm{tr}}\): predictor fitting and empirical-support fitting.
-- \(\mathcal R_{\mathrm{cal}}\): fusion/model selection and residual uncertainty calibration.
-- \(\mathcal R_{\mathrm{te}}\): final prediction and decision replay evaluation.
+No acquisition run serves more than one role in one locked analysis.
 
-Alternative grouped assignments reuse runs and are descriptive sensitivity analyses, not independent experiments.
+## 3. Supported motion actions
 
-## 3. Decision-validity layer I: predictive value
+For query state (x) and action (a), define
 
-Persistence is the mandatory causal baseline:
+[
+mathcal D(x,a)=
+left{
+iinmathcal R_{mathrm{don}}:
+c_i=c_x,,
+a_i=a,,
+|p_i-p_x|_2leho
+ight}.
+]
 
-\[
-\hat y^{\mathrm{pers}}_{r,t+h\mid t}=y_{r,t}.
-\]
+A comparative query is eligible only if both candidate actions have nonempty donor support.
 
-A learned predictor is
+The locked spatial caliper is
 
-\[
-\hat y^{\mathrm{learn}}_{r,t+h\mid t}
-=f_h(x_{r,t+h}^{\mathrm{cand}},c_{r,t}),
-\]
+[
+ho=2,mathrm{m}.
+]
 
-where all context is available at decision time.
+## 4. Matched measured outcome
 
-The calibration-gated fusion is
+For selected donor subset (mathcal D^star(x,a)),
 
-\[
-\hat y^{\mathrm{fuse}}_{r,t+h\mid t}
-=(1-\alpha_h)\hat y^{\mathrm{pers}}_{r,t+h\mid t}
-+\alpha_h\hat y^{\mathrm{learn}}_{r,t+h\mid t},
-\qquad
-\alpha_h\in[0,1],
-\]
+[
+	ilde y(x,a)=
+rac{1}{|mathcal D^star(x,a)|}
+sum_{iinmathcal D^star(x,a)} y_i.
+]
 
-with \(\alpha_h\) selected only on calibration runs.
+Donor selection prefers acquisition-run diversity before repeated samples from one donor run.
 
-Predictive validity is therefore horizon-specific: a learned component receives decision credit only where it adds held-out value beyond persistence.
+The measured donor outcome is hidden from deployable policy ranking.
 
-## 4. Residual uncertainty
+## 5. Action sets
 
-For calibration residuals
+Primary W2S confirmation:
 
-\[
-e_i=|y_i-\hat y_i|,
-\]
+[
+mathcal A_{mathrm{W2S}}={30,50} mathrm{km/h}.
+]
 
-let \(q_{1-\gamma}\) be the empirical conformal quantile. Then
+Arterial confirmation:
 
-\[
-\mathcal I(x)=
-[\hat y(x)-q_{1-\gamma},\hat y(x)+q_{1-\gamma}].
-\]
+[
+mathcal A_{mathrm{art}}={50,80} mathrm{km/h}.
+]
 
-These intervals are empirical residual diagnostics. Under grouped distribution shift they are not interpreted as guaranteed event probabilities.
+In each pair, define (a_s) as the slower action and (a_f) as the faster action.
 
-## 5. Decision-validity layer II: empirical support
+## 6. Absolute-QoS predictive gain
 
-Let
+A context-conditioned predictor fitted only on (mathcal R_{mathrm{tr}}) gives
 
-\[
-\mathcal X_{\mathrm{tr}}=
-\{x_i:i\in\mathcal R_{\mathrm{tr}}\}.
-\]
+[
+g_{mathrm{pred}}(x)
+=
+hat y(x,a_f)-hat y(x,a_s).
+]
 
-Nearest training distance:
+Positive (g_{mathrm{pred}}) predicts lower delay under the slower action.
 
-\[
-d_{\min}(x)=
-\min_{x_i\in\mathcal X_{\mathrm{tr}}}
-\|x-x_i\|_2.
-\]
+## 7. Pairwise action-margin model
 
-Local measurement density:
+The frozen pairwise model estimates
 
-\[
-n_\rho(x)=
-\sum_{x_i\in\mathcal X_{\mathrm{tr}}}
-\mathbf 1\{\|x-x_i\|_2\le\rho\}.
-\]
+[
+g_{mathrm{margin}}(x)
+=
+widehat{
+	ilde y(x,a_f)-	ilde y(x,a_s)
+}.
+]
 
-Frozen unsupported-query indicator:
+It is a comparator, not the claimed contribution.
 
-\[
-u(x)=
-\mathbf 1\{
-d_{\min}(x)>d_{\max}
-\lor
-n_\rho(x)<n_{\min}
-\}.
-\]
+## 8. Budgeted decision rule
 
-The thresholds are empirical validity controls, not propagation constants. Predictive uncertainty and empirical support remain separate objects.
+To avoid arbitrary scalarization between mobility time and network delay, each query run receives a maximum intervention budget
 
-## 6. Decision-validity layer III: measured evaluability
+[
+B=0.10.
+]
 
-For held-out run \(r\) and time \(t\), MSCR restricts evaluation candidates to later states actually recorded in the same run:
+FAST selects (a_f) everywhere.
 
-\[
-\mathcal A_{r,t}=
-\{a_{r,t}^{(1)},\ldots,a_{r,t}^{(K)}\}.
-\]
+PRED_BUDGET ranks locations by positive (g_{mathrm{pred}}) and may select (a_s) at at most fraction (B).
 
-Candidate \(a_{r,t}^{(k)}\) maps to a future logged state \(x_{r,t+h_k}\).
+MARGIN_BUDGET applies the same budget to the frozen pairwise score.
 
-The associated future measured delay \(y_{r,t+h_k}\):
+## 9. Measured upper-bound diagnostic
 
-1. exists in the held-out log,
-2. is unavailable during planner scoring,
-3. is revealed only after selection.
+Define measured action gain
 
-Thus the predictor cannot define its own post-decision ground truth.
+[
+g_{mathrm{oracle}}(x)
+=
+	ilde y(x,a_f)-	ilde y(x,a_s).
+]
 
-MSCR is an offline route-supported evaluation protocol. It does not identify the causal outcome of an arbitrary physical route intervention.
+ORACLE_BUDGET ranks query locations using (g_{mathrm{oracle}}) under the same budget.
 
-## 7. Planner objectives
+Because donor outcomes are used in ranking and evaluation, ORACLE_BUDGET is a nondeployable support-bounded upper-bound diagnostic, not an unbiased future policy estimate.
 
-Let \(J_{\mathrm{mob}}(a)\) denote mobility cost.
+## 10. Primary estimands
 
-### P0 — mobility/reference
+Measured action opportunity:
 
-\[
-a^\star_{P0}=
-\arg\min_{a\in\mathcal A_{r,t}}
-J_{\mathrm{mob}}(a).
-\]
+[
+E_1
+=
+Y_{mathrm{ORACLE}}-Y_{mathrm{FAST}}.
+]
 
-### P1 — reactive/current QoS
+Predictive regret relative to the measured upper bound:
 
-\[
-a^\star_{P1}=
-\arg\min_{a\in\mathcal A_{r,t}}
-[J_{\mathrm{mob}}(a)+
-\lambda_c\hat y^{\mathrm{pers}}(a)].
-\]
+[
+E_2
+=
+Y_{mathrm{PRED}}-Y_{mathrm{ORACLE}}.
+]
 
-### P2 — predictive QoS
+Secondary effects:
 
-\[
-a^\star_{P2}=
-\arg\min_{a\in\mathcal A_{r,t}}
-[J_{\mathrm{mob}}(a)+
-\lambda_c\hat y^{\mathrm{fuse}}(a)].
-\]
+[
+Y_{mathrm{PRED}}-Y_{mathrm{FAST}},
+]
 
-P2 tests predictive decision utility.
+[
+Y_{mathrm{MARGIN}}-Y_{mathrm{FAST}},
+]
 
-### P3 — predictive QoS with empirical-support control
+[
+Y_{mathrm{MARGIN}}-Y_{mathrm{ORACLE}}.
+]
 
-\[
-a^\star_{P3}=
-\arg\min_{a\in\mathcal A_{r,t}}
-[J_{\mathrm{mob}}(a)+
-\lambda_c\hat y^{\mathrm{fuse}}(a)+
-\lambda_s u(a)].
-\]
+Lower delay is better.
 
-P3 tests willingness to act on weakly supported predictions. It is not defined as a guaranteed QoS improvement.
+## 11. Two-way acquisition-run bootstrap
 
-## 8. Post-selection measured outcome
+Matched outcomes contain two dependence dimensions:
 
-If planner \(P\) selects a candidate corresponding to future index \(t+h^\star\),
+- query acquisition run;
+- donor acquisition run.
 
-\[
-y^{\mathrm{meas}}_{P,r,t}
-=y_{r,t+h^\star}.
-\]
+For bootstrap replicate (b):
 
-For experimental threshold \(\tau=50\,\mathrm{ms}\),
+1. resample query runs with replacement;
+2. independently resample donor runs with replacement;
+3. reconstruct matched action outcomes from resampled donor contributions;
+4. recompute ORACLE_BUDGET within the replicate;
+5. retain frozen PRED_BUDGET and MARGIN_BUDGET rankings;
+6. aggregate at the query-run level.
 
-\[
-v_{P,r,t}
-=\mathbf 1\{
-y^{\mathrm{meas}}_{P,r,t}>\tau
-\}.
-\]
+The locked analyses use 5,000 replicates and percentile 95% intervals.
 
-Unsupported-selection indicator:
+## 12. Interpretation boundary
 
-\[
-s_{P,r,t}
-=u(x(a^\star_P)).
-\]
+The formalism distinguishes:
 
-## 9. Run-level inference
+- prediction quality from action-ranking validity;
+- finite measured action support from model-generated predictions;
+- measured donor outcomes from causal potential outcomes;
+- deployable predictive rankings from a nondeployable measured upper bound;
+- timestamp rows from independent acquisition-run evidence;
+- within-dataset cross-scenario confirmation from generalization outside CICV5G.
 
-For metric \(m\), planners \(A,B\), and held-out run \(r\),
-
-\[
-\Delta_{m,r}
-=m_{B,r}-m_{A,r}.
-\]
-
-Primary-split inference uses the run-level paired effects with deterministic paired bootstrap confidence intervals and paired Wilcoxon tests. Holm correction is applied across the declared comparison/metric family.
-
-Timestamps are not treated as independent subjects.
-
-## 10. Repeated grouped splits
-
-For split assignment \(s\),
-
-\[
-\Delta^{(s)}
-\]
-
-is dependent across \(s\) because drives recur. Reported summaries may include
-
-\[
-\bar\Delta=
-\frac{1}{S}\sum_s\Delta^{(s)}
-\]
-
-and the fraction of assignments with favorable direction, but \(S\) is not treated as an independent sample size.
-
-## 11. Interpretation boundary
-
-The formalism intentionally distinguishes:
-
-- regression accuracy from decision utility;
-- short-horizon persistence from planning-horizon predictive value;
-- residual uncertainty from empirical support;
-- model-generated counterfactual values from measured post-selection outcomes;
-- descriptive split robustness from independent replication;
-- offline route-supported replay from physical intervention;
-- measured 5G evidence from the separate modeled PC-FMCW optical branch.
+No causal speed-effect claim follows from this formulation.
