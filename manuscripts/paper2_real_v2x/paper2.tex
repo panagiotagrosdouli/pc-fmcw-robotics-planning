@@ -124,14 +124,14 @@ B=0.10
 of supported locations may select the slower action.
 
 The policies are:
-\begin{description}
-\item[FAST:] always select the faster speed action.
-\item[PRED\_BUDGET:] rank locations by $g_{\mathrm{pred}}$ and spend budget only where predicted gain is positive.
-\item[MARGIN\_BUDGET:] rank by $g_{\mathrm{margin}}$ using the frozen pairwise model.
-\item[ORACLE\_BUDGET:] rank by matched measured gain $\tilde y(x,a_{\mathrm{fast}})-\tilde y(x,a_{\mathrm{slow}})$.
-\end{description}
 
-ORACLE\_BUDGET is nondeployable and serves only as a support-bounded upper-bound diagnostic. Donor measurements enter its ranking, so it is not interpreted as an unbiased deployable-policy performance estimate.
+\noindent\textbf{FAST:} always select the faster speed action.
+
+\noindent\textbf{PRED\_BUDGET:} rank locations by $g_{\mathrm{pred}}$ and spend budget only where predicted gain is positive.
+
+\noindent\textbf{MARGIN\_BUDGET:} rank by $g_{\mathrm{margin}}$ using the frozen pairwise model.
+
+\noindent\textbf{ORACLE\_BUDGET:} rank by matched measured gain $\tilde y(x,a_{\mathrm{fast}})-\tilde y(x,a_{\mathrm{slow}})$. This policy is nondeployable and serves only as a support-bounded upper-bound diagnostic. Donor measurements enter its ranking, so it is not interpreted as an unbiased deployable-policy performance estimate.
 
 \section{Statistical Protocol}
 \subsection{Development sensitivity}
