@@ -1,0 +1,50 @@
+name: Paper 2 Arterial Confirmation
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/prepare_cicv5g_arterial_confirmation.py'
+      - 'docs/PAPER2_ARTERIAL_CONFIRMATION_FREEZE_2026-09-30.md'
+      - '.github/workflows/paper2-arterial-confirmation.yml'
+      - 'src/iscai/connectivity/real_v2x/**'
+      - 'scripts/run_real_v2x_matched_speed_replay.py'
+      - 'scripts/analyze_real_v2x_matched_speed_confirmatory.py'
+      - 'tests/test_matched_speed_replay.py'
+      - 'tests/test_decision_margin.py'
+  workflow_dispatch:
+
+jobs:
+  arterial-confirmation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install dependencies
+        run: python -m pip install numpy pandas scipy scikit-learn pytest
+      - name: Run frozen replay tests
+        run: |
+          PYTHONPATH=src python -m pytest -q             tests/test_matched_speed_replay.py             tests/test_decision_margin.py
+      - name: Download frozen arterial n8 confirmation subset
+        run: |
+          python scripts/prepare_cicv5g_arterial_confirmation.py             --output data/raw/cicv5g_arterial_confirmation
+      - name: Run frozen arterial matched replay
+        run: |
+          PYTHONPATH=src python scripts/run_real_v2x_matched_speed_replay.py             --data data/raw/cicv5g_arterial_confirmation             --output results/paper2_arterial_confirmation             --seed 20260930             --directions unknown             --train-fraction 0.40             --donor-fraction 0.40             --speeds 50,80             --query-spacing-m 5.0             --caliper-m 2.0             --k-donors 5
+      - name: Run frozen two-way arterial bootstrap
+        run: |
+          python scripts/analyze_real_v2x_matched_speed_confirmatory.py             --input results/paper2_arterial_confirmation             --budget 0.10             --bootstrap 5000             --bootstrap-seed 20260930
+      - name: Record provenance
+        run: |
+          mkdir -p results/paper2_arterial_confirmation/provenance
+          git rev-parse HEAD > results/paper2_arterial_confirmation/provenance/commit_sha.txt
+          python --version > results/paper2_arterial_confirmation/provenance/python_version.txt
+          cp data/raw/cicv5g_arterial_confirmation/manifest.json             results/paper2_arterial_confirmation/provenance/cicv5g_manifest.json
+          sha256sum results/paper2_arterial_confirmation/provenance/cicv5g_manifest.json             > results/paper2_arterial_confirmation/provenance/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: paper2-arterial-confirmation
+          path: results/paper2_arterial_confirmation/
