@@ -151,6 +151,7 @@ def main() -> None:
 
     rows: list[dict] = []
     contexts: list[dict] = []
+    donor_contributions: list[dict] = []
     eligible_queries = 0
 
     for run_id, g0 in query.groupby("run_id", sort=False):
@@ -189,6 +190,23 @@ def main() -> None:
                 margin_model.predict_stats(q, lower_q=0.10, upper_q=0.90)
                 if margin_model is not None else None
             )
+
+            for action_speed in speeds:
+                match = measured[action_speed]
+                for donor_slot, (donor_run_id, donor_delay_ms, donor_distance_m) in enumerate(
+                    zip(match.donor_run_ids, match.donor_delays_ms, match.donor_distances_m)
+                ):
+                    donor_contributions.append({
+                        "query_run_id": run_id,
+                        "query_index": int(query_index),
+                        "network": q["network"],
+                        "direction": q["direction"],
+                        "action_speed_kmh": float(action_speed),
+                        "donor_slot": int(donor_slot),
+                        "donor_run_id": donor_run_id,
+                        "donor_delay_ms": float(donor_delay_ms),
+                        "donor_distance_m": float(donor_distance_m),
+                    })
 
             contexts.append({
                 "query_run_id": run_id,
@@ -273,10 +291,12 @@ def main() -> None:
 
     decisions = pd.DataFrame(rows)
     comparison_contexts = pd.DataFrame(contexts)
-    if decisions.empty or comparison_contexts.empty:
+    donor_contributions_df = pd.DataFrame(donor_contributions)
+    if decisions.empty or comparison_contexts.empty or donor_contributions_df.empty:
         raise RuntimeError("no matched query locations satisfy the donor caliper")
     decisions.to_csv(out / "decisions.csv", index=False)
     comparison_contexts.to_csv(out / "comparison_contexts.csv", index=False)
+    donor_contributions_df.to_csv(out / "donor_contributions.csv", index=False)
 
     per_run = decisions.groupby(["query_run_id", "mode"]).agg(
         n=("measured_matched_delay_ms", "size"),
