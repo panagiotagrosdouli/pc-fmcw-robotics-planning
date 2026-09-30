@@ -130,11 +130,12 @@ def main() -> None:
     fast, slow = max(speeds), min(speeds)
 
     rows: list[dict] = []
+    contexts: list[dict] = []
     eligible_queries = 0
 
     for run_id, g0 in query.groupby("run_id", sort=False):
         g = spatial_thin(g0, args.query_spacing_m)
-        for _, q in g.iterrows():
+        for query_index, (_, q) in enumerate(g.iterrows()):
             measured = {s: donor_matcher.match(q, s) for s in speeds}
             if any(measured[s] is None for s in speeds):
                 continue
@@ -163,6 +164,30 @@ def main() -> None:
 
             pred_choice = min(speeds, key=lambda s: (pred_score[s], -s))
             oracle_choice = min(speeds, key=lambda s: (oracle_score[s], -s))
+
+            contexts.append({
+                "query_run_id": run_id,
+                "query_index": int(query_index),
+                "network": q["network"],
+                "direction": q["direction"],
+                "query_nominal_speed_kmh": float(q["nominal_speed_kmh"]),
+                "utm_x_m": float(q["utm_x_m"]),
+                "utm_y_m": float(q["utm_y_m"]),
+                "pred_slow_delay_ms": pred[slow],
+                "pred_fast_delay_ms": pred[fast],
+                "pred_fast_minus_slow_gain_ms": pred[fast] - pred[slow],
+                "measured_slow_delay_ms": measured[slow].delay_ms,
+                "measured_fast_delay_ms": measured[fast].delay_ms,
+                "measured_fast_minus_slow_gain_ms": (
+                    measured[fast].delay_ms - measured[slow].delay_ms
+                ),
+                "slow_train_supported": bool(support[slow]),
+                "fast_train_supported": bool(support[fast]),
+                "slow_nearest_donor_m": measured[slow].nearest_distance_m,
+                "fast_nearest_donor_m": measured[fast].nearest_distance_m,
+                "slow_donor_runs": measured[slow].n_donor_runs,
+                "fast_donor_runs": measured[fast].n_donor_runs,
+            })
 
             # Conservative deployable variant: only deviate from FAST when both speed
             # candidates have training support and the predicted delay gain is material.
@@ -210,9 +235,11 @@ def main() -> None:
                 })
 
     decisions = pd.DataFrame(rows)
-    if decisions.empty:
+    comparison_contexts = pd.DataFrame(contexts)
+    if decisions.empty or comparison_contexts.empty:
         raise RuntimeError("no matched query locations satisfy the donor caliper")
     decisions.to_csv(out / "decisions.csv", index=False)
+    comparison_contexts.to_csv(out / "comparison_contexts.csv", index=False)
 
     per_run = decisions.groupby(["query_run_id", "mode"]).agg(
         n=("measured_matched_delay_ms", "size"),
