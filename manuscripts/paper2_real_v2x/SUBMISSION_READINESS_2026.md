@@ -34,7 +34,8 @@ The paper separates:
 Frozen before outcome inspection.
 
 - Workflow: `36747715208`
-- Frozen code SHA: `a056d46a5579032d10f51a1d6e90d800d3d017b4`
+- Workflow head SHA: `a056d46a5579032d10f51a1d6e90d800d3d017b4`
+- Executed checkout SHA recorded by artifact: `e4f6430f8b6368f64edee421b827895b11280115`
 - Valid two-way bootstrap replicates: 4,945 / 5,000
 - ORACLE − FAST: **−4.177 ms**, 95% CI **[−13.659, −2.137]**
 - PRED − ORACLE: **+2.704 ms**, 95% CI **[+1.457, +5.832]**
@@ -52,7 +53,8 @@ Interpretation:
 Protocol frozen before outcome inspection and performed on a different scenario/action pair.
 
 - Workflow: `36749176921`
-- Frozen code SHA: `5a98d2e8ea1a948d5cc1d0586d4d63b402a715a7`
+- Workflow head SHA: `5a98d2e8ea1a948d5cc1d0586d4d63b402a715a7`
+- Executed checkout SHA recorded by artifact: `3df3a7b4479f7b1e9d6019497b4a5e9ecbb12586`
 - Valid two-way bootstrap replicates: 4,409 / 5,000
 - ORACLE − FAST: **−0.590 ms**, 95% CI **[−1.431, −0.250]**
 - PRED − ORACLE: **+0.746 ms**, 95% CI **[+0.344, +1.596]**
