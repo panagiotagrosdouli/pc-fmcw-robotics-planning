@@ -38,9 +38,17 @@ Therefore "prediction error is not decision error" is not a standalone novelty c
 
 Vehicular communication papers now explicitly use oracle-referenced regret diagnostics.
 
-A 2026 IET Communications paper studies decision stability and regret for RL-based vehicular handover in DriveNetSim.
+Badshah et al., *Decision-Stability and Regret Diagnostics for Reinforcement Learning Based Handover in Vehicular Mobility*, IET Communications, first published 15 April 2026, evaluates a vehicular handover policy with oracle-referenced regret and decision-stability diagnostics in DriveNetSim.
 
-Therefore the paper cannot claim the first use of regret or oracle comparison in vehicular communication decisions.
+Therefore the paper cannot claim the first use of regret, oracle comparison, or decision-stability analysis in vehicular communication decisions.
+
+### QoS prediction linked to policy evaluation
+
+A September 2026 IETF Internet-Draft, *QoSformer: A Framework for Learning-Based QoS Prediction and Policy Evaluation*, explicitly connects learned QoS prediction with evaluation of candidate network-policy configurations and separates prediction from post-change observation.
+
+Therefore the paper cannot claim novelty for the generic idea that QoS prediction should be linked to downstream policy evaluation or decision traceability.
+
+The distinction remains the vehicular-motion evidence substrate: physically interpretable speed actions, repeated measured drives, disjoint train/donor/query acquisition-run roles, finite action support, and donor-aware inference.
 
 ### Task-aware radio world models
 
