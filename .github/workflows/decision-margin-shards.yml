@@ -1,0 +1,76 @@
+name: Decision Margin Shards
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/decision-margin-shards.yml'
+  workflow_dispatch:
+
+jobs:
+  audit:
+    strategy:
+      fail-fast: false
+      matrix:
+        caliper: ['1.0','2.0','5.0']
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - run: python -m pip install numpy pandas scipy scikit-learn pytest
+      - name: Frozen tests
+        run: |
+          PYTHONPATH=src python -m pytest -q \
+            tests/test_matched_speed_replay.py \
+            tests/test_decision_margin.py
+      - name: Download data
+        run: python scripts/prepare_cicv5g.py --output data/raw/cicv5g
+      - name: Run frozen caliper shard
+        run: |
+          root=results/shard_${{ matrix.caliper }}
+          mkdir -p ${root}
+          for seed in 0 1 2 3 4; do
+            out=${root}/seed_${seed}
+            PYTHONPATH=src python scripts/run_real_v2x_matched_speed_replay.py \
+              --data data/raw/cicv5g \
+              --output ${out} \
+              --seed ${seed} \
+              --directions w2s \
+              --train-fraction 0.40 \
+              --donor-fraction 0.40 \
+              --query-spacing-m 5.0 \
+              --caliper-m ${{ matrix.caliper }}
+            python scripts/analyze_real_v2x_matched_speed_budget.py \
+              --input ${out} --budgets 0.01,0.05,0.10
+          done
+          python - <<'PY'
+          from pathlib import Path
+          import pandas as pd
+          root=Path("results/shard_${{ matrix.caliper }}")
+          frames=[]
+          for d in sorted(root.glob("seed_*")):
+              seed=int(d.name.split("_")[1])
+              x=pd.read_csv(d/"budget_effects_development.csv")
+              x["seed"]=seed
+              frames.append(x)
+          x=pd.concat(frames,ignore_index=True)
+          agg=x.groupby(["budget","comparison"]).agg(
+              n_seeds=("mean_delta_ms","size"),
+              mean_delta_ms=("mean_delta_ms","mean"),
+              min_delta_ms=("mean_delta_ms","min"),
+              max_delta_ms=("mean_delta_ms","max"),
+              favorable_seeds=("mean_delta_ms",lambda z:int((z<0).sum())),
+              unfavorable_seeds=("mean_delta_ms",lambda z:int((z>0).sum())),
+              zero_seeds=("mean_delta_ms",lambda z:int((z==0).sum())),
+          ).reset_index()
+          agg.to_csv(root/"shard_summary.csv",index=False)
+          print("=== FROZEN SHARD SUMMARY caliper=${{ matrix.caliper }} ===")
+          print(agg.to_string(index=False))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: decision-margin-caliper-${{ matrix.caliper }}
+          path: results/shard_${{ matrix.caliper }}/
