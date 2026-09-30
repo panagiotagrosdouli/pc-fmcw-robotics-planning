@@ -2,23 +2,25 @@
 
 **Target journal:** IEEE Transactions on Vehicular Technology
 
-**Manuscript title:** *From QoS Prediction to Decision Validity: Measurement-Supported Counterfactual Replay for Communication-Aware Vehicle Planning*
+**Manuscript title:** *From QoS Prediction to Measured Decision Validity: Support-Bounded Matched Field Replay for Vehicular Speed Decisions*
 
 Dear Editor,
 
-Please consider the manuscript *From QoS Prediction to Decision Validity: Measurement-Supported Counterfactual Replay for Communication-Aware Vehicle Planning* for publication in IEEE Transactions on Vehicular Technology.
+Please consider the manuscript *From QoS Prediction to Measured Decision Validity: Support-Bounded Matched Field Replay for Vehicular Speed Decisions* for publication in IEEE Transactions on Vehicular Technology.
 
-The manuscript addresses a methodological problem at the intersection of vehicular communications and automated-vehicle decision making. Predictive QoS and communication-aware motion planning are established research areas; our contribution is therefore not a new generic connectivity-aware planner. Instead, we ask what evidence is required when a planner uses a QoS predictor learned from logged field measurements to justify a counterfactual vehicle-motion decision.
+The manuscript addresses a methodological problem at the intersection of vehicular communications and automated-vehicle decision making. Predictive QoS, communication-aware motion planning, decision-focused learning, and regret-based policy diagnostics are established research areas. Our contribution is therefore not another generic connectivity-aware planner or a claim that a new learning loss universally improves motion decisions. Instead, we ask what measured evidence is required before a QoS predictor learned from logged field measurements can justify a different vehicle-motion action.
 
-Using the field-measured CICV5G dataset, we separate three validity questions: whether future QoS adds information beyond a causal persistence baseline at the motion-planning horizon, whether candidate-state predictions are empirically supported by training measurements, and whether selected counterfactual actions can be evaluated using an actual withheld communication measurement rather than model-generated ground truth.
+We introduce a support-bounded matched field replay protocol using repeated CICV5G acquisition runs. Complete drives are assigned disjoint roles for predictor training, measured action-outcome donation, and decision queries. At a supported query location, a candidate speed action is evaluated only when separate donor drives contain measurements under the same communication/action context within a frozen spatial caliper. Donor outcomes are hidden while deployable policies rank actions and are revealed only for post-selection evaluation.
 
-To address the third question, the manuscript introduces measurement-supported counterfactual replay (MSCR). Candidate actions are restricted to future states that were actually recorded later in a held-out drive. The corresponding future measured delay is hidden while the planner selects an action and revealed only afterward for outcome evaluation. This design avoids using the predictor under evaluation as its own counterfactual truth.
+The primary confirmation uses W2S measurements and a 30/50-km/h action pair. A protocol-fixed two-way acquisition-run bootstrap resamples both query and donor drives. It shows support-bounded measured oracle headroom of -4.177 ms relative to always selecting 50 km/h, with 95% interval [-13.659, -2.137] ms. The frozen absolute-QoS ranking retains +2.704 ms regret relative to this upper-bound diagnostic, with interval [+1.457, +5.832] ms. Its comparison with the FAST baseline is -1.473 ms with interval [-8.167, +0.657] ms, so we do not claim confirmatory predictive-policy superiority.
 
-The study uses complete acquisition runs for training, calibration, and test separation and performs run-level paired analysis rather than treating correlated timestamps as independent observations. A strong persistence baseline dominates the tested learned alternatives at one step, whereas calibration-gated spatial/context information becomes useful at longer planning horizons. Predictive planning has a favorable measured-delay direction relative to the reactive baseline across all five grouped split assignments. We explicitly report that the primary Wilcoxon result does not survive the declared Holm family correction and therefore do not present it as confirmatory superiority. A support-aware planner consistently reduces unsupported selections but does not provide a stable additional QoS benefit.
+A separately pre-frozen arterial-road n8 confirmation uses a different 50/80-km/h action pair. Measured oracle headroom is again present (-0.590 ms, 95% interval [-1.431, -0.250] ms), but the same frozen predictive intervention is now worse than the FAST baseline (+0.156 ms, 95% interval [+0.038, +0.258] ms). A separately frozen pairwise action-margin model also fails to close the measured decision gap. These cross-scenario results support the manuscript's central conclusion: useful predictive structure does not automatically constitute reliable motion-decision evidence.
 
-The manuscript is accompanied by reproducible code, split manifests, archived result summaries, claim-evidence documentation, and CI-verified manuscript builds. The work does not claim real-road closed-loop intervention, PC-FMCW optical validation, or a universal first-of-kind result.
+The statistical design treats acquisition runs, not timestamps, as the relevant evidence clusters and explicitly accounts for reuse of donor drives. Negative and non-confirmatory results are retained. The manuscript does not claim causal speed effects, arbitrary field counterfactual ground truth, a deployable measured oracle, closed-loop autonomous-vehicle validation, or novelty for generic decision-focused learning.
 
-Before submission, replace this paragraph with confirmed statements regarding authorship, prior publication, conflicts of interest, funding, and corresponding-author contact information. No such metadata are inferred from the repository.
+The work is accompanied by reproducible code, frozen protocol documents, donor-outcome provenance, immutable workflow artifacts, claim-evidence documentation, and CI-verified manuscript builds.
+
+Before submission, replace this paragraph with confirmed statements regarding authorship, prior publication, conflicts of interest, funding, AI-assisted language-editing disclosure, and corresponding-author contact information. No such metadata are inferred from the repository.
 
 Sincerely,
 
