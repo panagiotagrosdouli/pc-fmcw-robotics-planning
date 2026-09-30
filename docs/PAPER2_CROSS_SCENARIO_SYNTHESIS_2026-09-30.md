@@ -9,7 +9,8 @@ This note combines the two pre-frozen matched-field confirmations without changi
 ### W2S, 30 vs 50 km/h
 
 Locked workflow: `36747715208`  
-Locked SHA: `a056d46a5579032d10f51a1d6e90d800d3d017b4`
+Workflow head SHA: `a056d46a5579032d10f51a1d6e90d800d3d017b4`  
+Executed checkout SHA recorded by artifact: `e4f6430f8b6368f64edee421b827895b11280115`
 
 - ORACLE − FAST: **−4.177 ms**, 95% CI **[−13.659, −2.137]**
 - PRED − ORACLE: **+2.704 ms**, 95% CI **[+1.457, +5.832]**
@@ -22,7 +23,8 @@ Interpretation: measurable action-value headroom exists and the predictor leaves
 ### Arterial n8, 50 vs 80 km/h
 
 Locked workflow: `36749176921`  
-Locked SHA: `5a98d2e8ea1a948d5cc1d0586d4d63b402a715a7`
+Workflow head SHA: `5a98d2e8ea1a948d5cc1d0586d4d63b402a715a7`  
+Executed checkout SHA recorded by artifact: `3df3a7b4479f7b1e9d6019497b4a5e9ecbb12586`
 
 - ORACLE − FAST: **−0.590 ms**, 95% CI **[−1.431, −0.250]**
 - PRED − ORACLE: **+0.746 ms**, 95% CI **[+0.344, +1.596]**
