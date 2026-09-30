@@ -40,6 +40,10 @@ from iscai.connectivity.real_v2x.matched_replay import (
     stratified_run_split,
 )
 from iscai.connectivity.real_v2x.predictors import ConditionedSpatialKNNPredictor
+from iscai.connectivity.real_v2x.decision_margin import (
+    ConditionedMarginKNN,
+    build_matched_margin_table,
+)
 
 
 def spatial_thin(g: pd.DataFrame, spacing_m: float) -> pd.DataFrame:
@@ -114,6 +118,23 @@ def main() -> None:
         min_group_samples=100,
     ).fit(train)
 
+    fast, slow = max(speeds), min(speeds)
+    margin_train = build_matched_margin_table(
+        train,
+        slow_speed_kmh=slow,
+        fast_speed_kmh=fast,
+        caliper_m=args.caliper_m,
+        k_donors=min(args.k_donors, 3),
+        anchor_spacing_m=args.query_spacing_m,
+    )
+    margin_model = None
+    if not margin_train.empty:
+        margin_model = ConditionedMarginKNN(
+            n_neighbors=25,
+            min_group_samples=50,
+        ).fit(margin_train)
+    margin_train.to_csv(out / "margin_training_table.csv", index=False)
+
     donor_matcher = CrossRunSpeedMatcher(
         caliper_m=args.caliper_m,
         k_donors=args.k_donors,
@@ -127,7 +148,6 @@ def main() -> None:
     ).fit(train)
 
     mobility = mobility_costs(speeds, args.segment_m)
-    fast, slow = max(speeds), min(speeds)
 
     rows: list[dict] = []
     contexts: list[dict] = []
@@ -165,6 +185,11 @@ def main() -> None:
             pred_choice = min(speeds, key=lambda s: (pred_score[s], -s))
             oracle_choice = min(speeds, key=lambda s: (oracle_score[s], -s))
 
+            margin_stats = (
+                margin_model.predict_stats(q, lower_q=0.10, upper_q=0.90)
+                if margin_model is not None else None
+            )
+
             contexts.append({
                 "query_run_id": run_id,
                 "query_index": int(query_index),
@@ -176,6 +201,18 @@ def main() -> None:
                 "pred_slow_delay_ms": pred[slow],
                 "pred_fast_delay_ms": pred[fast],
                 "pred_fast_minus_slow_gain_ms": pred[fast] - pred[slow],
+                "margin_pred_gain_ms": (
+                    margin_stats["mean_gain_ms"] if margin_stats is not None else np.nan
+                ),
+                "margin_lower_gain_ms": (
+                    margin_stats["lower_gain_ms"] if margin_stats is not None else np.nan
+                ),
+                "margin_upper_gain_ms": (
+                    margin_stats["upper_gain_ms"] if margin_stats is not None else np.nan
+                ),
+                "margin_nearest_train_m": (
+                    margin_stats["nearest_margin_train_m"] if margin_stats is not None else np.nan
+                ),
                 "measured_slow_delay_ms": measured[slow].delay_ms,
                 "measured_fast_delay_ms": measured[fast].delay_ms,
                 "measured_fast_minus_slow_gain_ms": (
@@ -278,6 +315,10 @@ def main() -> None:
         "mobility_weight": args.mobility_weight,
         "min_predicted_gain_ms": args.min_predicted_gain_ms,
         "eligible_query_locations": eligible_queries,
+        "margin_training_rows": int(len(margin_train)),
+        "margin_model_status": "fit" if margin_model is not None else "unavailable",
+        "margin_knn_neighbors": 25,
+        "margin_lower_quantile": 0.10,
         "split": split,
         "claim_boundary": (
             "Cross-run matched field replay under exact network/direction/speed and "
