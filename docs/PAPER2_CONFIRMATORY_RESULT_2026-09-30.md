@@ -1,7 +1,8 @@
 # Paper 2 — Locked Confirmatory Result
 
 **Date:** 2026-09-30  
-**Locked code SHA:** `a056d46a5579032d10f51a1d6e90d800d3d017b4`  
+**Workflow head SHA (frozen branch):** `a056d46a5579032d10f51a1d6e90d800d3d017b4`  
+**Executed checkout SHA (artifact provenance):** `e4f6430f8b6368f64edee421b827895b11280115`  
 **Workflow:** Paper 2 Confirmatory Audit  
 **Workflow run:** `36747715208`  
 **Result:** success  
