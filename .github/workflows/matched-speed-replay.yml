@@ -6,6 +6,7 @@ on:
       - 'src/iscai/connectivity/real_v2x/matched_replay.py'
       - 'scripts/run_real_v2x_matched_speed_replay.py'
       - 'scripts/analyze_real_v2x_matched_speed_replay.py'
+      - 'scripts/analyze_real_v2x_matched_speed_sweep.py'
       - 'tests/test_matched_speed_replay.py'
       - '.github/workflows/matched-speed-replay.yml'
   workflow_dispatch:
@@ -39,6 +40,27 @@ jobs:
           python scripts/analyze_real_v2x_matched_speed_replay.py \
             --input results/real_v2x_matched_speed \
             --bootstrap 5000
+      - name: Run split and caliper robustness sweep
+        run: |
+          mkdir -p results/real_v2x_matched_speed_sweep
+          for seed in 0 1 2 3 4; do
+            for caliper in 1.0 2.0 5.0; do
+              tag=$(echo ${caliper} | sed 's/\./p/')
+              out=results/real_v2x_matched_speed_sweep/seed_${seed}_caliper_${tag}
+              PYTHONPATH=src python scripts/run_real_v2x_matched_speed_replay.py \
+                --data data/raw/cicv5g \
+                --output ${out} \
+                --seed ${seed} \
+                --query-spacing-m 5.0 \
+                --caliper-m ${caliper}
+              python scripts/analyze_real_v2x_matched_speed_replay.py \
+                --input ${out} \
+                --bootstrap 1000 \
+                --seed ${seed}
+            done
+          done
+          python scripts/analyze_real_v2x_matched_speed_sweep.py \
+            --root results/real_v2x_matched_speed_sweep
       - name: Record provenance
         run: |
           mkdir -p results/real_v2x_matched_speed/provenance
@@ -48,4 +70,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: matched-speed-replay-development
-          path: results/real_v2x_matched_speed/
+          path: |
+            results/real_v2x_matched_speed/
+            results/real_v2x_matched_speed_sweep/
