@@ -3,8 +3,8 @@
 \usepackage[hidelinks]{hyperref}
 \usepackage{siunitx}
 
-\title{From QoS Prediction to Decision Validity:\\
-Measurement-Supported Counterfactual Replay for Communication-Aware Vehicle Planning}
+\title{From QoS Prediction to Measured Decision Validity:\\
+Support-Bounded Matched Field Replay for Vehicular Speed Decisions}
 
 \author{Panagiota Grosdouli%
 \thanks{Affiliation and corresponding-author contact must be confirmed before submission.}}
@@ -13,329 +13,263 @@ Measurement-Supported Counterfactual Replay for Communication-Aware Vehicle Plan
 \maketitle
 
 \begin{abstract}
-Predictive quality-of-service (QoS) models and communication-aware motion planners are established research directions, but logged field measurements create a decision-validity problem: a planner evaluates actions that were not actually taken, while the dataset contains outcomes only along the driven trajectory. We study this mismatch using the CICV5G field-measurement dataset and a measurement-supported counterfactual replay protocol. Complete acquisition runs are separated across training, calibration, and test partitions to reduce route and temporal leakage. Causal QoS predictors are benchmarked against persistence at multiple planning horizons, while candidate queries are audited for empirical support using training-measurement proximity and density. For decision evaluation, candidate actions are restricted to future states recorded later in the same held-out run; their measured future delay is hidden during scoring and revealed only after selection. One-step delay prediction is dominated by persistence, whereas calibration-gated spatial/context information becomes useful at longer planning horizons. Predictive planning has a favorable measured-delay direction relative to a reactive baseline across all five grouped split assignments, although the primary paired comparison does not remain significant after the declared Holm correction. A support-aware planner consistently reduces unsupported selections but does not provide a stable additional QoS gain. The contribution is a reproducible decision-validity framework that separates predictive utility, empirical measurement support, and measured post-selection evaluability when field-measured communication data are used to influence vehicle motion.
+Predictive quality-of-service (QoS) and communication-aware vehicle planning are established research directions, but logged field measurements create an evidential mismatch: models can score alternative motion actions even when the dataset contains no measured outcome for the action not taken. We study this mismatch using repeated CICV5G field drives and support-bounded matched field replay. Whole acquisition runs are assigned disjoint roles for predictor training, measured outcome donation, and decision queries; deployable rankings never observe donor outcomes before action selection. Under a frozen 10\% intervention budget, the primary W2S 30/50-km/h confirmation shows measured oracle headroom of $-4.177$ ms relative to FAST, with two-way query/donor bootstrap 95\% interval $[-13.659,-2.137]$ ms. The absolute-QoS policy retains $+2.704$ ms regret relative to that upper-bound diagnostic, while its comparison with FAST has interval $[-8.167,+0.657]$ ms and therefore does not establish superiority. A separately pre-frozen arterial n8 50/80-km/h confirmation again shows oracle headroom ($-0.590$ ms, $[-1.431,-0.250]$ ms), but the same predictive policy is worse than FAST ($+0.156$ ms, $[+0.038,+0.258]$ ms). A frozen pairwise action-margin model also fails to remove the gap. The result is an evidence-boundary finding: useful QoS prediction does not automatically constitute reliable motion-decision evidence when action support and acquisition-run dependence are enforced explicitly.
 \end{abstract}
 
 \begin{IEEEkeywords}
-communication-aware planning, V2X, predictive QoS, autonomous vehicles, counterfactual evaluation, measurement support, distribution shift, conformal prediction
+predictive QoS, V2X, communication-aware planning, autonomous vehicles, decision validity, matched field replay, empirical support, clustered inference
 \end{IEEEkeywords}
 
 \section{Introduction}
-Connected and automated vehicles increasingly depend on wireless communication for cooperative perception, cloud-assisted services, infrastructure interaction, and distributed decision making. Motion and communication are therefore coupled: vehicle position changes the link conditions it experiences, while anticipated link conditions can influence the motion selected by a planner. This coupling is not new. Communication-aware motion planning has a long history \cite{ghaffarkhah2011,muralidharan2021}, including obstacle-aware planning \cite{hurst2021}, joint motion--communication--sensing optimization \cite{cai2022}, and more recent radio-map-based planning \cite{gordon2026}. QoS-aware autonomous-vehicle trajectory selection has also been studied directly \cite{ullah2025}.
+Connected and automated vehicles increasingly rely on wireless communication for cooperative perception, cloud-assisted services, infrastructure interaction, and distributed decision making. Vehicle motion changes the communication environment experienced by the platform, while anticipated communication quality can influence motion selection. This coupling is well established. Communication-aware motion planning has a long history \cite{ghaffarkhah2011,muralidharan2021}, including obstacle-aware formulations \cite{hurst2021}, joint motion--communication--sensing optimization \cite{cai2022}, QoS-aware autonomous-vehicle trajectory selection \cite{ullah2025}, radio-map planning \cite{gordon2026}, and uncertainty-aware connectivity control \cite{kim2026}.
 
-In parallel, predictive QoS (PQoS) has become an established topic in vehicular communications. Field campaigns and public datasets support data-driven prediction of throughput, delay, and radio indicators \cite{sliwa2018,hernangomez2023,palaios2023,partani2025,zhang2026}. Recent work also predicts dynamic radio maps \cite{cheng2026} and integrates radio-prediction uncertainty into motion control \cite{kim2026}. Consequently, a paper whose sole claim is \emph{predict connectivity and add it to a planner} would overlap substantially with prior work.
+Predictive QoS (PQoS) is likewise established in vehicular communications. Field campaigns and public datasets support data-driven prediction of delay, throughput, and radio indicators \cite{sliwa2018,hernangomez2023,palaios2023,partani2025,zhang2026}. Recent work predicts future radio maps \cite{cheng2026} and task-aware radio world models explicitly reason about downstream decision relevance \cite{wang2026rmworld}. Consequently, neither predicting connectivity nor using connectivity in motion planning is an adequate novelty claim.
 
-The present study addresses a different question: \emph{what evidence is required before a prediction learned from logged field measurements should be allowed to justify a different vehicle motion decision?} This question appears when predictive communication models are evaluated beyond pure regression. A supervised predictor is trained on states that were observed. A planner, however, asks counterfactual questions about candidate future states. If a candidate was never visited, the logged dataset generally contains no measured communication outcome for that action. A planner can therefore appear successful if evaluation silently assigns model predictions, interpolated maps, or future information as if they were measured truth.
+The methodological problem studied here appears when a field-trained communication model is used to justify a different motion action. A logged drive records communication outcomes under the motion that was actually executed. A planner, however, asks which action should be selected among alternatives. If evaluation fills the unobserved action with the same model that made the decision, prediction and ground truth become circular. A favorable planner result can then reflect model self-consistency rather than measured decision evidence.
 
-This distinction is especially important for spatially and temporally correlated vehicular data. Random sample-level splits can leak neighboring measurements from the same drive into both training and test sets. Palaios et al. show that split choice can substantially alter apparent QoS-prediction performance \cite{palaios2023}. Standard split-conformal guarantees also rely on exchangeability and can degrade under distribution shift \cite{zou2024}. Thus, prediction accuracy, uncertainty calibration, empirical support, and decision evaluation should not be collapsed into a single notion of trust.
+A second issue is statistical. Vehicular samples are correlated in time and space. Multiple query locations can share the same acquisition run, and multiple matched outcomes can reuse the same donor run. Treating timestamps as independent observations exaggerates effective sample size and can turn a favorable point estimate into an overstated performance claim. Prior PQoS work already shows strong sensitivity to data-split methodology \cite{palaios2023}; decision evaluation adds donor-run dependence on top of query-run dependence.
 
-We organize the paper around three validity questions:
+This paper asks a narrower question: \emph{when can repeated field measurements support a claim about a communication-aware vehicle motion decision without promoting model-generated counterfactuals to measured truth?}
+
+We study this question on the CICV5G field dataset \cite{zhang2026}. The primary motion action is a physically interpretable 30/50-km/h speed choice at locations where separate repeated drives provide measured support for both actions. Complete acquisition runs are assigned disjoint roles for model training, measured outcome donation, and decision queries. A second pre-frozen arterial-road confirmation applies the same evidence protocol to a different 50/80-km/h action pair.
+
+The contributions are deliberately evidence-centered:
 \begin{enumerate}
-\item \textbf{Predictive validity:} does future QoS contain incremental information beyond a strong causal baseline at the horizon where a planner can act?
-\item \textbf{Empirical-support validity:} is a candidate-state prediction made in a region represented by the measurements used to train the model?
-\item \textbf{Outcome validity:} can the consequence of the selected counterfactual action be evaluated using an actual withheld measurement rather than a fabricated radio-map value?
+\item We operationalize \emph{support-bounded matched field replay}, in which motion actions are evaluated only where disjoint repeated acquisition runs provide measured outcomes for the relevant action and context.
+\item We separate predictor training, measured action-outcome donation, and decision querying across complete acquisition runs.
+\item We evaluate both a conventional absolute-QoS ranking and a frozen pairwise action-margin ranking, retaining the negative result that direct margin prediction does not automatically solve downstream decision reliability.
+\item We use a fixed intervention budget rather than hiding travel-time and network-delay units inside an arbitrary scalar objective.
+\item We perform a locked W2S confirmation with two-way query-run and donor-run bootstrap resampling, then repeat the same frozen evidence protocol in a different arterial-road scenario. Both settings show measured action-value headroom and predictor regret; the arterial confirmation additionally shows the frozen predictive intervention performing worse than FAST.
 \end{enumerate}
 
-To study these questions, we use CICV5G \cite{zhang2026}, a field-measured vehicular 5G/V2N2V dataset. The archived repository pipeline uses 38 complete acquisition runs comprising 43,045 synchronized samples. Runs, rather than rows, are partitioned into training, calibration, and test sets. Future-delay prediction is compared against persistence over multiple planning horizons. Empirical support is computed only from training measurements. Finally, the planner is evaluated using \emph{measurement-supported counterfactual replay} (MSCR): candidate choices are restricted to future states that are actually present later in the held-out run, while their measured future delay remains hidden until after the planner selects an action.
+The contribution is not a new generic planner, a new decision-focused-learning paradigm, or a causal speed-effect estimate. It is a measured field-evidence protocol and an empirical demonstration that prediction-level usefulness and decision-level evidential validity can diverge.
 
-The contributions are deliberately scoped:
+\section{Related Work and Non-Overlap}
+Communication-aware motion planning already establishes that communication quality can influence robot and vehicle motion \cite{ghaffarkhah2011,muralidharan2021,hurst2021,cai2022}. Ullah et al. study QoS-aware vehicle trajectory optimization \cite{ullah2025}, Gordon et al. use radio maps in motion planning \cite{gordon2026}, and Kim et al. propagate radio-map uncertainty into control \cite{kim2026}. These works establish the motion--communication coupling.
+
+Field-measured PQoS is also established. Sliwa et al. combine mobility prediction and learned connectivity maps for vehicular communication \cite{sliwa2018}. Public drive-test datasets support geographically resolved communication modeling \cite{hernangomez2023,zhang2026}. Palaios et al. demonstrate strong sensitivity of vehicular QoS prediction to split methodology \cite{palaios2023}, while Partani et al. exploit leading-vehicle and historical information for urban V2X prediction \cite{partani2025}.
+
+Decision-relevant communication modeling is likewise not new. RadioMapMotion targets proactive spatio-temporal radio prediction \cite{cheng2026}, and RMWorld values radio information according to downstream task relevance and credibility \cite{wang2026rmworld}. The novelty claim here is therefore not regret, decision-focused learning, or policy evaluation in general.
+
+The distinction is the \emph{evaluation substrate}. Simulation, analytical propagation, ray tracing, or learned world models can provide a complete outcome surface for candidate actions. A finite field log cannot. The present study asks what conclusions survive when the evaluator refuses to invent missing field outcomes and when acquisition runs, rather than timestamps, determine the evidence structure.
+
+\section{Field Data and Evidence Roles}
+\subsection{CICV5G measurements}
+CICV5G contains real 5G V2N2V measurements with synchronized communication and vehicle context, including delay, SINR, RSRP, position, heading, velocity, cell identity, and timestamps \cite{zhang2026}. The repository study uses repeated W2S/S2W acquisition runs under n8/n78 configurations and multiple vehicle speeds. A separately frozen out-of-scenario confirmation uses arterial-road n8 runs at 50 and 80 km/h, excluding aggregate files to avoid duplicate samples.
+
+The earlier predictor audit uses 38 complete acquisition runs comprising 43,045 synchronized samples. That audit establishes two background facts: one-step persistence is a strong causal baseline, while spatial/context information can add predictive value at longer planning horizons. These facts motivate future prediction but do not establish that a motion action selected from that prediction is better.
+
+\subsection{Disjoint acquisition-run roles}
+Complete acquisition runs are partitioned within network, direction, and speed strata as
+\begin{equation}
+\mathcal R
+=
+\mathcal R_{\mathrm{tr}}
+\dot\cup
+\mathcal R_{\mathrm{don}}
+\dot\cup
+\mathcal R_{\mathrm{qry}},
+\end{equation}
+where $\mathcal R_{\mathrm{tr}}$ fits the predictive models, $\mathcal R_{\mathrm{don}}$ provides measured action outcomes, and $\mathcal R_{\mathrm{qry}}$ provides decision locations and contexts. No acquisition run serves more than one role in a configuration.
+
+The locked confirmations use 40\% training, 40\% donor, and the remaining runs as query roles, with split seed 20260930 fixed before outcome inspection.
+
+\section{Support-Bounded Matched Field Replay}
+For query state $x$ and action $a$, define the donor support set
+\begin{equation}
+\mathcal D(x,a)=
+\left\{
+i\in\mathcal R_{\mathrm{don}}:
+c_i=c_x,\ a_i=a,\ \|p_i-p_x\|_2\le \rho
+\right\},
+\end{equation}
+where $c$ denotes the frozen communication/motion context and $\rho=2$ m is the locked spatial caliper.
+
+A matched measured outcome is reported only when $\mathcal D(x,a)$ is nonempty:
+\begin{equation}
+\tilde y(x,a)
+=
+\frac{1}{|\mathcal D^\star(x,a)|}
+\sum_{i\in\mathcal D^\star(x,a)}y_i,
+\end{equation}
+where $\mathcal D^\star$ is the selected donor subset, preferring donor-run diversity before repeated samples from one run. Both actions must have donor support for a query location to enter comparative evaluation. Query positions are thinned at 5-m spacing.
+
+The donor outcome is never exposed to a deployable ranking before action selection. This strengthens the evaluation relative to model-as-truth replay, but the matched outcome remains observational. Separate acquisition runs can differ in network load, blockage, traffic, handovers, or other latent conditions. We therefore do not interpret $\tilde y(x,a)$ as a randomized potential outcome or a causal speed effect.
+
+\section{Frozen Predictive Rankings}
+\subsection{Absolute-QoS predictor}
+A context-conditioned spatial k-nearest-neighbor predictor is fitted only on training-role runs. For the primary W2S actions, predicted communication gain from slowing is
+\begin{equation}
+g_{\mathrm{pred}}(x)
+=
+\hat y(x,50)-\hat y(x,30).
+\end{equation}
+Positive gain means the model expects lower delay at the slower action. The arterial confirmation uses the same frozen architecture with the corresponding 50/80-km/h action pair.
+
+\subsection{Pairwise action-margin predictor}
+A second model is trained directly on matched action margins constructed only from training-role runs:
+\begin{equation}
+g_{\mathrm{margin}}(x)
+=
+\widehat{\tilde y(x,a_{\mathrm{fast}})
+-\tilde y(x,a_{\mathrm{slow}})}.
+\end{equation}
+The model is a context-conditioned spatial KNN with 25 neighbors and no post-audit tuning. It is retained as a negative comparator rather than promoted as the paper's novelty.
+
+\section{Budgeted Decision Policies}
+Combining travel-time seconds and network-delay milliseconds in a single scalar objective requires an application-specific conversion that is not available in the dataset. We therefore use a maximum intervention budget. In each query run, at most fraction
+\begin{equation}
+B=0.10
+\end{equation}
+of supported locations may select the slower action.
+
+The policies are:
+\begin{description}
+\item[FAST:] always select the faster speed action.
+\item[PRED\_BUDGET:] rank locations by $g_{\mathrm{pred}}$ and spend budget only where predicted gain is positive.
+\item[MARGIN\_BUDGET:] rank by $g_{\mathrm{margin}}$ using the frozen pairwise model.
+\item[ORACLE\_BUDGET:] rank by matched measured gain $\tilde y(x,a_{\mathrm{fast}})-\tilde y(x,a_{\mathrm{slow}})$.
+\end{description}
+
+ORACLE\_BUDGET is nondeployable and serves only as a support-bounded upper-bound diagnostic. Donor measurements enter its ranking, so it is not interpreted as an unbiased deployable-policy performance estimate.
+
+\section{Statistical Protocol}
+\subsection{Development sensitivity}
+Before the locked confirmation, the replay was evaluated over five whole-run split seeds and spatial calipers of 1, 2, and 5 m, yielding 15 dependent development configurations. The finite drive pool is reused, so these configurations are summarized descriptively rather than treated as independent experiments.
+
+Across these configurations, ORACLE\_BUDGET is favorable relative to FAST in all 15 for mean matched delay. In contrast, the conventional predicted-gain policy is favorable in only 9/15 for mean delay and 8/15 for matched p95 delay. The frozen pairwise margin hypothesis also fails its predeclared promising-method criterion.
+
+\subsection{Locked confirmations}
+The primary W2S confirmation fixes the split seed, 30/50-km/h action pair, 2-m caliper, 5-m query thinning, 40/40 train/donor fractions, 10\% intervention budget, and frozen model architectures before outcome inspection.
+
+The arterial confirmation is frozen separately before outcome inspection. It uses arterial-road n8 measurements, a 50/80-km/h action pair, the same split seed and evidence-role fractions, the same 2-m caliper and 5-m thinning, and the same frozen model architectures and intervention budget.
+
+\subsection{Two-way acquisition-run bootstrap}
+A query run contributes many correlated query locations, and one donor run can contribute to many matched outcomes. We therefore independently resample query and donor acquisition runs.
+
+For each bootstrap replicate:
 \begin{enumerate}
-\item We formulate a \emph{decision-validity decomposition} for logged communication data that separates predictive accuracy, empirical measurement support, and post-decision evaluability.
-\item We implement a whole-run leakage-resistant PQoS benchmark with persistence as the mandatory causal baseline and explicitly evaluate the horizon at which learned spatial/context information adds value.
-\item We implement an empirical support audit for trajectory-conditioned QoS queries using only training measurements, rather than interpreting predictive uncertainty alone as evidence of in-distribution support.
-\item We formulate MSCR, an offline replay protocol in which every evaluated candidate has a subsequently measured outcome, but that outcome is causally hidden until after action selection.
-\item We use P1--P3 comparisons to separate predictive decision utility from support-risk control and retain null/negative results when the support-aware planner does not further improve QoS.
+\item query acquisition runs are sampled with replacement;
+\item donor acquisition runs are sampled independently with replacement;
+\item each matched action outcome is reconstructed from the resampled donor contributions;
+\item ORACLE\_BUDGET is recomputed inside the replicate;
+\item PRED\_BUDGET and MARGIN\_BUDGET keep their frozen model-based rankings;
+\item mean-delay effects are aggregated at the query-run level.
 \end{enumerate}
 
-These contributions are methodological and empirical. We do not claim novelty for communication-aware planning, radio maps, PQoS, uncertainty-aware MPC, or counterfactual world models in general.
-
-\section{Related Work and Non-Overlap Positioning}
-\subsection{Communication-aware motion planning}
-Ghaffarkhah and Mostofi introduced a probabilistic framework in which wireless-channel structure is learned from measurements and incorporated into robot motion planning \cite{ghaffarkhah2011}. The broader field now includes theoretical and practical formulations for exploiting robot motion to preserve or improve communication \cite{muralidharan2021}, obstacle-aware communication planning \cite{hurst2021}, and joint motion--communication--sensing optimization in real wireless channel environments \cite{cai2022}. Gordon et al. estimate radio maps online and convert them into service-specific risk maps used by a motion planner \cite{gordon2026}. Kim et al. combine Gaussian-process RSSI prediction with adaptive tube MPC and explicitly propagate radio-map and motion uncertainty \cite{kim2026}. These works establish that communication-aware motion and uncertainty-aware radio-map planning are existing ideas.
-
-The present paper therefore does not propose a new motion-planning family. Its planner is intentionally simple so that the study can isolate whether logged communication evidence is valid for evaluating predictive decisions.
-
-\subsection{Predictive QoS from vehicular measurements}
-Sliwa et al. combined mobility prediction and learned connectivity maps for context-predictive car-to-cloud communication and evaluated the approach in a field campaign \cite{sliwa2018}. The Berlin V2X dataset later provided high-resolution, GPS-located measurements from multiple vehicles and radio access technologies \cite{hernangomez2023}. Palaios et al. studied the end-to-end ML workflow for vehicular QoS prediction and highlighted the sensitivity of results to dataset splitting \cite{palaios2023}. Partani et al. further improved urban V2X throughput prediction using information from leading vehicles and historical trends \cite{partani2025}. These studies show that field-measured PQoS and data-split methodology are established topics.
-
-Our distinction is that predictor performance is not the endpoint. The predictor is inserted into a motion-decision experiment in which the validity of each candidate query and the availability of a measured post-decision outcome are audited explicitly.
-
-\subsection{Predictive radio maps and task-aware world models}
-RadioMapMotion targets proactive spatio-temporal radio-environment prediction and provides a benchmark for forecasting future radio maps \cite{cheng2026}. RMWorld goes further by valuing channel information according to downstream task relevance and by filtering counterfactual radio-world-model rollouts using credibility criteria \cite{wang2026rmworld}. These developments make it inappropriate to claim that future radio prediction, counterfactual communication rollouts, or task-aware communication modeling are themselves novel.
-
-The difference in this work is the evidence source and evaluation boundary. We do not treat a learned world model as counterfactual ground truth. Instead, we restrict offline decision evaluation to candidate states that have an actual future measurement in the logged held-out trajectory.
-
-\subsection{Vehicular QoS-aware trajectory planning}
-Ullah et al. optimize autonomous-vehicle routes using network spectral-efficiency information in a simulated 6G/mmWave coverage setting \cite{ullah2025}. This establishes QoS-aware vehicle trajectory optimization as prior art. The present study asks a narrower question: when the QoS surface comes from finite field measurements rather than a simulator or complete coverage map, which counterfactual decisions are empirically supportable and which can be evaluated without inventing unmeasured outcomes?
-
-Table~\ref{tab:positioning} summarizes the intended non-overlap. The table is not a systematic review; it identifies the closest methodological axes relevant to the paper's claim.
-
-\begin{table*}[t]
-\caption{Positioning against representative prior work. Measured outcome replay means that the communication outcome associated with the selected candidate is a withheld field measurement rather than model-generated ground truth.}
-\label{tab:positioning}
-\centering
-\small
-\resizebox{\textwidth}{!}{%
-\begin{tabular}{lccccc}
-\toprule
-Work & Field communication data & Future QoS/radio prediction & Motion decision & Support/OOD audit & Measured outcome replay \\
-\midrule
-Sliwa et al. \cite{sliwa2018} & \checkmark & \checkmark & scheduling & -- & -- \\
-Palaios et al. \cite{palaios2023} & \checkmark & \checkmark & -- & split sensitivity & -- \\
-Ullah et al. \cite{ullah2025} & simulation & map-based & \checkmark & -- & -- \\
-Gordon et al. \cite{gordon2026} & simulated/ray-traced & \checkmark & \checkmark & risk map & -- \\
-Kim et al. \cite{kim2026} & map validation & \checkmark & \checkmark & \checkmark & -- \\
-RadioMapMotion \cite{cheng2026} & simulated benchmark & \checkmark & -- & generalization tests & -- \\
-RMWorld \cite{wang2026rmworld} & simulated/DeepMIMO & \checkmark & \checkmark & credibility/task relevance & model rollouts \\
-\textbf{This work} & \textbf{\checkmark} & \textbf{\checkmark} & \textbf{\checkmark} & \textbf{\checkmark} & \textbf{\checkmark} \\
-\bottomrule
-\end{tabular}
-}
-\end{table*}
-
-
-\section{Data and Leakage-Controlled Experimental Design}
-\subsection{CICV5G field measurements}
-CICV5G provides field-measured 5G V2N2V delay with synchronized network and vehicle context, including variables such as RSRP, SINR, cell identity, position, heading, velocity, and timestamps \cite{zhang2026}. The source publication reports more than 150,000 synchronized records across multiple scenarios; the present archived study uses a defined 38-run W2S subset containing 43,045 samples.
-
-The primary grouped split contains 22 training runs (22,441 samples), 7 calibration runs (8,846 samples), and 9 test runs (11,758 samples). These data support only the measured 5G/V2N2V branch. They are not evidence for the separate PC-FMCW optical model in the repository.
-
-\subsection{Whole-run partitioning}
-Let the complete set of acquisition runs be
-\begin{equation}
-\mathcal{R}=\mathcal{R}_{\mathrm{tr}}\dot\cup
-\mathcal{R}_{\mathrm{cal}}\dot\cup
-\mathcal{R}_{\mathrm{te}}.
-\end{equation}
-Every sample from one run belongs to exactly one partition. Predictors and empirical support are fitted using $\mathcal{R}_{\mathrm{tr}}$. Hyperparameter/fusion selection and residual uncertainty calibration use $\mathcal{R}_{\mathrm{cal}}$. Final planner evaluation uses $\mathcal{R}_{\mathrm{te}}$.
-
-This design is intentionally stricter than a random row split. Adjacent vehicular measurements are highly correlated in time and space, and prior work has shown that random split choices can substantially overstate PQoS performance \cite{palaios2023}.
-
-Five grouped split assignments are used for sensitivity analysis. Because the same finite collection of drives is reused, the five assignments are dependent robustness configurations, not five independent replications.
-
-\section{Decision-Validity Decomposition}
-We define decision validity as an audit rather than a scalar probability. A candidate can fail for different scientific reasons even if its predicted QoS appears favorable.
-
-\subsection{Layer I: predictive validity at the decision horizon}
-For run $r$, decision time $t$, and horizon $h$, let measured delay be
-\begin{equation}
-y^{(h)}_{r,t}=y_{r,t+h}.
-\end{equation}
-The causal persistence baseline is
-\begin{equation}
-\hat y^{\mathrm{pers}}_{r,t+h|t}=y_{r,t}.
-\end{equation}
-A learned spatial/context model produces
-\begin{equation}
-\hat y^{\mathrm{learn}}_{r,t+h|t}
-=f_h(x^{\mathrm{cand}}_{r,t+h},c_{r,t}),
-\end{equation}
-where $c_{r,t}$ contains only information available at decision time.
-
-A calibration-gated predictor combines the two:
-\begin{equation}
-\hat y^{\mathrm{fuse}}
-=(1-\alpha_h)\hat y^{\mathrm{pers}}
-+\alpha_h\hat y^{\mathrm{learn}},
-\qquad \alpha_h\in[0,1],
-\end{equation}
-with $\alpha_h$ chosen only from calibration runs. The learned predictor is therefore not assumed useful merely because it is more complex.
-
-\subsection{Layer II: empirical measurement support}
-Let
-\begin{equation}
-\mathcal{X}_{\mathrm{tr}}=\{x_i:i\in\mathcal{R}_{\mathrm{tr}}\}
-\end{equation}
-be the training-position set. For candidate position $x$, define
-\begin{equation}
-d_{\min}(x)=\min_{x_i\in\mathcal{X}_{\mathrm{tr}}}\|x-x_i\|_2
-\end{equation}
-and local density
-\begin{equation}
-n_\rho(x)=\sum_{x_i\in\mathcal{X}_{\mathrm{tr}}}
-\mathbf{1}\{\|x-x_i\|_2\le\rho\}.
-\end{equation}
-A frozen empirical-support rule is
-\begin{equation}
-u(x)=\mathbf{1}\{d_{\min}(x)>d_{\max}\;\lor\;n_\rho(x)<n_{\min}\}.
-\end{equation}
-The thresholds are experimental support controls, not physical channel parameters.
-
-This layer is kept distinct from predictive uncertainty. A predictor may return a narrow residual interval in a region poorly represented by training measurements. Conversely, a well-supported region may still have high intrinsic QoS variability.
-
-Residual split-conformal intervals are built from calibration residuals. They are used only as empirical uncertainty diagnostics. Ordinary split-conformal coverage depends on exchangeability and should not be assumed to remain nominal under arbitrary grouped distribution shift \cite{zou2024}.
-
-\subsection{Layer III: measured post-decision evaluability}
-For offline evaluation, a counterfactual action should have a measurable outcome that was not exposed to the planner. We therefore require candidate actions to map to future samples actually recorded in the same held-out run. If no such measurement exists, the candidate is not used as evidence for measured decision benefit.
-
-This criterion is an evaluation constraint, not a deployment restriction. In a deployed vehicle, the planner can consider unvisited states; the point is that a logged dataset cannot retrospectively certify the real QoS outcome at an arbitrary unvisited location.
-
-\section{Measurement-Supported Counterfactual Replay}
-For held-out run $r$ and decision time $t$, define
-\begin{equation}
-\mathcal{A}_{r,t}=
-\{a^{(1)}_{r,t},\ldots,a^{(K)}_{r,t}\},
-\end{equation}
-where each candidate maps to a later recorded state $x_{r,t+h_k}$. The predictor may use the candidate state and causally available context, but the corresponding future measured delay $y_{r,t+h_k}$ is hidden during scoring.
-
-After a planner chooses
-\begin{equation}
-a^\star_P\in\mathcal{A}_{r,t},
-\end{equation}
-the recorded outcome
-\begin{equation}
-y^{\mathrm{meas}}_{P,r,t}=y_{r,t+h^\star}
-\end{equation}
-is revealed solely for evaluation.
-
-MSCR therefore enforces two boundaries:
-\begin{enumerate}
-\item \textbf{causal selection:} no planner can inspect the future measurement attached to a candidate;
-\item \textbf{measured evaluation:} every reported post-selection QoS outcome comes from a field measurement, not from the predictor being evaluated.
-\end{enumerate}
-
-The protocol does not recover the full causal effect of physically driving an alternative trajectory, because choosing a different route could itself change future traffic, network load, and radio geometry. It is therefore described as route-constrained measured replay, not as a real-world intervention experiment.
-
-\section{Planner Family}
-Let $J_{\mathrm{mob}}(a)$ denote mobility deviation/cost and $\hat y(a)$ predicted future delay.
-
-\paragraph{P0: Mobility/reference}
-\begin{equation}
-a^\star_{P0}=\arg\min_{a\in\mathcal A}J_{\mathrm{mob}}(a).
-\end{equation}
-
-\paragraph{P1: Reactive/current-QoS}
-\begin{equation}
-a^\star_{P1}
-=\arg\min_{a\in\mathcal A}
-\left[J_{\mathrm{mob}}(a)+\lambda_c\hat y^{\mathrm{pers}}(a)\right].
-\end{equation}
-
-\paragraph{P2: Predictive communication}
-\begin{equation}
-a^\star_{P2}
-=\arg\min_{a\in\mathcal A}
-\left[J_{\mathrm{mob}}(a)+\lambda_c\hat y^{\mathrm{fuse}}(a)\right].
-\end{equation}
-P2 isolates the value of future QoS information relative to the reactive baseline.
-
-\paragraph{P3: Predictive communication with support control}
-\begin{equation}
-a^\star_{P3}
-=\arg\min_{a\in\mathcal A}
-\left[J_{\mathrm{mob}}(a)+\lambda_c\hat y^{\mathrm{fuse}}(a)
-+\lambda_s u(a)\right].
-\end{equation}
-P3 tests whether the planner can reduce reliance on weakly supported predictions. It is not assumed to improve communication QoS over P2.
-
-\section{Evaluation and Statistical Protocol}
-Prediction metrics include delay MAE/RMSE, empirical interval coverage, and support-stratified error. Decision metrics include selected measured delay, the fraction of selected outcomes above an experimental 50-ms delay threshold, changed-decision fraction, unsupported-selection fraction, and mobility deviation.
-
-Within one held-out split, planner comparisons are paired by acquisition run. The run, not the timestamp, is the inferential unit. Paired bootstrap intervals and paired Wilcoxon signed-rank tests are reported. Holm correction is applied across the predeclared planner/metric family. Raw $p$-values that do not survive multiplicity correction are retained as exploratory diagnostics only.
-
-The five grouped split assignments are summarized descriptively by effect direction, mean, and range. They are not converted into an artificial $n=5$ hypothesis test because runs recur across assignments.
+Each locked confirmation uses 5,000 replicates and percentile 95\% intervals. This finite-run bootstrap addresses the dominant two-way cluster dependence but does not convert observational repeated drives into a randomized experiment.
 
 \section{Results}
-\subsection{Persistence is the short-horizon baseline to beat}
-On the archived primary grouped split, one-step persistence achieves delay MAE 5.576 ms and RMSE 20.914 ms. Spatial kNN, Random Forest, and Extra Trees obtain 10.862, 7.150, and 6.659 ms MAE, respectively. The negative result is central: generic learned spatial/tree models do not automatically outperform the current QoS measurement.
+\subsection{Prediction-level diagnostics do not settle the decision question}
+The archived predictor study confirms that one-step persistence is difficult to beat. Persistence obtains 5.576 ms delay MAE on the primary grouped split, compared with 10.862, 7.150, and 6.659 ms for spatial kNN, Random Forest, and Extra Trees, respectively. At longer tested horizons, calibration-gated spatial/context prediction improves over persistence across all five grouped split assignments at 20, 50, and 100 steps.
 
-This finding is consistent with the broader PQoS literature's emphasis on split methodology and strong baselines \cite{palaios2023}. It also motivates evaluating prediction at the horizon where motion can actually change.
+These results establish predictive structure, but they do not establish downstream motion superiority.
 
-\subsection{Learned information becomes useful at planning horizons}
-Across five grouped split assignments, calibration-gated prediction improves delay MAE over persistence in all five assignments at 20, 50, and 100 steps. The corresponding mean improvements are approximately 1.460, 2.506, and 2.622 ms. The median physical horizons are approximately 1.1, 2.8, and 5.5 s.
-
-At 1, 5, and 10 steps, effects are smaller and less consistent. We therefore do not claim universal superiority of learned prediction. The supported conclusion is horizon-dependent: spatial/context information has incremental value at the longer decision horizons tested here.
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth]{generated/fig_horizon_improvement.pdf}
-\caption{Descriptive delay-MAE improvement over persistence across grouped split assignments. Split assignments reuse drives and are not independent replicates.}
-\label{fig:horizon}
-\end{figure}
-
-\subsection{Empirical support diagnoses a distinct failure mode}
-On the primary split, delay MAE is 5.332 ms for queries within 1 m of a training measurement, 7.120 ms at 1--5 m, and 9.579 ms at 5--15 m. Empirical conformal coverage decreases from 0.888 to 0.864 and 0.761 across the same bins.
-
-A deeper route/context audit shows that support distance is not a universal monotonic error law; the most severe sparse-support degradation is concentrated in particular contexts. Support is therefore used as a validity diagnostic rather than as a deterministic propagation model.
-
-\subsection{Predictive planning changes measured outcomes}
-Table~\ref{tab:replay} reports the primary held-out replay over nine acquisition runs. P1 obtains 23.318 ms mean measured delay and a 0.02179 fraction above the experimental 50-ms threshold. P2 reduces these to 22.526 ms and 0.01900 while changing 2.51\% of decisions and incurring 0.01254 mobility deviation.
+\subsection{W2S locked confirmation}
+Table~\ref{tab:w2s} reports the W2S 30/50-km/h confirmation.
 
 \begin{table}[t]
-\caption{Primary held-out MSCR summary over nine acquisition runs.}
-\label{tab:replay}
+\caption{W2S locked matched-field confirmation. Effects are mean-delay differences in ms.}
+\label{tab:w2s}
 \centering
 \small
-\begin{tabular}{lrrrr}
+\begin{tabular}{lrrr}
 \toprule
- & Delay & $>50$ ms & Unsupported & Mobility \\
-Planner & (ms) & fraction & fraction & deviation \\
+Quantity & Point & 95\% low & 95\% high \\
 \midrule
-P1 & 23.318 & 0.02179 & 0.1562 & 0 \\
-P2 & 22.526 & 0.01900 & 0.1563 & 0.01254 \\
-P3 & 22.598 & 0.01934 & 0.1380 & 0.02305 \\
+FAST delay & 23.546 & -- & -- \\
+PRED delay & 22.073 & -- & -- \\
+MARGIN delay & 21.878 & -- & -- \\
+ORACLE delay & 19.369 & -- & -- \\
+\midrule
+ORACLE $-$ FAST & -4.177 & -13.659 & -2.137 \\
+PRED $-$ ORACLE & +2.704 & +1.457 & +5.832 \\
+PRED $-$ FAST & -1.473 & -8.167 & +0.657 \\
+MARGIN $-$ FAST & -1.668 & -9.524 & +1.180 \\
+MARGIN $-$ ORACLE & +2.509 & +1.572 & +5.162 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The paired P2--P1 mean-delay effect is $-0.791924$ ms with bootstrap 95\% CI $[-1.723327,-0.137729]$ ms. The raw paired Wilcoxon value is $p=0.046875$, but the Holm-adjusted value across the declared 12-test family is approximately 0.28125. This result is therefore exploratory rather than multiplicity-corrected confirmatory evidence.
+Of 5,000 requested bootstrap replicates, 4,945 are valid. ORACLE--FAST is below zero in every valid replicate, supporting substantial measured action-value heterogeneity within the finite supported set. PRED--ORACLE is above zero in every valid replicate, showing that the frozen absolute-QoS ranking leaves a material portion of that opportunity unused.
 
-Across five grouped split assignments, P2--P1 measured-delay effects are approximately
-\[
-[-0.792,-1.253,-0.069,-0.263,-0.130]\;\mathrm{ms}.
-\]
-All five are negative, with descriptive mean $-0.501$ ms. The $>50$-ms violation-fraction effect is also negative in all five assignments, with descriptive mean approximately $-0.00224$. This directional consistency strengthens the robustness interpretation without creating an independent-sample significance claim.
+Crucially, the PRED--FAST interval crosses zero. The favorable point estimate therefore does not establish confirmatory superiority of the predictive policy over FAST once query-run and donor-run dependence are included. The pairwise margin policy leads to the same conclusion: MARGIN--FAST crosses zero while MARGIN--ORACLE remains positive.
 
-\subsection{Support control trades mobility for evidential conservatism}
-On the primary split, P3 reduces unsupported-selection exposure from 0.15634 under P2 to 0.13798. Mean measured delay changes only from 22.526 to 22.598 ms, while mobility deviation increases from 0.01254 to 0.02305.
+\subsection{Arterial out-of-scenario confirmation}
+Table~\ref{tab:arterial} reports the separately pre-frozen arterial-road n8 50/80-km/h confirmation.
 
-Across five grouped split assignments, P3--P2 unsupported-selection effects are approximately
-\[
-[-0.0184,-0.0153,-0.0190,-0.0562,-0.0309],
-\]
-all favoring P3, with descriptive mean approximately $-0.0280$. In contrast, P3--P2 measured-delay effects have mixed sign and descriptive mean near zero. The data therefore support a validity--mobility trade-off, not a claim that empirical-support penalties automatically improve QoS.
+\begin{table}[t]
+\caption{Arterial n8 out-of-scenario confirmation. Effects are mean-delay differences in ms.}
+\label{tab:arterial}
+\centering
+\small
+\begin{tabular}{lrrr}
+\toprule
+Quantity & Point & 95\% low & 95\% high \\
+\midrule
+FAST delay & 18.871 & -- & -- \\
+PRED delay & 19.026 & -- & -- \\
+MARGIN delay & 18.903 & -- & -- \\
+ORACLE delay & 18.281 & -- & -- \\
+\midrule
+ORACLE $-$ FAST & -0.590 & -1.431 & -0.250 \\
+PRED $-$ ORACLE & +0.746 & +0.344 & +1.596 \\
+PRED $-$ FAST & +0.156 & +0.038 & +0.258 \\
+MARGIN $-$ FAST & +0.032 & +0.007 & +0.061 \\
+MARGIN $-$ ORACLE & +0.622 & +0.277 & +1.472 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+There are 4,409 valid bootstrap replicates out of 5,000 requested. The locked arterial split contains only four query acquisition runs, so the result remains finite-sample and context-specific.
+
+Nevertheless, the evidence pattern is important. Measured action-value headroom is again present, but the frozen absolute-QoS intervention is now measurably worse than FAST. The pairwise margin policy is also worse than FAST. Thus, prediction-derived motion changes can appear favorable in one field context and harmful in another even when measurable action opportunity exists in both.
 
 \section{Discussion}
-\subsection{Why this is not another radio-map-planning paper}
-Prior work already demonstrates that radio maps, predicted QoS, and communication-risk models can improve motion planning \cite{ghaffarkhah2011,gordon2026,ullah2025,kim2026}. Repeating that claim with another planner would add limited novelty. The present result is instead about \emph{evidence discipline}: what can be concluded when communication estimates come from finite logged field data.
+\subsection{Prediction utility is not measured decision evidence}
+The predictor is not useless. It contains predictive structure, and on the W2S split its point estimate is favorable relative to FAST. The stronger cross-scenario result is that this is insufficient for a planner-superiority claim. In the arterial confirmation, the same frozen prediction-to-action logic is measurably worse than FAST.
 
-MSCR deliberately gives up arbitrary off-route planning freedom during evaluation in exchange for a stronger outcome statement: the communication value used to score the selected action after the fact is measured, not generated by the same model family being assessed. This prevents a circular evaluation pattern in which a learned or analytical radio map both drives the decision and defines the truth used to declare that decision successful.
+The evidence therefore supports three statements: measurable action-value opportunity exists, the tested predictors retain regret relative to that opportunity, and the sign of the prediction-derived intervention relative to FAST is context-dependent.
 
-\subsection{Prediction accuracy is not decision utility}
-The one-step study would suggest that a learned predictor is unnecessary because persistence is stronger than the tested spatial/tree baselines. The longer-horizon study reaches a different conclusion. When the horizon approaches the time scale on which motion can change, calibration-gated spatial/context information adds predictive value. The relevant baseline is therefore not machine learning versus no machine learning but future prediction versus the strongest causal information available at the same decision time.
+\subsection{Why donor identity matters}
+Repeated cellular drives are not interchangeable timestamps. Different donor runs can differ because of network load, blockage, cell state, traffic, and other latent factors. Development sweeps show substantial variation across run-role assignments.
 
-\subsection{Uncertainty is not empirical support}
-A predictive interval and an empirical-support score answer different questions. The former summarizes observed residual behavior under the calibration procedure. The latter asks whether the candidate resembles states represented in the training data. Under distribution shift, nominal conformal coverage may degrade \cite{zou2024}. Treating a narrow interval as proof that an extrapolative query is trustworthy would therefore be unjustified.
+The two-way bootstrap makes this dependence explicit. It weakens an apparently clean planner-performance story but strengthens the scientific validity of the conclusion by distinguishing favorable point estimates from effects that survive acquisition-run uncertainty.
 
-P3 operationalizes this distinction. It reduces unsupported selections consistently, yet does not improve QoS consistently. That negative result is informative: evidential conservatism has a mobility cost and should not be marketed as a free performance gain.
+\subsection{Why the pairwise failure matters}
+Decision-focused learning and task-relevant prediction are established research directions. Merely replacing absolute QoS loss with an action-margin target is therefore not a sufficient novelty claim. The frozen experiment provides a more useful negative result: direct pairwise margin prediction does not reliably recover the support-bounded opportunity and is measurably worse than FAST in the arterial setting.
 
-\subsection{Relationship to task-aware counterfactual models}
-Recent task-aware radio world models explicitly reason about decision-relevant model error and counterfactual rollout credibility \cite{wang2026rmworld}. Our setting is complementary rather than competitive. RMWorld addresses how a model should learn and select informative rollouts for control. We address how logged field measurements can be used to \emph{evaluate} motion decisions without silently converting model-generated counterfactuals into measured outcomes.
+This indicates that downstream reliability depends on more than the supervised target. Finite action overlap, donor quality, latent run context, and acquisition-run uncertainty remain part of the problem.
+
+\subsection{Relationship to task-aware radio models}
+Task-aware radio world models such as RMWorld reason explicitly about downstream decision relevance and counterfactual credibility \cite{wang2026rmworld}. The present study is complementary. We do not propose a richer world model; we audit what can be claimed when measured field logs are the evidence source and unsupported actions remain unevaluated rather than synthesized.
 
 \section{Threats to Validity and Limitations}
-First, MSCR is offline route-constrained replay, not a randomized intervention or closed-loop vehicle experiment. Selecting a different physical trajectory could alter future radio geometry, traffic interactions, handovers, and network load. The replay therefore measures decision value only within the logged route-supported candidate construction.
+First, matched field replay is observational. The compared speeds come from separate repeated drives, not randomized paired interventions at identical times. Network load, traffic, blockage, handovers, and other conditions can differ. The reported effects are support-bounded matched outcomes, not causal speed effects.
 
-Second, the current support model is intentionally simple. Euclidean distance and local training density cannot capture all relevant distribution shift, such as network-cell changes, temporal load, blockage, or context interactions. The support audit should be interpreted as an explicit lower-level diagnostic, not as a complete OOD detector.
+Second, the measured oracle is an upper-bound diagnostic, not a deployable controller and not an unbiased estimate of future policy performance. It uses donor measurements for action ranking.
 
-Third, the residual conformal intervals are not assumed to retain exact nominal coverage under grouped distribution shift. Their observed coverage is reported empirically and the limitations of exchangeability are acknowledged \cite{zou2024}.
+Third, the number of independent acquisition runs remains modest, especially in the arterial confirmation. The two-way bootstrap resamples the available query and donor clusters but cannot create new independent field experiments.
 
-Fourth, the primary held-out set contains nine runs. Although the paired bootstrap interval for P2--P1 mean delay excludes zero, the corresponding Wilcoxon result does not remain significant after the declared Holm family correction. The result is therefore reported as effect-size and directional robustness evidence, not confirmatory superiority.
+Fourth, spatial matching is intentionally simple. A 2-m caliper plus exact communication/action context cannot remove all latent context mismatch. Richer matching may reduce bias but can also reduce action overlap.
 
-Fifth, the repeated split assignments reuse the same 38 drives and are dependent. Directional consistency across them is a sensitivity result rather than independent replication.
+Fifth, the 10\% intervention budget is a methodological operating point rather than an application-specific optimal speed policy.
 
-Finally, the CICV5G measurements validate only the measured 5G/V2N2V decision study. They do not validate the separate PC-FMCW optical channel model maintained elsewhere in the repository.
+Finally, CICV5G validates only the measured 5G/V2N2V branch studied here. It does not validate the separate PC-FMCW optical communication model maintained elsewhere in the repository.
 
-\section{Reproducibility and Data Availability}
-The CICV5G dataset is documented by Zhang et al. \cite{zhang2026} and archived under Zenodo DOI 10.5281/zenodo.17475688. The repository records the exact acquisition subset, grouped split manifests, predictor configurations, empirical-support rules, replay implementation, and statistical-analysis scripts.
+\section{Reproducibility}
+The W2S locked confirmation used workflow run 36747715208 at code SHA
+\texttt{a056d46a5579032d10f51a1d6e90d800d3d017b4}. The associated artifact records run-role metadata, comparison contexts, donor contribution provenance, policy point estimates, two-way bootstrap summaries, coverage, and data provenance.
 
-The publication workflow separates source measurements from generated artifacts and records the grouping unit used for inference. Numerical paper assets are regenerated from archived CSV outputs rather than manually transcribed. Hosted-run timing is retained only as an implementation diagnostic because shared-runner load produces material wall-clock variation; no embedded real-time guarantee is claimed.
+The arterial confirmation used workflow run 36749176921 at code SHA
+\texttt{5a98d2e8ea1a948d5cc1d0586d4d63b402a715a7}, under a separately pre-frozen protocol. Both workflows completed successfully and retain immutable artifact digests in the repository audit documentation.
 
 \section{Conclusion}
-Predictive QoS and communication-aware planning are mature research areas; the unresolved methodological issue studied here is how logged field measurements can support counterfactual motion decisions without overstating what was actually observed. By separating predictive validity, empirical support, and measured outcome evaluability, the proposed study reframes connectivity planning as an evidence-validity problem.
+Communication-aware motion planning and predictive QoS are mature research areas. The unresolved issue studied here is evidential: when a field-trained connectivity model recommends a different vehicle motion, what measured evidence supports the resulting decision claim?
 
-On CICV5G, persistence is a strong one-step baseline, while calibration-gated spatial/context information becomes useful at longer planning horizons. In measurement-supported counterfactual replay, predictive P2 reduces measured delay relative to reactive P1 in direction across all five grouped split assignments. Support-aware P3 consistently reduces unsupported selections, but does not provide a stable additional QoS benefit and incurs additional mobility deviation.
+Using repeated CICV5G drives, we separate model training, measured action-outcome donation, and decision queries across complete acquisition runs. A locked W2S two-way query/donor bootstrap reveals clear support-bounded measured action-value headroom while the prediction-derived rankings retain regret and do not establish superiority over FAST. A separately pre-frozen arterial n8 confirmation reproduces the action-value headroom with a different 50/80-km/h pair and shows both frozen prediction-derived interventions performing measurably worse than FAST.
 
-The resulting conclusion is intentionally narrow: field-measured connectivity prediction should influence motion only after its causal horizon, empirical support, and evaluation boundary have been made explicit. This provides a reproducible path from PQoS regression to defensible decision-level evidence without treating unobserved counterfactual states as if they had measured ground truth.
+The conclusion is intentionally narrow: prediction accuracy, predictive utility, and measured motion-decision validity are different quantities. Field-measured communication models should not be promoted from regression evidence to planner-superiority claims unless action support, outcome provenance, and acquisition-run dependence are made explicit.
 
 \bibliographystyle{IEEEtran}
 \bibliography{references}
