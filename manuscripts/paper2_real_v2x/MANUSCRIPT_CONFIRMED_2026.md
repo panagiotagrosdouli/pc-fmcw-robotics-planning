@@ -4,7 +4,8 @@
 
 **Status:** confirmed research manuscript draft  
 **Date:** 2026-09-30  
-**Locked confirmatory code SHA:** `a056d46a5579032d10f51a1d6e90d800d3d017b4`
+**Primary workflow head SHA:** `a056d46a5579032d10f51a1d6e90d800d3d017b4`  
+**Primary executed checkout SHA:** `e4f6430f8b6368f64edee421b827895b11280115`
 
 ## Abstract
 
