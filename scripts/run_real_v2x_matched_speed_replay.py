@@ -70,6 +70,9 @@ def main() -> None:
     ap.add_argument("--data", default="data/raw/cicv5g")
     ap.add_argument("--output", default="results/real_v2x_matched_speed")
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--directions", default="w2s,s2w", help="comma-separated direction filter")
+    ap.add_argument("--train-fraction", type=float, default=0.50)
+    ap.add_argument("--donor-fraction", type=float, default=0.25)
     ap.add_argument("--speeds", default="30,50")
     ap.add_argument("--caliper-m", type=float, default=2.0)
     ap.add_argument("--k-donors", type=int, default=5)
@@ -93,9 +96,15 @@ def main() -> None:
         [add_run_metadata(load_cicv5g_file(p), p) for p in files],
         ignore_index=True,
     )
-    df = df[df["nominal_speed_kmh"].isin(speeds)].copy()
+    directions = {x.strip() for x in args.directions.split(",") if x.strip()}
+    df = df[df["nominal_speed_kmh"].isin(speeds) & df["direction"].isin(directions)].copy()
 
-    train, donor, query, split = stratified_run_split(df, seed=args.seed)
+    train, donor, query, split = stratified_run_split(
+        df,
+        train_fraction=args.train_fraction,
+        donor_fraction=args.donor_fraction,
+        seed=args.seed,
+    )
     if train.empty or donor.empty or query.empty:
         raise RuntimeError("stratified split produced an empty evidence role")
 
@@ -229,6 +238,9 @@ def main() -> None:
 
     metadata = {
         "seed": args.seed,
+        "directions": sorted(directions),
+        "train_fraction": args.train_fraction,
+        "donor_fraction": args.donor_fraction,
         "speeds_kmh": speeds,
         "caliper_m": args.caliper_m,
         "k_donors": args.k_donors,
