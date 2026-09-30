@@ -18,6 +18,9 @@ class MatchResult:
     mean_distance_m: float
     n_donors: int
     n_donor_runs: int
+    donor_run_ids: tuple[str, ...]
+    donor_delays_ms: tuple[float, ...]
+    donor_distances_m: tuple[float, ...]
 
 
 def stratified_run_split(
@@ -174,7 +177,8 @@ class CrossRunSpeedMatcher:
 
         delays = np.asarray([float(r["delay_ms"]) for r in selected], float)
         dists = np.asarray([float(r["_distance_m"]) for r in selected], float)
-        runs = {str(r["run_id"]) for r in selected}
+        run_ids = tuple(str(r["run_id"]) for r in selected)
+        runs = set(run_ids)
         return MatchResult(
             delay_ms=float(np.mean(delays)),
             delay_std_ms=float(np.std(delays, ddof=1)) if len(delays) > 1 else 0.0,
@@ -182,4 +186,7 @@ class CrossRunSpeedMatcher:
             mean_distance_m=float(np.mean(dists)),
             n_donors=int(len(delays)),
             n_donor_runs=int(len(runs)),
+            donor_run_ids=run_ids,
+            donor_delays_ms=tuple(float(x) for x in delays),
+            donor_distances_m=tuple(float(x) for x in dists),
         )
