@@ -17,6 +17,9 @@
 | The frozen pairwise margin policy is superior to FAST | MARGIN_BUDGET − FAST = -1.668 ms | Two-way bootstrap 95% CI [-9.524, +1.180] ms | Interval crosses 0 | NOT CONFIRMATORY — DO NOT CLAIM |
 | Direct pairwise action-margin learning removes the decision-evidence gap | MARGIN_BUDGET − ORACLE_BUDGET = +2.509 ms | Two-way bootstrap 95% CI [+1.572, +5.162] ms | Frozen model; no post-result retuning | CONTRADICTED / NEGATIVE RESULT |
 | The failure-boundary pattern is robust to multiple development role assignments | 15 support-balanced seed/caliper configurations | Oracle favorable 15/15; PRED mean-delay direction favorable only 9/15; PRED p95 favorable 8/15 | Configurations reuse the finite drive pool | SUPPORTED DESCRIPTIVELY |
+| Measured action-value headroom is also present in an out-of-scenario arterial n8 confirmation | 50/80-km/h arterial replay frozen before outcome inspection | ORACLE_BUDGET − FAST = -0.590 ms; two-way 95% CI [-1.431, -0.250] ms | Four query runs; finite CICV5G arterial subset | SUPPORTED |
+| The frozen absolute-QoS policy can be harmful out of scenario | Arterial n8 50/80-km/h confirmation | PRED_BUDGET − FAST = +0.156 ms; two-way 95% CI [+0.038, +0.258] ms | Context-specific result, not universal harm | SUPPORTED |
+| The frozen pairwise margin policy solves the out-of-scenario ranking problem | Arterial n8 confirmation | MARGIN_BUDGET − FAST = +0.032 ms; 95% CI [+0.007, +0.061] ms; MARGIN − ORACLE = +0.622 ms, 95% CI [+0.277, +1.472] | Frozen model; no retuning | CONTRADICTED / NEGATIVE RESULT |
 | Timestamp/query rows may be treated as independent observations | Shared query-run and donor-run structure | Two-way cluster design explicitly rejects row independence | Acquisition run is the relevant cluster | DO NOT CLAIM |
 | The measured oracle estimates a causal benefit of changing speed | Observational repeated drives only | No randomized intervention identification | Network load, time, blockage, traffic may differ across runs | DO NOT CLAIM |
 | The matched donor outcome is arbitrary real counterfactual ground truth | Finite route/action overlap only | Outcome exists only where separate measured drives provide support | Unsupported actions remain unevaluable from the log | DO NOT CLAIM |
@@ -31,7 +34,7 @@ The paper's central result is **not** planner superiority.
 
 It is:
 
-> A support-bounded measured action opportunity remains visible under disjoint repeated field drives and two-way acquisition-run resampling, while the tested deployable QoS rankings do not establish confirmatory superiority over the mobility-first baseline and retain significant regret relative to the measured upper-bound action ranking.
+> Across two pre-frozen repeated-field evaluations with different speed-action pairs, support-bounded measured action opportunity remains visible while frozen prediction-based rankings fail to recover it reliably: superiority over FAST is unconfirmed in W2S and the same predictive intervention is measurably worse than FAST in the arterial confirmation.
 
 ## Confirmed contribution chain
 
@@ -55,6 +58,8 @@ Every strong manuscript statement must map to:
 
 - this matrix;
 - `docs/PAPER2_CONFIRMATORY_RESULT_2026-09-30.md`;
+- `docs/PAPER2_ARTERIAL_CONFIRMATION_RESULT_2026-09-30.md`;
+- `docs/PAPER2_CROSS_SCENARIO_SYNTHESIS_2026-09-30.md`;
 - an archived numerical artifact;
 - or a verified external source.
 
