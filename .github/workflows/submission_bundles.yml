@@ -8,6 +8,14 @@ on:
       - 'docs/paper/**'
       - 'scripts/build_paper1_publication_assets.py'
       - 'scripts/build_paper2_publication_assets.py'
+      - 'scripts/*matched_speed*.py'
+      - 'scripts/prepare_cicv5g*.py'
+      - 'src/iscai/connectivity/real_v2x/**'
+      - 'docs/PAPER2_*.md'
+      - '.github/workflows/paper2-confirmatory.yml'
+      - '.github/workflows/paper2-arterial-confirmation.yml'
+      - '.github/workflows/matched-speed-replay.yml'
+      - '.github/workflows/decision-margin-audit.yml'
       - 'scripts/build_paper3_publication_assets.py'
       - 'scripts/build_submission_package.py'
       - '.github/workflows/submission_bundles.yml'
@@ -75,32 +83,32 @@ jobs:
           cd submission_bundles/build
 
           mv paper1_supplementary_reproducibility.zip \
-            paper1_OJVT_submission_bundle_2026-09-28.zip
+            paper1_OJVT_submission_bundle_2026-09-30.zip
           mv paper2_supplementary_reproducibility.zip \
-            paper2_TVT_submission_bundle_2026-09-28.zip
+            paper2_TVT_submission_bundle_2026-09-30.zip
           mv paper3_supplementary_reproducibility.zip \
-            paper3_TIV_submission_bundle_2026-09-28.zip
+            paper3_TIV_submission_bundle_2026-09-30.zip
 
           cat > PUBLICATION_SNAPSHOT_MANIFEST.txt <<EOF
           Repository: panagiotagrosdouli/pc-fmcw-robotics-planning
           Commit: $GITHUB_SHA
           Built by: .github/workflows/submission_bundles.yml
-          Date label: 2026-09-28
+          Date label: 2026-09-30
 
           Paper 1 target: IEEE Open Journal of Vehicular Technology
-          Bundle: paper1_OJVT_submission_bundle_2026-09-28.zip
+          Bundle: paper1_OJVT_submission_bundle_2026-09-30.zip
 
           Paper 2 target: IEEE Transactions on Vehicular Technology
-          Bundle: paper2_TVT_submission_bundle_2026-09-28.zip
+          Bundle: paper2_TVT_submission_bundle_2026-09-30.zip
 
           Paper 3 target: IEEE Transactions on Intelligent Vehicles
-          Bundle: paper3_TIV_submission_bundle_2026-09-28.zip
+          Bundle: paper3_TIV_submission_bundle_2026-09-30.zip
           EOF
 
           sha256sum \
-            paper1_OJVT_submission_bundle_2026-09-28.zip \
-            paper2_TVT_submission_bundle_2026-09-28.zip \
-            paper3_TIV_submission_bundle_2026-09-28.zip \
+            paper1_OJVT_submission_bundle_2026-09-30.zip \
+            paper2_TVT_submission_bundle_2026-09-30.zip \
+            paper3_TIV_submission_bundle_2026-09-30.zip \
             PUBLICATION_SNAPSHOT_MANIFEST.txt \
             > SHA256SUMS.txt
 
@@ -109,11 +117,11 @@ jobs:
       - name: Upload GitHub submission bundles
         uses: actions/upload-artifact@v4
         with:
-          name: submission-bundles-2026-09-28
+          name: submission-bundles-2026-09-30
           path: |
-            submission_bundles/build/paper1_OJVT_submission_bundle_2026-09-28.zip
-            submission_bundles/build/paper2_TVT_submission_bundle_2026-09-28.zip
-            submission_bundles/build/paper3_TIV_submission_bundle_2026-09-28.zip
+            submission_bundles/build/paper1_OJVT_submission_bundle_2026-09-30.zip
+            submission_bundles/build/paper2_TVT_submission_bundle_2026-09-30.zip
+            submission_bundles/build/paper3_TIV_submission_bundle_2026-09-30.zip
             submission_bundles/build/PUBLICATION_SNAPSHOT_MANIFEST.txt
             submission_bundles/build/SHA256SUMS.txt
           retention-days: 90
