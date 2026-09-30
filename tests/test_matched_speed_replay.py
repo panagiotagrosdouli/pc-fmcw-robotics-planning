@@ -114,3 +114,39 @@ def test_matcher_never_reuses_query_run():
     match = matcher.match(query, 30.0)
     assert match is not None
     assert match.delay_ms == 9.0
+
+
+def test_matcher_exposes_donor_provenance():
+    donor = pd.DataFrame([
+        {
+            "run_id": "d1",
+            "network": "n8",
+            "direction": "w2s",
+            "nominal_speed_kmh": 30.0,
+            "utm_x_m": 0.0,
+            "utm_y_m": 0.0,
+            "delay_ms": 10.0,
+        },
+        {
+            "run_id": "d2",
+            "network": "n8",
+            "direction": "w2s",
+            "nominal_speed_kmh": 30.0,
+            "utm_x_m": 0.1,
+            "utm_y_m": 0.0,
+            "delay_ms": 20.0,
+        },
+    ])
+    matcher = CrossRunSpeedMatcher(caliper_m=1.0, k_donors=2).fit(donor)
+    query = {
+        "run_id": "q",
+        "network": "n8",
+        "direction": "w2s",
+        "utm_x_m": 0.05,
+        "utm_y_m": 0.0,
+    }
+    match = matcher.match(query, 30.0)
+    assert match is not None
+    assert set(match.donor_run_ids) == {"d1", "d2"}
+    assert sorted(match.donor_delays_ms) == [10.0, 20.0]
+    assert len(match.donor_distances_m) == 2
