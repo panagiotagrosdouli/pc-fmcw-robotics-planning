@@ -8,11 +8,7 @@
 
 ## Abstract
 
-Predictive quality-of-service (QoS) and communication-aware vehicle planning are established research directions, but logged field measurements create an evidential mismatch: prediction models can score alternative motion actions even when the dataset contains no measured outcome for the action not taken. We study this mismatch using repeated CICV5G field drives and a support-bounded matched field replay protocol. Whole acquisition runs are assigned disjoint roles for predictor training, measured outcome donation, and decision queries. At each supported query location, the motion action is a physically interpretable speed choice between 30 and 50 km/h; an action is evaluated only when separate donor runs provide measurements under the same network, direction, and speed within a frozen spatial caliper.
-
-A conventional absolute-QoS predictor and a separately frozen pairwise action-margin predictor are evaluated under a 10% intervention budget. In a locked run-role assignment fixed before inspection, a two-way acquisition-run bootstrap resampling both query and donor runs shows a support-bounded measured oracle advantage of **−4.177 ms** relative to always selecting 50 km/h, with a 95% interval of **[−13.659, −2.137] ms**. The absolute-QoS policy leaves **+2.704 ms** of measured regret relative to this upper-bound diagnostic, with interval **[+1.457, +5.832] ms**, while its comparison with the 50-km/h baseline is **−1.473 ms** with interval **[−8.167, +0.657] ms**. The pairwise margin policy also fails to establish superiority over the baseline.
-
-The result is therefore not a new speed-controller claim. It is evidence that useful QoS structure does not automatically constitute reliable motion-decision evidence when field support and acquisition-run dependence are enforced explicitly.
+Predictive quality-of-service (QoS) and communication-aware vehicle planning are established research directions, but logged field measurements create an evidential mismatch: models can score alternative motion actions even when the dataset contains no measured outcome for the action not taken. We study this mismatch using repeated CICV5G field drives and support-bounded matched field replay. Whole acquisition runs are assigned disjoint roles for predictor training, measured outcome donation, and decision queries; deployable rankings never observe donor outcomes before action selection. Under a frozen 10% intervention budget, the primary W2S 30/50-km/h confirmation shows measured oracle headroom of **−4.177 ms** relative to FAST, with two-way query/donor bootstrap 95% interval **[−13.659, −2.137] ms**. The absolute-QoS policy retains **+2.704 ms** regret relative to that upper-bound diagnostic, while its comparison with FAST has interval **[−8.167, +0.657] ms** and therefore does not establish superiority. A separately pre-frozen arterial n8 50/80-km/h confirmation again shows oracle headroom (**−0.590 ms**, **[−1.431, −0.250] ms**), but the same predictive policy is worse than FAST (**+0.156 ms**, **[+0.038, +0.258] ms**). A frozen pairwise action-margin model also fails to remove the gap. The result is an evidence-boundary finding: useful QoS prediction does not automatically constitute reliable motion-decision evidence when action support and acquisition-run dependence are enforced explicitly.
 
 **Keywords:** predictive QoS, V2X, communication-aware planning, autonomous vehicles, decision validity, matched field replay, empirical support, clustered inference
 
@@ -38,7 +34,7 @@ We study this question on the CICV5G field dataset. The motion action is deliber
 2. We separate three evidence roles that are often conflated in logged-data planning studies: predictor training, measured action-outcome donation, and decision querying.
 3. We evaluate both a conventional absolute-QoS ranking and a frozen pairwise action-margin ranking, retaining the negative result that direct margin prediction does not automatically solve downstream decision reliability.
 4. We use a fixed intervention-budget formulation rather than converting travel-time cost and communication delay into an arbitrary scalar unit.
-5. We perform a locked confirmatory audit using **two-way acquisition-run bootstrap resampling over both query and donor runs**. The resulting interval supports measured action-value headroom and predictor regret relative to that headroom, but does not support confirmatory superiority of the deployable predictive policies over the mobility-first baseline.
+5. We perform a locked W2S confirmation using **two-way acquisition-run bootstrap resampling over both query and donor runs**, then repeat the same frozen evidence protocol in an out-of-scenario arterial n8 confirmation with a different 50/80-km/h action pair. Both show measured action-value headroom and predictor regret; the arterial confirmation additionally shows the frozen predictive intervention performing worse than FAST.
 
 The contribution is not a new generic planner, a new decision-focused-learning paradigm, or a causal speed-effect estimate. It is a measured field-evidence protocol and an empirical demonstration that prediction-level usefulness and decision-level evidential validity can diverge.
 
@@ -66,7 +62,7 @@ The closest conceptual boundary is:
 
 ## 3.1 CICV5G measurements
 
-CICV5G contains real 5G V2N2V measurements with synchronized network and vehicle context, including delay, SINR, RSRP, position, heading, velocity, cell identity, and timestamps. The repository study uses repeated W2S/S2W acquisition runs under n8/n78 network configurations and multiple vehicle speeds.
+CICV5G contains real 5G V2N2V measurements with synchronized network and vehicle context, including delay, SINR, RSRP, position, heading, velocity, cell identity, and timestamps. The repository study uses repeated W2S/S2W acquisition runs under n8/n78 network configurations and multiple vehicle speeds. A separately frozen out-of-scenario confirmation uses arterial-road n8 runs at 50 and 80 km/h, excluding aggregate `all.txt` files to avoid duplicate samples.
 
 The earlier predictor audit uses 38 complete acquisition runs comprising 43,045 synchronized samples. That audit establishes two background facts:
 
@@ -100,10 +96,15 @@ This split was written into the confirmatory protocol before the result was insp
 
 ## 4.1 Motion action
 
-The action set is:
+The primary W2S action set is:
 
 - **SLOW:** 30 km/h;
 - **FAST:** 50 km/h.
+
+The pre-frozen arterial confirmation applies the same protocol to a different action pair:
+
+- **SLOW:** 50 km/h;
+- **FAST:** 80 km/h.
 
 For a query location and action, a measured outcome is available only when a donor run has:
 
@@ -313,15 +314,40 @@ MARGIN − ORACLE remains strictly positive over its interval.
 
 Therefore direct action-margin prediction does not automatically resolve the measured decision-evidence gap.
 
+## 8.4 Pre-frozen arterial out-of-scenario confirmation
+
+The same evidence protocol was frozen before outcome inspection on a different CICV5G setting: arterial-road n8 measurements with 50/80-km/h actions. The locked point estimates are:
+
+| Policy | Mean delay |
+|---|---:|
+| FAST | 18.871 ms |
+| PRED_BUDGET | 19.026 ms |
+| MARGIN_BUDGET | 18.903 ms |
+| ORACLE_BUDGET | 18.281 ms |
+
+The two-way acquisition-run bootstrap gives:
+
+| Estimand | Point | 95% interval |
+|---|---:|---:|
+| ORACLE − FAST | −0.590 ms | [−1.431, −0.250] |
+| PRED − ORACLE | +0.746 ms | [+0.344, +1.596] |
+| PRED − FAST | +0.156 ms | [+0.038, +0.258] |
+| MARGIN − FAST | +0.032 ms | [+0.007, +0.061] |
+| MARGIN − ORACLE | +0.622 ms | [+0.277, +1.472] |
+
+Valid replicates are **4,409 / 5,000**. Only four query acquisition runs are available in the locked arterial split, so the setting remains finite-sample and context-specific.
+
+The cross-scenario pattern is nevertheless informative. Measured action-value headroom remains present, but the frozen absolute-QoS intervention is now measurably worse than the mobility-first FAST baseline. The pairwise margin policy is also worse than FAST. Thus a prediction-derived motion rule that appears favorable at the point-estimate level in one field context can become harmful in another, even though measurable action opportunity exists in both.
+
 ---
 
 # 9. Discussion
 
 ## 9.1 Prediction utility is not measured decision evidence
 
-The predictor is not useless. It contains actionable structure and produces a favorable point estimate on the locked split.
+The predictor is not useless. It contains actionable structure and produces a favorable point estimate on the locked W2S split.
 
-The stronger result is that this is still insufficient for a planner-superiority claim.
+The stronger cross-scenario result is that this is still insufficient for a planner-superiority claim. In the arterial confirmation, the same frozen prediction-to-action logic is measurably worse than FAST.
 
 Once field action support and query/donor run dependence are enforced, the evidence supports:
 
@@ -383,12 +409,19 @@ Sixth, CICV5G supports the measured 5G/V2N2V study only. It does not validate th
 
 # 11. Reproducibility
 
-Locked confirmatory workflow:
+Locked W2S confirmatory workflow:
 
 - workflow run: **36747715208**;
 - code SHA: **a056d46a5579032d10f51a1d6e90d800d3d017b4**;
 - artifact ID: **11113770831**;
 - artifact SHA256: **3aa7ab461e2bf6ea266073658ed182cc2f1e07e46b5f51f615943716d009f378**.
+
+Pre-frozen arterial confirmation:
+
+- workflow run: **36749176921**;
+- code SHA: **5a98d2e8ea1a948d5cc1d0586d4d63b402a715a7**;
+- artifact ID: **11113434687**;
+- artifact SHA256: **ecd4fdbf593d77799dce8aa0dd678a66e26b8101758e37b8052697af3a40b9f0**.
 
 The artifact contains:
 
@@ -408,7 +441,7 @@ The numerical result is therefore traceable from public field measurements to th
 
 Communication-aware motion planning and predictive QoS are mature research areas. The unresolved issue studied here is evidential: when a field-trained connectivity model recommends a different vehicle motion, what measured evidence supports the resulting decision claim?
 
-Using repeated CICV5G drives, we separate model training, measured action-outcome donation, and decision queries across complete acquisition runs. A locked two-way query/donor bootstrap reveals clear support-bounded measured action-value headroom relative to a mobility-first baseline. The frozen absolute-QoS and pairwise-margin rankings both leave significant regret relative to that measured upper bound, while neither establishes confirmatory superiority over FAST.
+Using repeated CICV5G drives, we separate model training, measured action-outcome donation, and decision queries across complete acquisition runs. A locked W2S two-way query/donor bootstrap reveals clear support-bounded measured action-value headroom relative to a mobility-first baseline, while the predictive rankings retain regret and do not establish superiority over FAST. A separately pre-frozen arterial n8 confirmation reproduces the action-value headroom with a different 50/80-km/h action pair and shows both frozen prediction-derived interventions performing measurably worse than FAST.
 
 The conclusion is intentionally narrow:
 
