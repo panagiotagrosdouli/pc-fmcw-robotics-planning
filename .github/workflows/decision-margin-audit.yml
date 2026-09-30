@@ -1,0 +1,69 @@
+name: Decision Margin Audit
+
+on:
+  pull_request:
+    paths:
+      - 'src/iscai/connectivity/real_v2x/decision_margin.py'
+      - 'src/iscai/connectivity/real_v2x/matched_replay.py'
+      - 'scripts/run_real_v2x_matched_speed_replay.py'
+      - 'scripts/analyze_real_v2x_matched_speed_budget.py'
+      - 'scripts/analyze_real_v2x_matched_speed_budget_sweep.py'
+      - 'scripts/analyze_real_v2x_matched_speed_sweep.py'
+      - 'tests/test_decision_margin.py'
+      - '.github/workflows/decision-margin-audit.yml'
+  workflow_dispatch:
+
+jobs:
+  decision-margin-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install dependencies
+        run: python -m pip install numpy pandas scipy scikit-learn pytest
+      - name: Unit tests
+        run: |
+          PYTHONPATH=src python -m pytest -q \
+            tests/test_matched_speed_replay.py \
+            tests/test_decision_margin.py
+      - name: Download CICV5G W2S field runs
+        run: python scripts/prepare_cicv5g.py --output data/raw/cicv5g
+      - name: Run support-balanced decision-margin audit
+        run: |
+          root=results/decision_margin_audit
+          mkdir -p ${root}
+          for seed in 0 1 2 3 4; do
+            for caliper in 1.0 2.0 5.0; do
+              tag=$(echo ${caliper} | sed 's/\./p/')
+              out=${root}/seed_${seed}_caliper_${tag}
+              PYTHONPATH=src python scripts/run_real_v2x_matched_speed_replay.py \
+                --data data/raw/cicv5g \
+                --output ${out} \
+                --seed ${seed} \
+                --directions w2s \
+                --train-fraction 0.40 \
+                --donor-fraction 0.40 \
+                --query-spacing-m 5.0 \
+                --caliper-m ${caliper}
+              python scripts/analyze_real_v2x_matched_speed_replay.py \
+                --input ${out} --bootstrap 1000 --seed ${seed}
+              python scripts/analyze_real_v2x_matched_speed_budget.py \
+                --input ${out} --budgets 0.01,0.05,0.10
+            done
+          done
+          python scripts/analyze_real_v2x_matched_speed_sweep.py --root ${root}
+          python scripts/analyze_real_v2x_matched_speed_budget_sweep.py --root ${root}
+      - name: Record provenance
+        run: |
+          mkdir -p results/decision_margin_audit/provenance
+          git rev-parse HEAD > results/decision_margin_audit/provenance/commit_sha.txt
+          python --version > results/decision_margin_audit/provenance/python_version.txt
+          cp data/raw/cicv5g/manifest.json results/decision_margin_audit/provenance/cicv5g_manifest.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: decision-margin-audit
+          path: results/decision_margin_audit/
