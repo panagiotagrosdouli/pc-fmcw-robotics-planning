@@ -81,6 +81,12 @@ def main():
                 "PRED_SUPPORT_BUDGET": choose_mask(
                     g, "pred_fast_minus_slow_gain_ms", budget, support_required=True
                 ),
+                "MARGIN_BUDGET": choose_mask(
+                    g, "margin_pred_gain_ms", budget, support_required=True
+                ),
+                "MARGIN_LOWER_BUDGET": choose_mask(
+                    g, "margin_lower_gain_ms", budget, support_required=True
+                ),
                 "ORACLE_BUDGET": choose_mask(
                     g, "measured_fast_minus_slow_gain_ms", budget, support_required=False
                 ),
@@ -110,7 +116,7 @@ def main():
     for budget in budgets:
         x = per_run[per_run["budget"] == budget]
         pivot = x.pivot(index="query_run_id", columns="mode", values="mean_matched_delay_ms")
-        for mode in ("PRED_BUDGET", "PRED_SUPPORT_BUDGET", "ORACLE_BUDGET"):
+        for mode in ("PRED_BUDGET", "PRED_SUPPORT_BUDGET", "MARGIN_BUDGET", "MARGIN_LOWER_BUDGET", "ORACLE_BUDGET"):
             delta = (pivot[mode] - pivot["FAST"]).dropna()
             effects.append({
                 "budget": budget,
