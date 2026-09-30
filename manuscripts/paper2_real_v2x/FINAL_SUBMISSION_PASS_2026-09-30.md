@@ -6,144 +6,100 @@
 
 ## Submission interpretation
 
-Paper 2 is ready to be treated as a **methodology-and-field-evidence paper**, not as a planner-superiority paper.
+Paper 2 is a **measured decision-validity / field-evidence paper**.
+
+It is **not** a planner-superiority paper.
 
 The central publication claim is:
 
-> Logged field-measured connectivity prediction becomes decision evidence only when predictive validity, empirical measurement support, and post-selection measured evaluability are separated explicitly.
+> Across two pre-frozen repeated-field evaluations with different speed-action pairs, support-bounded measured action-value headroom exists, while frozen prediction-based rankings fail to recover it reliably.
 
-The manuscript operationalizes this through:
+## Editor-facing pitch
 
-1. causal-horizon comparison against persistence;
-2. empirical support auditing using training measurements only;
-3. measurement-supported counterfactual replay (MSCR), where the selected route-supported candidate is evaluated using a future field measurement hidden during selection.
+Predictive QoS and communication-aware motion planning are established, but logged field measurements do not provide arbitrary counterfactual outcomes for motion actions that were not executed. This paper introduces a support-bounded matched field replay protocol that separates predictor training, measured action-outcome donation, and decision queries across acquisition runs and uses two-way query-run × donor-run resampling for inference.
 
-## Editor-facing two-sentence pitch
+The empirical result is deliberately non-promotional: measurable action-value opportunity exists in both frozen confirmations, yet the tested prediction-derived rankings retain regret relative to that opportunity. PRED-over-FAST superiority is not confirmed in W2S, and the same frozen predictive intervention is measurably worse than FAST in the arterial confirmation.
 
-Predictive QoS and communication-aware vehicle planning are established, but logged field measurements create a validation mismatch because a planner evaluates alternative future states while measurements exist only along the trajectory that was actually driven. This paper introduces a three-layer decision-validity framework and MSCR protocol that separates predictive utility, empirical support, and measured post-selection evaluability without treating model-generated counterfactuals as measured truth.
+## Primary confirmed evidence
+
+### W2S, 30 vs 50 km/h
+
+- ORACLE − FAST: **−4.177 ms**, 95% CI **[−13.659, −2.137]**
+- PRED − ORACLE: **+2.704 ms**, 95% CI **[+1.457, +5.832]**
+- PRED − FAST: **−1.473 ms**, 95% CI **[−8.167, +0.657]**
+- MARGIN − FAST: **−1.668 ms**, 95% CI **[−9.524, +1.180]**
+
+### Arterial n8, 50 vs 80 km/h
+
+- ORACLE − FAST: **−0.590 ms**, 95% CI **[−1.431, −0.250]**
+- PRED − ORACLE: **+0.746 ms**, 95% CI **[+0.344, +1.596]**
+- PRED − FAST: **+0.156 ms**, 95% CI **[+0.038, +0.258]**
+- MARGIN − FAST: **+0.032 ms**, 95% CI **[+0.007, +0.061]**
 
 ## What makes the paper publishable
 
 The paper does not depend on a broad novelty claim.
 
-Its contribution is a controlled evidential protocol:
+Its contribution is the evidence discipline:
 
-- whole-run separation prevents obvious temporal/route leakage;
-- persistence is retained as the causal short-horizon baseline;
-- support is not conflated with predictive uncertainty;
-- future measured outcomes are hidden during selection;
-- the run is the inferential unit;
-- repeated grouped splits are not treated as independent replications;
-- multiplicity correction is retained;
-- negative P3 results are retained.
+- physically interpretable speed actions;
+- repeated field measurements;
+- disjoint train/donor/query acquisition-run roles;
+- finite measured action support;
+- donor outcomes hidden during deployable ranking;
+- donor contribution provenance;
+- two-way query-run × donor-run bootstrap;
+- negative frozen pairwise-margin result retained;
+- cross-scenario confirmation with a different speed-action pair.
 
-That combination makes the paper scientifically useful even though the primary P2-P1 planner comparison is not Holm-confirmatory.
+## Reviewer attack points and responses
 
-## Primary evidence in reviewer-safe language
+### "This is just another communication-aware planner."
 
-The primary nine-run replay gives a P2-P1 mean-delay effect of approximately **-0.792 ms**, with a bootstrap interval excluding zero.
+No. The planner is intentionally simple. The research object is whether logged field measurements justify a decision-level claim.
 
-The raw paired Wilcoxon value is **0.046875**, but the Holm-adjusted value is approximately **0.28125** across the declared family.
+### "The oracle is optimistic."
 
-Therefore the correct statement is:
+Correct. It is explicitly labeled a nondeployable support-bounded upper-bound diagnostic because donor outcomes enter its ranking.
 
-> P2 shows an exploratory favorable measured-delay effect on the primary split and the same effect direction across all five dependent grouped split assignments; the evidence does not establish multiplicity-corrected confirmatory superiority.
+### "This is not causal."
 
-For P3:
+Correct. Repeated drives are observational and can differ in latent network conditions. No causal speed-effect claim is made.
 
-> P3 consistently reduces unsupported-selection exposure relative to P2, but measured-delay effects are mixed and mobility deviation increases; the supported interpretation is a validity-versus-mobility trade-off rather than a QoS-performance gain.
+### "Why not use a decision-focused loss?"
 
-## Likely reviewer attack points and the manuscript answer
+A frozen pairwise action-margin model was tested and retained as a negative result. It does not remove the measured decision-evidence gap.
 
-### "The planner is simple."
+### "Could the result be route-specific?"
 
-That is intentional. The paper's research object is the validity of logged field evidence for decision evaluation, not a new trajectory optimizer. A more complex planner would make attribution harder.
+A separately pre-frozen arterial-road confirmation uses a different 50/80-km/h action pair. Measured headroom remains present, but the frozen predictive policy is worse than FAST.
 
-### "This is not a true counterfactual intervention."
+### "Why not count thousands of matched rows?"
 
-Correct. MSCR is explicitly route-constrained offline replay. It does not claim arbitrary off-route causal effects or physical intervention.
+Because rows share query and donor acquisition runs. Inference resamples both cluster dimensions.
 
-### "Nine test runs are too few for a strong superiority claim."
+## Title
 
-The paper does not make that claim. It reports effect sizes, bootstrap intervals, corrected inference, and dependent split sensitivity transparently.
+**From QoS Prediction to Measured Decision Validity: Support-Bounded Matched Field Replay for Vehicular Speed Decisions**
 
-### "Spatial support distance is a weak OOD detector."
+Do not add "first", "causal", "validated autonomous driving", or "superior controller" language.
 
-Correct. It is presented as a simple empirical-support diagnostic, not a complete distribution-shift detector. Its role is to separate measurement support from residual uncertainty.
+## Genuine blockers before external submission
 
-### "P3 does not improve QoS."
-
-Correct and retained. The negative result demonstrates that evidential conservatism can reduce unsupported decisions while imposing mobility cost without automatic QoS benefit.
-
-### "Communication-aware planning and predictive QoS are already known."
-
-The manuscript explicitly concedes this prior art. Novelty is located at the decision-validity and measured-evaluation boundary.
-
-## Abstract status
-
-The abstract was tightened on 2026-09-30 to approximately **218 words**, within the general IEEE 150–250-word abstract guidance.
-
-The revised abstract now includes the key inferential caveat:
-
-> the primary paired comparison does not remain significant after the declared Holm correction.
-
-This reduces the risk that the abstract is interpreted as claiming confirmatory P2 superiority.
-
-## Title assessment
-
-Current title:
-
-**From QoS Prediction to Decision Validity: Measurement-Supported Counterfactual Replay for Communication-Aware Vehicle Planning**
-
-Keep it.
-
-It communicates:
-
-- the methodological shift from regression to decisions;
-- the named MSCR protocol;
-- the vehicular communication/planning application.
-
-Do not add "novel", "first", "real-world causal", or "validated autonomous driving" language.
-
-## Contribution wording to preserve
-
-The strongest contribution sentence is:
-
-> We formulate logged field-measured communication planning as a decision-validity problem and separate predictive validity, empirical measurement support, and post-selection measured outcome validity using measurement-supported counterfactual replay.
-
-The strongest conclusion sentence is:
-
-> Field-measured connectivity prediction should influence motion only after its causal horizon, empirical support, and evaluation boundary have been made explicit.
-
-## Submission blockers
-
-Scientific evidence is frozen. Remaining blockers are operational:
-
-- author list/order;
-- affiliation;
+- final author list/order;
+- affiliation(s);
 - corresponding-author institutional email;
 - funding/acknowledgments;
 - conflicts of interest;
-- ORCID and portal metadata;
-- related-paper/preprint disclosure;
-- final author approval of AI-assisted language-editing disclosure;
-- post-edit PDF rebuild and visual QA;
-- immutable submission archive/tag.
-
-## TVT policy item added in this pass
-
-The current TVT author instructions allow AI tools for language/grammar modification of author-generated text but require disclosure in the acknowledgments.
-
-This submission pass used AI-assisted editing of existing manuscript wording. After final author review, the manuscript should carry a disclosure consistent with the current journal policy.
-
-Suggested wording:
-
-> OpenAI ChatGPT was used to assist with language editing and clarity of author-prepared manuscript text. The author reviewed the final wording and remains responsible for the scientific content, analysis, interpretation, and conclusions.
+- ORCID and IEEE Author Portal metadata;
+- related-manuscript/preprint/repository disclosure;
+- author approval of AI-assisted language-editing disclosure;
+- final canonical PDF visual QA after the policy-label layout fix;
+- immutable source/supplement release tag;
+- final cover-letter approval.
 
 ## Submission go/no-go
 
-**Scientific go:** yes, under the current narrow methodology/evidence framing.
+**Scientific go:** yes, as a methodology / measured decision-validity paper.
 
-**Portal go:** after the remaining author metadata, disclosure, rebuild, and visual-QA items are completed.
-
-No new experiment is required to support the current manuscript claims.
+**Scientific no-go:** any universal or confirmatory "new speed planner is superior" claim.
