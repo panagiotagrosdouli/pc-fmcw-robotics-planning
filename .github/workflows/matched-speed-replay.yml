@@ -61,6 +61,30 @@ jobs:
           done
           python scripts/analyze_real_v2x_matched_speed_sweep.py \
             --root results/real_v2x_matched_speed_sweep
+      - name: Run support-balanced W2S robustness sweep
+        run: |
+          mkdir -p results/real_v2x_matched_speed_w2s_balanced
+          for seed in 0 1 2 3 4; do
+            for caliper in 1.0 2.0 5.0; do
+              tag=$(echo ${caliper} | sed 's/\./p/')
+              out=results/real_v2x_matched_speed_w2s_balanced/seed_${seed}_caliper_${tag}
+              PYTHONPATH=src python scripts/run_real_v2x_matched_speed_replay.py \
+                --data data/raw/cicv5g \
+                --output ${out} \
+                --seed ${seed} \
+                --directions w2s \
+                --train-fraction 0.40 \
+                --donor-fraction 0.40 \
+                --query-spacing-m 5.0 \
+                --caliper-m ${caliper}
+              python scripts/analyze_real_v2x_matched_speed_replay.py \
+                --input ${out} \
+                --bootstrap 1000 \
+                --seed ${seed}
+            done
+          done
+          python scripts/analyze_real_v2x_matched_speed_sweep.py \
+            --root results/real_v2x_matched_speed_w2s_balanced
       - name: Record provenance
         run: |
           mkdir -p results/real_v2x_matched_speed/provenance
@@ -73,3 +97,4 @@ jobs:
           path: |
             results/real_v2x_matched_speed/
             results/real_v2x_matched_speed_sweep/
+            results/real_v2x_matched_speed_w2s_balanced/
