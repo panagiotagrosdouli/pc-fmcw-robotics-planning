@@ -9,6 +9,7 @@ on:
       - 'scripts/analyze_real_v2x_matched_speed_replay.py'
       - 'scripts/analyze_real_v2x_matched_speed_sweep.py'
       - 'scripts/analyze_real_v2x_matched_speed_budget.py'
+      - 'scripts/analyze_real_v2x_matched_speed_budget_sweep.py'
       - 'tests/test_matched_speed_replay.py'
       - 'tests/test_decision_margin.py'
       - '.github/workflows/matched-speed-replay.yml'
@@ -93,6 +94,8 @@ jobs:
             done
           done
           python scripts/analyze_real_v2x_matched_speed_sweep.py \
+            --root results/real_v2x_matched_speed_w2s_balanced
+          python scripts/analyze_real_v2x_matched_speed_budget_sweep.py \
             --root results/real_v2x_matched_speed_w2s_balanced
       - name: Record provenance
         run: |
