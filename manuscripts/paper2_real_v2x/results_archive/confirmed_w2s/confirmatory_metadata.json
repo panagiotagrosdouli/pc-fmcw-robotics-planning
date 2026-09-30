@@ -1,0 +1,35 @@
+{
+  "protocol": "PAPER2_CONFIRMATORY_FREEZE_2026-09-30",
+  "budget": 0.1,
+  "bootstrap_replicates": 5000,
+  "bootstrap_seed": 20260930,
+  "query_runs": [
+    "w2s_n78_v30_run02",
+    "w2s_n78_v30_run04",
+    "w2s_n78_v50_run04",
+    "w2s_n78_v50_run06",
+    "w2s_n8_v30_run03",
+    "w2s_n8_v30_run06",
+    "w2s_n8_v30_run10",
+    "w2s_n8_v50_run01",
+    "w2s_n8_v50_run06"
+  ],
+  "donor_runs": [
+    "w2s_n78_v30_run01",
+    "w2s_n78_v30_run03",
+    "w2s_n78_v50_run02",
+    "w2s_n78_v50_run05",
+    "w2s_n8_v30_run01",
+    "w2s_n8_v30_run04",
+    "w2s_n8_v30_run09",
+    "w2s_n8_v50_run02",
+    "w2s_n8_v50_run04"
+  ],
+  "n_query_runs": 9,
+  "n_donor_runs": 9,
+  "n_contexts": 1029,
+  "slow_speed_kmh": 30.0,
+  "fast_speed_kmh": 50.0,
+  "oracle_interpretation": "Support-bounded measured upper-bound diagnostic; donor outcomes are used for ranking and evaluation within a bootstrap replicate, so it is not an unbiased deployable-policy performance estimate.",
+  "inference_boundary": "Two-way acquisition-run bootstrap resamples query and donor clusters. Finite-run observational replay remains non-causal."
+}

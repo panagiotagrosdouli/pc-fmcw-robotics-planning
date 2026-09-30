@@ -1,0 +1,47 @@
+name: Paper 2 Confirmatory Audit
+
+on:
+  pull_request:
+    paths:
+      - 'src/iscai/connectivity/real_v2x/matched_replay.py'
+      - 'scripts/run_real_v2x_matched_speed_replay.py'
+      - 'scripts/analyze_real_v2x_matched_speed_confirmatory.py'
+      - 'tests/test_matched_speed_replay.py'
+      - 'docs/PAPER2_CONFIRMATORY_FREEZE_2026-09-30.md'
+      - '.github/workflows/paper2-confirmatory.yml'
+  workflow_dispatch:
+
+jobs:
+  locked-confirmatory-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install dependencies
+        run: python -m pip install numpy pandas scipy scikit-learn pytest
+      - name: Provenance and matcher tests
+        run: |
+          PYTHONPATH=src python -m pytest -q             tests/test_matched_speed_replay.py             tests/test_decision_margin.py
+      - name: Download pinned CICV5G W2S field runs
+        run: python scripts/prepare_cicv5g.py --output data/raw/cicv5g
+      - name: Run locked acquisition-role split
+        run: |
+          PYTHONPATH=src python scripts/run_real_v2x_matched_speed_replay.py             --data data/raw/cicv5g             --output results/paper2_confirmatory             --seed 20260930             --directions w2s             --train-fraction 0.40             --donor-fraction 0.40             --speeds 30,50             --query-spacing-m 5.0             --caliper-m 2.0             --k-donors 5
+      - name: Run locked two-way acquisition-run bootstrap
+        run: |
+          python scripts/analyze_real_v2x_matched_speed_confirmatory.py             --input results/paper2_confirmatory             --budget 0.10             --bootstrap 5000             --bootstrap-seed 20260930
+      - name: Record immutable provenance
+        run: |
+          mkdir -p results/paper2_confirmatory/provenance
+          git rev-parse HEAD > results/paper2_confirmatory/provenance/commit_sha.txt
+          python --version > results/paper2_confirmatory/provenance/python_version.txt
+          cp data/raw/cicv5g/manifest.json results/paper2_confirmatory/provenance/cicv5g_manifest.json
+          sha256sum results/paper2_confirmatory/provenance/cicv5g_manifest.json             > results/paper2_confirmatory/provenance/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: paper2-locked-confirmatory-audit
+          path: results/paper2_confirmatory/

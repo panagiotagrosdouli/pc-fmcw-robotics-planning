@@ -12,7 +12,10 @@ on:
       - 'scripts/run_real_v2x_replay_planning.py'
       - 'scripts/analyze_real_v2x_replay_planning.py'
       - 'scripts/analyze_real_v2x_replay_multisplit.py'
+      - 'scripts/run_real_v2x_matched_speed_replay.py'
+      - 'scripts/analyze_real_v2x_matched_speed_replay.py'
       - 'tests/test_real_v2x.py'
+      - 'tests/test_matched_speed_replay.py'
       - '.github/workflows/real_v2x_research.yml'
   workflow_dispatch:
 
@@ -27,7 +30,7 @@ jobs:
           python-version: '3.11'
           cache: pip
       - run: python -m pip install numpy pandas scipy scikit-learn matplotlib pytest
-      - run: python -m pytest -q tests/test_real_v2x.py
+      - run: python -m pytest -q tests/test_real_v2x.py tests/test_matched_speed_replay.py
       - name: Download public CICV5G W2S measurements
         run: python scripts/prepare_cicv5g.py --output data/raw/cicv5g
       - name: Run leakage-safe measured-data study
@@ -65,6 +68,17 @@ jobs:
           python scripts/analyze_real_v2x_replay_multisplit.py \
             --root results/real_v2x_replay_multisplit \
             --bootstrap 5000
+      - name: Run matched field speed replay development study
+        run: |
+          PYTHONPATH=src python scripts/run_real_v2x_matched_speed_replay.py \
+            --data data/raw/cicv5g \
+            --output results/real_v2x_matched_speed \
+            --seed 0 \
+            --query-spacing-m 5.0 \
+            --caliper-m 2.0
+          python scripts/analyze_real_v2x_matched_speed_replay.py \
+            --input results/real_v2x_matched_speed \
+            --bootstrap 2000
       - name: Record exact code, data, and environment provenance
         run: |
           mkdir -p results/provenance
@@ -82,4 +96,5 @@ jobs:
             results/real_v2x_multisplit/
             results/real_v2x_replay/
             results/real_v2x_replay_multisplit/
+            results/real_v2x_matched_speed/
             results/provenance/

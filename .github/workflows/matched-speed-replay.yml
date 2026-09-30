@@ -1,0 +1,112 @@
+name: Matched Speed Replay
+
+on:
+  pull_request:
+    paths:
+      - 'src/iscai/connectivity/real_v2x/matched_replay.py'
+      - 'src/iscai/connectivity/real_v2x/decision_margin.py'
+      - 'scripts/run_real_v2x_matched_speed_replay.py'
+      - 'scripts/analyze_real_v2x_matched_speed_replay.py'
+      - 'scripts/analyze_real_v2x_matched_speed_sweep.py'
+      - 'scripts/analyze_real_v2x_matched_speed_budget.py'
+      - 'scripts/analyze_real_v2x_matched_speed_budget_sweep.py'
+      - 'tests/test_matched_speed_replay.py'
+      - 'tests/test_decision_margin.py'
+      - '.github/workflows/matched-speed-replay.yml'
+  workflow_dispatch:
+
+jobs:
+  matched-speed-field-study:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install dependencies
+        run: python -m pip install numpy pandas scipy scikit-learn pytest
+      - name: Unit tests
+        run: PYTHONPATH=src python -m pytest -q tests/test_matched_speed_replay.py tests/test_decision_margin.py
+      - name: Download CICV5G W2S field runs
+        run: python scripts/prepare_cicv5g.py --output data/raw/cicv5g
+      - name: Run matched speed replay
+        run: |
+          PYTHONPATH=src python scripts/run_real_v2x_matched_speed_replay.py \
+            --data data/raw/cicv5g \
+            --output results/real_v2x_matched_speed \
+            --seed 0 \
+            --query-spacing-m 5.0 \
+            --caliper-m 2.0
+      - name: Analyze development effects
+        run: |
+          python scripts/analyze_real_v2x_matched_speed_replay.py \
+            --input results/real_v2x_matched_speed \
+            --bootstrap 5000
+          python scripts/analyze_real_v2x_matched_speed_budget.py \
+            --input results/real_v2x_matched_speed \
+            --budgets 0.01,0.05,0.10
+      - name: Run split and caliper robustness sweep
+        run: |
+          mkdir -p results/real_v2x_matched_speed_sweep
+          for seed in 0 1 2 3 4; do
+            for caliper in 1.0 2.0 5.0; do
+              tag=$(echo ${caliper} | sed 's/\./p/')
+              out=results/real_v2x_matched_speed_sweep/seed_${seed}_caliper_${tag}
+              PYTHONPATH=src python scripts/run_real_v2x_matched_speed_replay.py \
+                --data data/raw/cicv5g \
+                --output ${out} \
+                --seed ${seed} \
+                --query-spacing-m 5.0 \
+                --caliper-m ${caliper}
+              python scripts/analyze_real_v2x_matched_speed_replay.py \
+                --input ${out} \
+                --bootstrap 1000 \
+                --seed ${seed}
+            done
+          done
+          python scripts/analyze_real_v2x_matched_speed_sweep.py \
+            --root results/real_v2x_matched_speed_sweep
+      - name: Run support-balanced W2S robustness sweep
+        run: |
+          mkdir -p results/real_v2x_matched_speed_w2s_balanced
+          for seed in 0 1 2 3 4; do
+            for caliper in 1.0 2.0 5.0; do
+              tag=$(echo ${caliper} | sed 's/\./p/')
+              out=results/real_v2x_matched_speed_w2s_balanced/seed_${seed}_caliper_${tag}
+              PYTHONPATH=src python scripts/run_real_v2x_matched_speed_replay.py \
+                --data data/raw/cicv5g \
+                --output ${out} \
+                --seed ${seed} \
+                --directions w2s \
+                --train-fraction 0.40 \
+                --donor-fraction 0.40 \
+                --query-spacing-m 5.0 \
+                --caliper-m ${caliper}
+              python scripts/analyze_real_v2x_matched_speed_replay.py \
+                --input ${out} \
+                --bootstrap 1000 \
+                --seed ${seed}
+              python scripts/analyze_real_v2x_matched_speed_budget.py \
+                --input ${out} \
+                --budgets 0.01,0.05,0.10
+            done
+          done
+          python scripts/analyze_real_v2x_matched_speed_sweep.py \
+            --root results/real_v2x_matched_speed_w2s_balanced
+          python scripts/analyze_real_v2x_matched_speed_budget_sweep.py \
+            --root results/real_v2x_matched_speed_w2s_balanced
+      - name: Record provenance
+        run: |
+          mkdir -p results/real_v2x_matched_speed/provenance
+          git rev-parse HEAD > results/real_v2x_matched_speed/provenance/commit_sha.txt
+          python --version > results/real_v2x_matched_speed/provenance/python_version.txt
+          cp data/raw/cicv5g/manifest.json results/real_v2x_matched_speed/provenance/cicv5g_manifest.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: matched-speed-replay-development
+          path: |
+            results/real_v2x_matched_speed/
+            results/real_v2x_matched_speed_sweep/
+            results/real_v2x_matched_speed_w2s_balanced/

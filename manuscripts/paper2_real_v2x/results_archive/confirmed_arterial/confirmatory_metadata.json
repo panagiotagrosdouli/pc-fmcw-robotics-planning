@@ -1,0 +1,25 @@
+{
+  "protocol": "PAPER2_CONFIRMATORY_FREEZE_2026-09-30",
+  "budget": 0.1,
+  "bootstrap_replicates": 5000,
+  "bootstrap_seed": 20260930,
+  "query_runs": [
+    "arterial_n8_v50_run02",
+    "arterial_n8_v80_run04",
+    "arterial_n8_v80_run05",
+    "arterial_n8_v80_run06"
+  ],
+  "donor_runs": [
+    "arterial_n8_v50_run04",
+    "arterial_n8_v50_run05",
+    "arterial_n8_v80_run02",
+    "arterial_n8_v80_run07"
+  ],
+  "n_query_runs": 4,
+  "n_donor_runs": 4,
+  "n_contexts": 319,
+  "slow_speed_kmh": 50.0,
+  "fast_speed_kmh": 80.0,
+  "oracle_interpretation": "Support-bounded measured upper-bound diagnostic; donor outcomes are used for ranking and evaluation within a bootstrap replicate, so it is not an unbiased deployable-policy performance estimate.",
+  "inference_boundary": "Two-way acquisition-run bootstrap resamples query and donor clusters. Finite-run observational replay remains non-causal."
+}

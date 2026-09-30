@@ -1,0 +1,38 @@
+{
+  "seed": 20260930,
+  "directions": ["unknown"],
+  "train_fraction": 0.4,
+  "donor_fraction": 0.4,
+  "speeds_kmh": [50.0, 80.0],
+  "caliper_m": 2.0,
+  "k_donors": 5,
+  "query_spacing_m": 5.0,
+  "eligible_query_locations": 319,
+  "margin_training_rows": 361,
+  "margin_model_status": "fit",
+  "margin_knn_neighbors": 25,
+  "margin_lower_quantile": 0.1,
+  "split": {
+    "group_cols": ["network", "direction", "nominal_speed_kmh"],
+    "train_runs": [
+      "arterial_n8_v50_run01",
+      "arterial_n8_v50_run03",
+      "arterial_n8_v80_run01",
+      "arterial_n8_v80_run03"
+    ],
+    "donor_runs": [
+      "arterial_n8_v50_run04",
+      "arterial_n8_v50_run05",
+      "arterial_n8_v80_run02",
+      "arterial_n8_v80_run07"
+    ],
+    "query_runs": [
+      "arterial_n8_v50_run02",
+      "arterial_n8_v80_run04",
+      "arterial_n8_v80_run05",
+      "arterial_n8_v80_run06"
+    ],
+    "excluded_strata": {}
+  },
+  "claim_boundary": "Cross-run matched field replay under exact network/direction/speed and spatial-caliper overlap. Donor outcomes are measured and hidden during selection, but runs are observational/repeated experiments rather than randomized speed interventions; causal speed effects are not claimed."
+}

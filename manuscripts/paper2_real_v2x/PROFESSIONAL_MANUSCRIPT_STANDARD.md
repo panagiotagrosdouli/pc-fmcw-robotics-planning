@@ -1,39 +1,114 @@
-# Paper 2 — journal-grade manuscript standard
+# Paper 2 — Journal-Grade Manuscript Standard
 
-This file is a quality contract for the submission manuscript, not a project README.
+**Updated:** 2026-09-30
 
-The canonical paper must read as a self-contained scientific article. Repository implementation details belong in reproducibility material unless they are required to understand the method. The paper should not use PR numbers, CI run numbers, branch names, or development history as narrative evidence.
+This file is the quality contract for the canonical submission manuscript.
 
 ## Required scientific narrative
 
-The manuscript must establish the problem in this order: vehicular motion changes wireless conditions; future-QoS prediction can therefore be decision relevant; field-measured predictors are not valid everywhere a planner can query them; row-wise validation can leak route-local information; and arbitrary counterfactual positions lack measured QoS truth. The proposed methodology addresses these issues with whole-run partitioning, causal horizon-specific prediction, calibration-only model selection, training-only empirical support, and route-constrained measured replay.
+The manuscript should establish the problem in this order:
 
-The novelty claim must remain narrow. Communication-aware planning, radio-map planning, QoS-aware trajectory optimization, predictive V2X QoS, and uncertainty-aware planning are prior art. The contribution is the combination of anti-leakage field evaluation, horizon-dependent decision relevance, explicit measurement-support auditing, and measured post-selection replay.
+1. predictive QoS and communication-aware motion planning are established prior art;
+2. field logs only measure outcomes under executed acquisition conditions;
+3. a motion decision asks about alternative actions;
+4. model-generated action values cannot serve automatically as measured counterfactual truth;
+5. repeated field drives can provide finite action support for some physically interpretable actions;
+6. training, measured outcome donation, and query roles must be separated;
+7. donor reuse creates a second dependence dimension beyond query-run dependence;
+8. the resulting evidence can support or reject a decision claim without requiring a new planner architecture.
+
+## Required contribution framing
+
+The contribution is:
+
+- support-bounded matched field replay;
+- disjoint train/donor/query acquisition-run roles;
+- explicit measured donor provenance;
+- two-way query-run × donor-run inference;
+- pre-frozen cross-scenario confirmation;
+- a transparent negative result for direct pairwise action-margin modeling.
+
+The contribution is not:
+
+- generic communication-aware motion planning;
+- generic predictive QoS;
+- generic decision-focused learning;
+- regret diagnostics;
+- a causal speed controller;
+- a universal superior planner.
+
+## Required primary results
+
+The paper must visibly report both frozen confirmations.
+
+### W2S
+
+- ORACLE − FAST interval entirely below zero;
+- PRED − ORACLE interval entirely above zero;
+- PRED − FAST interval crosses zero;
+- MARGIN − FAST interval crosses zero.
+
+### Arterial
+
+- ORACLE − FAST interval entirely below zero;
+- PRED − ORACLE interval entirely above zero;
+- PRED − FAST interval entirely above zero;
+- MARGIN − FAST interval entirely above zero.
+
+The arterial degradation result must not be hidden.
+
+## Required statistical language
+
+- acquisition runs are evidence clusters;
+- timestamp rows are not independent subjects;
+- donor runs are resampled independently of query runs;
+- bootstrap replicates are not independent experiments;
+- development seed/caliper configurations are descriptive sensitivity analyses;
+- the measured oracle is a nondeployable upper-bound diagnostic;
+- repeated drives are observational and do not identify causal speed treatment effects.
 
 ## Required sections
 
-The submission version should contain a substantive Introduction; Related Work organized by communication-aware planning, predictive vehicular QoS, uncertainty/support, and counterfactual evaluation; Data and leakage-control protocol; Problem Formulation; Prediction and calibration; Empirical Measurement Support; Route-Constrained Measured Replay; Planner Definitions; Experimental Protocol and Hypotheses; Results; Discussion; Threats to Validity; Reproducibility and Data Availability; Conclusion; and verified references.
+The submission should contain:
 
-## Required hypotheses
-
-H1: spatial/context information provides incremental predictive value over persistence only at sufficiently long decision horizons.
-
-H2: using horizon-appropriate future-QoS estimates changes selected measured-route actions in a direction that reduces subsequently observed delay relative to reactive/current-QoS planning.
-
-H3: explicit training-measurement support control reduces the fraction of selected actions whose predictor queries are empirically unsupported; no additional QoS gain is assumed.
-
-Each hypothesis must be linked to a declared analysis and must be weakened or rejected when the evidence does not support it.
-
-## Statistical language
-
-The nine held-out acquisition runs in the primary split are the paired inferential units for replay comparisons. Bootstrap confidence intervals and paired Wilcoxon tests may be reported, with Holm adjustment over the declared family. A raw p-value below 0.05 that does not survive Holm must be described as exploratory. Five alternative grouped split assignments reuse drives and therefore provide descriptive sensitivity evidence only; they are not n=5 independent experiments.
-
-## Claim boundaries
-
-CICV5G provides field-measured 5G/V2N2V evidence for the decision layer. It does not validate the separate PC-FMCW optical model. Route-constrained replay is offline measured replay, not closed-loop autonomous-driving deployment. Residual split-conformal intervals are empirical uncertainty intervals, not calibrated event probabilities. The 50-ms delay threshold is an experimental operating point, not a universal networking standard. Implementation timing is not an embedded real-time guarantee.
+- Introduction;
+- Related Work and Non-Overlap;
+- Field Data and Evidence Roles;
+- Support-Bounded Matched Field Replay;
+- Frozen Predictive Rankings;
+- Budgeted Decision Policies;
+- Statistical Protocol;
+- W2S Results;
+- Arterial Out-of-Scenario Confirmation;
+- Discussion;
+- Threats to Validity and Limitations;
+- Reproducibility;
+- Conclusion;
+- verified references.
 
 ## Presentation standard
 
-Every central quantitative result should appear in a generated table or vector figure and be reproducible from the archived artifact snapshot. The main text should interpret effect size, uncertainty, multiplicity, and practical meaning rather than merely list numbers. Negative results must remain visible, especially the failure of naive one-step learned predictors to beat persistence and the absence of a stable P3-over-P2 QoS gain.
+Every central number must be traceable to the compact locked snapshots and/or immutable Actions artifacts.
 
-The final PDF should target normal full-paper density rather than a 3--4 page project summary. Page count is venue dependent, but the scientific content should be sufficient for an approximately 8--12 page IEEE-style full paper before venue-specific compression.
+Negative results remain visible.
+
+The PDF must have:
+
+- no clipped text;
+- no label/text overlap;
+- no broken glyphs;
+- no unresolved references;
+- readable tables in two-column IEEE layout.
+
+The current confirmed manuscript is intentionally concise; page count should not be increased merely to resemble a longer paper.
+
+## Submission discipline
+
+Before external submission:
+
+1. canonical PDF build passes;
+2. visual QA passes every page;
+3. claim-evidence matrix agrees with manuscript and cover letter;
+4. author metadata and disclosures are confirmed;
+5. supplementary bundle includes frozen protocols, code, tests, compact result snapshots, and provenance;
+6. immutable release/tag is created only after author metadata is final.

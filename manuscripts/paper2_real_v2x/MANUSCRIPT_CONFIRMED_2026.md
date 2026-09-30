@@ -2,12 +2,10 @@
 
 ## Support-Bounded Matched Field Replay for Vehicular Speed Decisions
 
-**Canonical source:** `paper2.tex`. This Markdown file is the human-readable companion to the canonical submission source.  
-**Evidence freeze date:** 2026-09-30  
+**Status:** confirmed research manuscript draft  
+**Date:** 2026-09-30  
 **Primary workflow head SHA:** `a056d46a5579032d10f51a1d6e90d800d3d017b4`  
-**Primary executed checkout SHA:** `e4f6430f8b6368f64edee421b827895b11280115`  
-**Arterial workflow head SHA:** `5a98d2e8ea1a948d5cc1d0586d4d63b402a715a7`  
-**Arterial executed checkout SHA:** `3df3a7b4479f7b1e9d6019497b4a5e9ecbb12586`
+**Primary executed checkout SHA:** `e4f6430f8b6368f64edee421b827895b11280115`
 
 ## Abstract
 
