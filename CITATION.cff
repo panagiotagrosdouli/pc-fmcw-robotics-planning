@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "If you use this software or research artifact, please cite it as below."
+title: "PC-FMCW Robotics Planning"
+type: software
+authors:
+  - family-names: "Grosdouli"
+    given-names: "Panagiota"
+repository-code: "https://github.com/panagiotagrosdouli/pc-fmcw-robotics-planning"
+url: "https://github.com/panagiotagrosdouli/pc-fmcw-robotics-planning"
+keywords:
+  - PC-FMCW
+  - integrated sensing and communication
+  - robotics planning
+  - autonomous vehicles
+  - connectivity-aware planning
+  - V2X
+  - predictive planning
